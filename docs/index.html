@@ -2204,10 +2204,10 @@ async function netHost(){
   const code=Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');
   const peer=new Peer(NET_PRE+code);net.peer=peer;
   peer.on('open',()=>showNetWait('相手が入るのを待っています…',code));
-  peer.on('connection',c=>{if(net.conn){try{c.close();}catch(e){}return;}netAttach(c);});
+  peer.on('connection',c=>{if(net.conn){try{c.close();}catch(e){}return;}showNetWait('相手が入ってきました。接続中…',code);netAttach(c);});
   peer.on('error',er=>{
    if(er&&er.type==='unavailable-id'&&left>0){try{peer.destroy();}catch(e){}tryOpen(left-1);return;}
-   netFail('接続できませんでした。もう一度お試しください。');
+   netFail('接続できませんでした。(診断: '+(er&&er.type||er)+')');
   });
  };
  showNetWait('部屋を作っています…');tryOpen(4);
@@ -2221,10 +2221,11 @@ async function netJoin(code){
  const peer=new Peer();net.peer=peer;
  peer.on('open',()=>{
   const c=peer.connect(NET_PRE+code,{reliable:true});
-  net.wait=setTimeout(()=>netFail('部屋が見つかりませんでした。合言葉を確かめてください。'),15000);
+  net.wait=setTimeout(()=>netFail('相手の部屋につながりませんでした。合言葉が合っているか、相手が部屋を作ったまま待っているかを確かめてください。(診断: サーバー接続=OK / 経路='+(net.ice||'未開始')+')'),25000);
+  setTimeout(()=>{try{const pc=c.peerConnection;if(pc){net.ice=pc.iceConnectionState;pc.addEventListener('iceconnectionstatechange',()=>{net.ice=pc.iceConnectionState;});}}catch(e){}},800);
   netAttach(c);
  });
- peer.on('error',er=>{netFail(er&&er.type==='peer-unavailable'?'その合言葉の部屋が見つかりません。':'接続できませんでした。もう一度お試しください。');});
+ peer.on('error',er=>{netFail(er&&er.type==='peer-unavailable'?'その合言葉の部屋が見つかりません。(診断: 部屋の作成者が待機していないか、合言葉の違いです)':'接続できませんでした。(診断: '+(er&&er.type||er)+')');});
 }
 function netFail(msg){netLeave();showNetMenu(msg);}
 function netAttach(c){
