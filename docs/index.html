@@ -62,6 +62,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .tslot.on{border-style:solid;border-color:var(--accent);color:var(--card-ink);background:var(--card);font-family:var(--kanji);font-weight:700;opacity:1}
 .tslot.on[data-act]{cursor:pointer}
 .atkw{color:var(--accent);font-weight:700}
+.surr{border:1.5px solid var(--ink2);border-radius:4px;background:transparent;color:var(--ink);font:inherit;font-size:.78rem;padding:2px 8px;cursor:pointer;line-height:1.3}
+.surr:hover{background:var(--panel)}
 .tslot.selt{outline:3px solid var(--accent);outline-offset:1px}
 .tslot.back{background:var(--accent);color:var(--accent-ink)}
 .tslot.drop{border-style:solid;border-color:var(--acc,#b8472f);color:var(--acc,#b8472f);cursor:pointer;font-weight:700;opacity:1}
@@ -1640,7 +1642,7 @@ function barH(s){
  const healAim=s===ME()&&mineTurn()&&nextHeal();
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
  return `<div class="bar ${aiming||healAim?'target':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
-  `${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i style="width:${pct}%"></i></div><b class="hpn">${me.hp}${d}</b></div>`+
+  `${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i style="width:${pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
   `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
 function midH(){
@@ -1832,6 +1834,7 @@ function onCard(kind,id){
 }
 function onAct(act,data){
  if(act==='again'){showStart();return;}
+ if(act==='surrender'){if(G&&!G.over)showSurrConfirm();return;}
  if(G.over||!mineTurn())return;
  if(act==='cancel'){resetUi();render();return;}
  if(act==='trapinfo'){if(ui.mode==='trapset')return;const sl=Number(data&&data.slot);ui=(ui.sel&&ui.sel.kind==='trap'&&ui.sel.slot===sl)?{sel:null,mode:null,split:null}:{sel:{kind:'trap',slot:sl},mode:null,split:null};render();return;}
@@ -2095,6 +2098,17 @@ function twoClick(b){
   else{startTwo(two.first,k);}
  }
 }
+function showSurrConfirm(){
+ showOverlay(`<h2>降参</h2><p>本当に降参しますか？</p><div class="row"><button type="button" class="btn pri" data-act="surryes">降参する</button><button type="button" class="btn" data-act="surrno">やめる</button></div>`);
+}
+function doSurrender(){
+ if(!G||G.over)return;
+ const me=ME();
+ if(ONLINE&&ONLINE.started)ONLINE.send({t:'surrender'});
+ G.over=OP(me);
+ G.why=ONLINE?'あなたが降参したので、あなたの負けです':NAME[me]+'が降参しました';
+ resetUi();showEnd();
+}
 function showEnd(){
  const won=G.over==='p';
  showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p><div class="row"><button type="button" class="btn pri" data-act="again">もう一度</button><button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
@@ -2149,6 +2163,8 @@ $('ov').addEventListener('click',e=>{
  const a=e.target.closest('[data-act]');
  if(!a)return;
  if(a.dataset.act==='again')showStart();
+ if(a.dataset.act==='surryes')doSurrender();
+ if(a.dataset.act==='surrno')$('ov').hidden=true;
  if(a.dataset.act==='look')$('ov').hidden=true;
 });
 $('sub').textContent=`漢字をばらして戦う、1対1のカードバトル(小学1〜5年の漢字${POOL.length}字)`;
@@ -2188,7 +2204,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.2';
+const APP_VER='v2.3';
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
 const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
@@ -2227,7 +2243,13 @@ function netPeerLeft(msg){
  if(!ONLINE||!ONLINE.started)return;
  if(G&&G.over)return;
  netLeave();showStart();
- try{$('sheet').insertAdjacentHTML('afterbegin',`<p role="alert" style="background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:10px 12px;font-weight:700;margin:0 0 10px">${esc(msg||'相手が通信を切断しました。対戦を終了してメニューに戻りました。')}</p>`);}catch(e){}
+ try{
+  const d=document.createElement('div');d.setAttribute('role','alertdialog');d.setAttribute('aria-live','assertive');
+  d.style.cssText='position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:16px';
+  d.innerHTML=`<div style="background:var(--panel);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:20px 22px;max-width:340px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.35)"><p style="margin:0 0 14px;font-weight:700;font-size:1.05rem;line-height:1.6">${esc(msg||'相手が通信を切断しました。対戦を終了してメニューに戻りました。')}</p><button type="button" class="btn pri">OK</button></div>`;
+  d.querySelector('button').addEventListener('click',()=>d.remove());
+  document.body.appendChild(d);d.querySelector('button').focus();
+ }catch(e){}
 }
 function netIn(i,m){
  if(!ONLINE||ONLINE.brk!==i||!m||typeof m!=='object')return;
@@ -2319,6 +2341,7 @@ function netRecv(m){
  if(!m||typeof m!=='object')return;
  if(!ONLINE||!ONLINE.started||!G||!G.two||G.over)return;
  const peerSide=OP(ONLINE.side);
+ if(m.t==='surrender'){G.over=ONLINE.side;G.why='相手が降参したので、あなたの勝ちです';resetUi();render();showEnd();return;}
  if(m.t!=='act'&&m.t!=='end')return;
  if((G.pending?G.pending.by:G.cur)!==peerSide)return;
  ONLINE.replay=true;
