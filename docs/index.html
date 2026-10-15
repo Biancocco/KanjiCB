@@ -61,6 +61,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .tslot{height:30px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:.7rem;opacity:.8}
 .tslot.on{border-style:solid;border-color:var(--accent);color:var(--card-ink);background:var(--card);font-family:var(--kanji);font-weight:700;opacity:1}
 .tslot.on[data-act]{cursor:pointer}
+.atkw{color:var(--accent);font-weight:700}
 .tslot.selt{outline:3px solid var(--accent);outline-offset:1px}
 .tslot.back{background:var(--accent);color:var(--accent-ink)}
 .tslot.drop{border-style:solid;border-color:var(--acc,#b8472f);color:var(--acc,#b8472f);cursor:pointer;font-weight:700;opacity:1}
@@ -1656,6 +1657,7 @@ function unitWhy(u){
  if(P.acts<=0)return '行動回数がありません';
  return '';
 }
+const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
 const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にします。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。'};
 function panelH(){
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
@@ -1666,7 +1668,7 @@ function panelH(){
   const tr=(P.traps||[])[ui.sel.slot];
   if(tr){
    const above=P.field.find(u=>u.slot===ui.sel.slot);
-   return `<div class="panel"><p class="ttl">罠「${tr.card.ch}」 ${tr.fired?'(発動中)':'(伏せ中)'}</p><p class="sm">${esc(TRAP_TXT[tr.card.ch]||'')}</p><div class="row" style="align-items:center;justify-content:space-between;gap:8px"><p class="sm" style="margin:0">${above?`この罠の真上の字: 「${esc(above.ch)}」`:'この罠の真上には、いま字がありません。'}</p><button type="button" class="btn" data-act="cancel">閉じる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">罠「${tr.card.ch}」 ${tr.fired?'(発動中)':'(伏せ中)'}</p><p class="sm">${hlAtk(TRAP_TXT[tr.card.ch]||'')}</p><div class="row" style="align-items:center;justify-content:space-between;gap:8px"><p class="sm" style="margin:0">${above?`この罠の真上の字: 「${esc(above.ch)}」`:'この罠の真上には、いま字がありません。'}</p><button type="button" class="btn" data-act="cancel">閉じる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='hand'){
@@ -1692,7 +1694,7 @@ function panelH(){
   if(c&&c.trap){
    const ok=(P.traps||[]).some(x=>!x);
    const why=!ok?'置ける枠がありません':'';
-   return `<div class="panel"><p class="ttl">「${c.ch}」 罠カード</p><p class="sm">攻撃も召喚もできません。「罠設置」で、罠の空き枠へ無償で伏せます(真上に字がなくても置けます)。${TRAP_TXT[c.ch]||''}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="trapmode" ${why?'disabled':''}>罠設置</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">「${c.ch}」 罠カード</p><p class="sm">攻撃も召喚もできません。「罠設置」で、罠の空き枠へ無償で伏せます(真上に字がなくても置けます)。${hlAtk(TRAP_TXT[c.ch]||'')}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="trapmode" ${why?'disabled':''}>罠設置</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&c.spell){
    const el=salvElig(ME()),others=P.hand.length-1;
@@ -1919,8 +1921,8 @@ function rulesH(){
  <li>冠付加を使うと、1回につき追加でカードを1枚引く(花回復では引かない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
- <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が単体攻撃を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
- <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が分解攻撃を受けると発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にする。単体攻撃は止められない。発動した止は、次のターンの始めに墓地へ行く。</li>
+ <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
+ <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にする。<b class="atkw">単体攻撃</b>は止められない。発動した止は、次のターンの始めに墓地へ行く。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
  <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
  <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・冠付加の分は引き継ぐ。</li>
@@ -2186,7 +2188,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.1';
+const APP_VER='v2.2';
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
 const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
@@ -2197,7 +2199,7 @@ function netConnectAll(inbox,onMsg,onReady){
  net.mq=NET_BROKERS.map((url,i)=>{
   const e={url,ready:false,cl:null};
   try{
-   const cl=window.mqtt.connect(url,Object.assign({clientId:'jkz_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:20},NET_AUTH(url)));
+   const cl=window.mqtt.connect(url,Object.assign({clientId:'jkz_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:20,will:{topic:NET_TOPIC(net.code,net.role==='host'?'g':'h'),payload:JSON.stringify({t:'bye'}),qos:1,retain:false}},NET_AUTH(url)));
    e.cl=cl;
    cl.on('connect',()=>{cl.subscribe(NET_TOPIC(net.code,inbox),{qos:1},err=>{if(!err){e.ready=true;if(onReady)onReady(i);}});});
    cl.on('message',(t,p)=>{try{onMsg(i,JSON.parse(p.toString()));}catch(x){}});
@@ -2221,28 +2223,34 @@ function netMakeOnline(i){
  },5000);
  return ONLINE;
 }
+function netPeerLeft(msg){
+ if(!ONLINE||!ONLINE.started)return;
+ if(G&&G.over)return;
+ netLeave();showStart();
+ try{$('sheet').insertAdjacentHTML('afterbegin',`<p role="alert" style="background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:10px 12px;font-weight:700;margin:0 0 10px">${esc(msg||'相手が通信を切断しました。対戦を終了してメニューに戻りました。')}</p>`);}catch(e){}
+}
 function netIn(i,m){
  if(!ONLINE||ONLINE.brk!==i||!m||typeof m!=='object')return;
  ONLINE.last=Date.now();
+ if(m.t==='bye'){netPeerLeft();return;}
  if(m.n!=null){if(m.n<=ONLINE.rn)return;ONLINE.rn=m.n;}
  netRecv(m);
 }
 function netLeave(){
  const mq=net.mq,was=!!ONLINE;
+ try{if(ONLINE&&ONLINE.started)ONLINE.raw({t:'bye'});}catch(x){}
  net.mq=[];net.role='';ONLINE=null;
  if(net.wait){clearTimeout(net.wait);net.wait=null;}
  if(net.hi){clearInterval(net.hi);net.hi=null;}
  if(net.pingIv){clearInterval(net.pingIv);net.pingIv=null;}
- mq.forEach(e=>{try{e.cl&&e.cl.end(true);}catch(x){}});
+ mq.forEach(e=>{try{e.cl&&e.cl.end(false);}catch(x){}});
  if(was){RNG=null;NAME.p='あなた';NAME.c='CPU';G=null;}
 }
 function netFail(msg){netLeave();showNetMenu(msg);}
 function netClosed(force){
  if(!ONLINE)return;
- const playing=ONLINE.started&&G&&G.two&&!G.over;
- if(playing){showOverlay(`<h2>接続が切れました</h2><p>相手からの応答が30秒以上ありません。相手が画面を閉じたか、通信が途切れた可能性があります。対戦を終了します。</p><div class="row"><button type="button" class="btn pri" data-act="again">メニューへ</button></div>`);}
- else if(!G||!G.over){netFail('相手との接続が切れました。');}
- if(ONLINE)ONLINE.send=()=>{};
+ if(ONLINE.started&&G&&G.two&&!G.over){netPeerLeft('相手からの応答が30秒以上ありません。通信が切れたため、対戦を終了してメニューに戻りました。');return;}
+ if(!G||!G.over)netFail('相手との接続が切れました。');
 }
 async function netTest(){
  const out=['テスト中…(約10秒)'];
