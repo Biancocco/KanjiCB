@@ -2186,9 +2186,10 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.0';
+const APP_VER='v2.1';
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const NET_BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
+const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
+const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
 const NET_TOPIC=(code,r)=>'jkzkcb/v1/'+code+'/'+r;
 let net={deck:'',role:'',code:'',mq:[],wait:null,hi:null,pingIv:null};
 function netLoadLib(){return new Promise((ok,ng)=>{if(window.mqtt)return ok();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js';sc.onload=ok;sc.onerror=()=>ng(new Error('lib'));document.head.appendChild(sc);});}
@@ -2196,7 +2197,7 @@ function netConnectAll(inbox,onMsg,onReady){
  net.mq=NET_BROKERS.map((url,i)=>{
   const e={url,ready:false,cl:null};
   try{
-   const cl=window.mqtt.connect(url,{clientId:'jkz_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:20});
+   const cl=window.mqtt.connect(url,Object.assign({clientId:'jkz_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:20},NET_AUTH(url)));
    e.cl=cl;
    cl.on('connect',()=>{cl.subscribe(NET_TOPIC(net.code,inbox),{qos:1},err=>{if(!err){e.ready=true;if(onReady)onReady(i);}});});
    cl.on('message',(t,p)=>{try{onMsg(i,JSON.parse(p.toString()));}catch(x){}});
@@ -2254,7 +2255,7 @@ async function netTest(){
   const t0=Date.now();let cl;let fin=false;
   const end=(txt)=>{if(fin)return;fin=true;try{cl&&cl.end(true);}catch(x){}done(url.replace(/^wss:\/\//,'').replace(/[:\/].*$/,'')+': '+txt);};
   try{
-   cl=window.mqtt.connect(url,{clientId:'jkzt_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:0});
+   cl=window.mqtt.connect(url,Object.assign({clientId:'jkzt_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:0},NET_AUTH(url)));
    cl.on('connect',()=>{cl.subscribe(tid,{qos:1},err=>{if(err)return end('購読失敗');cl.publish(tid,'x',{qos:1});});});
    cl.on('message',()=>end('OK('+(Date.now()-t0)+'ms)'));
    cl.on('error',e=>end('失敗('+((e&&e.message)||'error')+')'));
