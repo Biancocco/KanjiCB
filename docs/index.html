@@ -135,6 +135,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .panel p{margin:0}
 .panel .ttl{font-weight:700}
 .panel .sm{font-size:.82rem;color:var(--ink2)}
+.hintw{display:inline-block}.hintw .btn:disabled{pointer-events:none}
 .panel .why{font-size:.82rem;color:var(--warn)}
 .panel .plan{font-family:var(--kanji);font-size:1.05rem;letter-spacing:.08em}
 .panel.alert{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -1361,7 +1362,7 @@ function crown(s,cid,uid){
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
  const c=me.hand[i];me.mana-=CFG.crownCost;me.hand.splice(i,1);toGy(me,c);
  let n;
- if(isFlower(c)){const h=Math.min(CFG.flowerHeal,u.max-u.hp),r=CFG.flowerHeal-h;u.hp+=h;if(r>0){u.max+=r;u.hp+=r;u.fmax=(u.fmax||0)+r;}n=CFG.flowerHeal;log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n};}
+ if(isFlower(c)){const h=Math.min(CFG.flowerHeal,u.max-u.hp),r=CFG.flowerHeal-h;u.hp+=h;if(r>0){u.max+=r;u.hp+=r;u.fmax=(u.fmax||0)+r;}n=CFG.flowerHeal;log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n,heal:1};}
  else{
   if(u.hp<u.max){u.hp++;log(`${NAME[s]}は「${c.ch}」を冠として「${u.ch}」を回復(体力${u.hp})`);}
   else{u.max++;u.hp++;log(`${NAME[s]}は「${c.ch}」を冠として「${u.ch}」の体力を+1(${u.hp})`);}
@@ -1602,7 +1603,7 @@ function cardH(u,kind,cls,tag,gtag){
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
  const hpTxt=kind==='hand'?u.hp:(u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp);
- return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isHealCard(u)?(healerOnly(u.ch)?' hl hg':' hl'):''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
+ return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.crown||u.fmax)?`<span class="tr">${(u.crown||multi)?`<span class="row1">${u.crown?`<span class="crwn" title="冠付加">冠${u.crown>1?u.crown:''}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
   (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
@@ -1733,7 +1734,7 @@ function panelH(){
   if(c){
    const why=summonWhy(ME(),c);
    const info=(c.parts.length>1?`分解攻撃のみ: ${planTxt(c)}`:healerOnly(c.ch)?'回復のみ(攻撃はできません)':'単体攻撃のみ')+(c.ch==='刀'?(P.ct?'。切り離しはこのターン使用済み':'。切り離しで、相手の字のパーツを1つ切り落とせます'):'')+(P.field.some(u=>composeTo(c.ch,u.ch))?'。パーツ付与で、場の字を合成できます':'')+(isFlower(c)?'。花回復で、この字を使って場の字の体力を3回復できます':isCrown(c)?'。冠付加で、この字を使って場の字の体力を増やせます':'')+'。召喚すると、空き枠を選んで好きな位置に置けます。';
-   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`:''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<CFG.crownCost||!P.field.length?'disabled':''}>${isFlower(c)?'花回復':'冠付加'}</button>`:''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace('<button',P.mana<CFG.cutCost?'<span class="hintw" data-hint="マナが足りません"><button':'<button').replace('</button>',P.mana<CFG.cutCost?'</button></span>':'</button>'):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<CFG.crownCost||!P.field.length?'disabled':''}>${isFlower(c)?'花回復':'冠付加'}</button>`:''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='field'){
@@ -2000,7 +2001,7 @@ function bdInfoH(){
 function bdChipsH(){
  const items=Object.entries(bd.deck).filter(([k,v])=>v>0).sort((x,y)=>(CARDS[x[0]].spell?1:0)-(CARDS[y[0]].spell?1:0)||CARDS[x[0]].c-CARDS[y[0]].c||CARDS[x[0]].s-CARDS[y[0]].s);
  if(!items.length)return '<span class="sm" style="color:var(--ink2);font-size:.82rem">字を選ぶとここに並びます(押すとステータスが見られます)</span>';
- return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':isHealCard({parts:CARDS[k].p,ch:k})?(healerOnly(k)?'hl hg':'hl'):''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
+ return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':bdFl(k)?'hl hg':isHealCard({parts:CARDS[k].p,ch:k})?'hl':''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
 }
 function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
@@ -2008,12 +2009,13 @@ function bdPeekH(){
  const body=d.spell?`${esc(d.trap?(k==='止'?'罠(分)':k==='返'?'罠(単)':'罠'):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
  return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
 }
-const bdRank=ch=>CARDS[ch].spell?0:healerOnly(ch)?1:2;
+const bdFl=ch=>CARDS[ch].p.includes('艹');
+const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:2;
 function bdFiltered(){
  const q=Array.from(bd.q);
  return Object.entries(CARDS).filter(([ch,d])=>{
   if(q.length)return q.includes(ch);
-  if(bd.grade==='s'){if(!d.spell&&!isHealCard({parts:d.p,ch}))return false;}
+  if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!isHealCard({parts:d.p,ch}))return false;}
   else if(bd.grade&&(d.spell||d.g!==bd.grade))return false;
   if(bd.cost&&(d.spell||d.c!==bd.cost))return false;
   if(bd.sy!==bd.sn&&(d.spell||(d.p.length>1)!==bd.sy))return false;
@@ -2025,7 +2027,7 @@ function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
  const info=d.spell?`<b>${esc(d.label||'特殊')}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
- return `<div class="bdr ${d.spell?'spc':isHealCard({parts:d.p,ch})?(healerOnly(ch)?'hl hg':'hl'):''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
+ return `<div class="bdr ${d.spell?'spc':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
 }
 function bdListH(){const rows=bdFiltered();return rows.length?rows.map(bdRowH).join(''):'<p style="padding:12px;color:var(--ink2)">該当する字がありません</p>';}
 function bdFilterH(){
@@ -2152,6 +2154,8 @@ function manaPreview(n){
 // 「ドロー」「破棄」に触れている間、使うマナ(右から数個)を網線で示す
 const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost};
 const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"]');
+document.addEventListener('mouseover',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h)return;const pn=h.closest('.panel');if(!pn)return;let w=pn.querySelector('.why');if(!w){w=document.createElement('p');w.className='why';w.dataset.tmp='1';const sm=pn.querySelector('.sm');(sm||pn.firstChild).after(w);}else if(w.dataset.orig===undefined)w.dataset.orig=w.textContent;w.textContent=h.dataset.hint;});
+document.addEventListener('mouseout',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h||h.contains(e.relatedTarget))return;const pn=h.closest('.panel');const w=pn&&pn.querySelector('.why');if(!w)return;if(w.dataset.tmp)w.remove();else if(w.dataset.orig!==undefined){w.textContent=w.dataset.orig;delete w.dataset.orig;}});
 $('board').addEventListener('mouseover',e=>{const b=costBtn(e);if(b&&!b.disabled)manaPreview(PREVIEW_COST[b.dataset.act]());});
 $('board').addEventListener('mouseout',e=>{if(costBtn(e))manaPreview(0);});
 $('board').addEventListener('focusin',e=>{const b=costBtn(e);if(b&&!b.disabled)manaPreview(PREVIEW_COST[b.dataset.act]());});
@@ -2225,7 +2229,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.10';
+const APP_VER='v2.11';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const ch=cutQ.shift();if(!ch){cutBusy=false;return;}cutBusy=true;
