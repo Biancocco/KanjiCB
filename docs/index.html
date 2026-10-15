@@ -156,6 +156,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .btn.yes{background:color-mix(in srgb,var(--accent) 45%,var(--card));color:var(--card-ink);border-color:transparent}
 .panel.muted{color:var(--ink2)}
 .row{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:520px){.row.endr{display:grid;grid-template-columns:1fr 1fr}.row.endr .btn:last-child{grid-column:1/-1;justify-self:center}}
 .btn{font:inherit;font-weight:700;min-height:44px;padding:.4em 1em;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--card-ink);cursor:pointer}
 .btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -2129,7 +2130,7 @@ function showTwoSelect(){
 function startTwo(pk,ck){
  netIdleEnd();
  NAME.p='プレイヤー1';NAME.c='プレイヤー2';
- newGame(pk,ck);G.two=true;resetUi();seenSide=null;$('ov').hidden=true;
+ newGame(pk,ck);G.two=true;G.pk=pk;G.ck=ck;resetUi();seenSide=null;$('ov').hidden=true;
  startTurn('p');render();
 }
 function twoClick(b){
@@ -2156,7 +2157,7 @@ function doSurrender(){
 }
 function showEnd(){
  const won=G.over==='p';
- showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">もう一度</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
+ showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row${!ONLINE&&G.two?' endr':''}">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':G.two?'<button type="button" class="btn pri" data-act="tworematch">再戦する</button><button type="button" class="btn" data-act="again">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">もう一度</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
 function startGame(pk){
  netIdleEnd();
@@ -2211,6 +2212,7 @@ $('ov').addEventListener('click',e=>{
  const a=e.target.closest('[data-act]');
  if(!a)return;
  if(a.dataset.act==='again')showStart();
+ if(a.dataset.act==='tworematch'&&G&&G.pk)startTwo(G.pk,G.ck);
  if(a.dataset.act==='surryes')doSurrender();
  if(a.dataset.act==='surrno')$('ov').hidden=true;
  if(a.dataset.act==='look')netLook();
@@ -2254,7 +2256,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.14';
+const APP_VER='v2.15';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
