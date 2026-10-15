@@ -122,13 +122,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .cstage .ca{clip-path:polygon(0 0,100% 0,0 100%);animation:cutA 1.9s ease-in both}
 .cstage .cb{clip-path:polygon(100% 0,100% 100%,0 100%);animation:cutB 1.9s ease-in both}
 .cstage .cr{opacity:0;animation:cutR 1.9s ease-out both}
-.cstage .cp{font-size:56px;color:#ffd24a;opacity:0;animation:cutP 1.9s ease-in both}
+.cstage .cp{font-size:28px;color:#ffd24a;opacity:0;animation:cutP 1.9s ease-in both}
 .cstage .cs{position:absolute;left:-30%;right:-30%;top:50%;height:4px;margin-top:-2px;background:#fff;box-shadow:0 0 10px #fff,0 0 22px var(--accent,#5b8cff);transform:rotate(-42deg) scaleX(0);opacity:0;animation:cutS 1.9s ease-out both}
 @keyframes cutS{0%,18%{transform:rotate(-42deg) scaleX(0);opacity:0}24%{transform:rotate(-42deg) scaleX(1);opacity:1}45%{transform:rotate(-42deg) scaleX(1);opacity:0}100%{opacity:0}}
 @keyframes cutA{0%,26%{transform:translate(0,0);opacity:1}60%,100%{transform:translate(-26px,-22px) rotate(-8deg);opacity:0}}
 @keyframes cutB{0%,26%{transform:translate(0,0);opacity:1}60%,100%{transform:translate(26px,22px) rotate(8deg);opacity:0}}
 @keyframes cutR{0%,40%{opacity:0;transform:scale(.8)}62%,100%{opacity:1;transform:scale(1)}}
-@keyframes cutP{0%,30%{opacity:0;transform:translate(0,0) rotate(0)}38%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(120px,-70px) rotate(70deg)}}
+@keyframes cutP{0%,30%{opacity:0;transform:translate(0,0) scale(1) rotate(0)}38%{opacity:1;transform:translate(0,0) scale(1) rotate(0)}100%{opacity:0;transform:translate(130px,-80px) scale(.2) rotate(70deg)}}
 @keyframes cutslide{0%{transform:translateX(-60%)}25%{transform:translateX(0)}80%{transform:translateX(0)}100%{transform:translateX(30%)}}
 @keyframes cutfade{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
@@ -2254,7 +2254,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.13';
+const APP_VER='v2.14';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
