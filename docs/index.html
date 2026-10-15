@@ -117,6 +117,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .cch{color:#fff;font-size:84px;line-height:1;font-weight:800;text-shadow:0 0 18px var(--accent,#5b8cff)}
 @keyframes cutslide{0%{transform:translateX(-60%)}25%{transform:translateX(0)}80%{transform:translateX(0)}100%{transform:translateX(30%)}}
 @keyframes cutfade{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
+@keyframes partfly{0%{transform:translate(-50%,-50%) rotate(0);opacity:1}15%{transform:translate(-50%,-50%) rotate(0);opacity:1}100%{transform:translate(60%,-190%) rotate(55deg);opacity:0}}
+@keyframes slash{0%{opacity:0;transform:scaleX(0) rotate(-35deg)}20%{opacity:1;transform:scaleX(1) rotate(-35deg)}100%{opacity:0;transform:scaleX(1) rotate(-35deg)}}
+.cutfx{position:absolute;inset:0;pointer-events:none;z-index:7}
+.cutfx b{position:absolute;left:50%;top:45%;font-size:46cqw;line-height:1;font-weight:800;color:var(--accent);text-shadow:0 0 6px #fff,0 0 12px var(--accent);animation:partfly 1s ease-in both}
+.cutfx i{position:absolute;left:-10%;right:-10%;top:48%;height:3px;background:#fff;box-shadow:0 0 8px #fff,0 0 14px var(--accent);transform-origin:center;animation:slash .5s ease-out both}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
@@ -1411,7 +1416,7 @@ function cut(s,cid,uid,part){
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
  const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.crown=u.crown;n.fmax=u.fmax;
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
- op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
+ op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn',cut:part};
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
 }
 // 罠設置(止): 手札の「止」を、自分の罠の枠の空いている所へ無償で置く(真上に字がなくてもよい)。マナも行動回数も使わない。
@@ -1606,7 +1611,7 @@ function cardH(u,kind,cls,tag,gtag){
  return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.crown||u.fmax)?`<span class="tr">${(u.crown||multi)?`<span class="row1">${u.crown?`<span class="crwn" title="冠付加">冠${u.crown>1?u.crown:''}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
-  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
+  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}${fx&&fx.cut?`<span class="cutfx" aria-hidden="true"><b>${esc(fx.cut)}</b><i></i></span>`:''}</div>`;
 }
 function fieldH(s){
  const f=S(s).field;let h='';
@@ -1986,7 +1991,17 @@ const slotValid=i=>totalOf(bd.decks[i])===BD_SIZE&&cost1Of(bd.decks[i])>=1;
 const bdTotal=()=>totalOf(bd.deck);
 const bdCost1=()=>Object.entries(bd.deck).reduce((a,[k,v])=>a+(CARDS[k].c===1&&!CARDS[k].spell?v:0),0);
 const bdValid=()=>bdTotal()===BD_SIZE&&bdCost1()>=1;
-function bdSave(){try{localStorage.setItem(BD_KEY2,JSON.stringify(bd.decks));}catch(e){}}
+function bdSave(){try{localStorage.setItem(BD_KEY2,JSON.stringify(bd.decks));}catch(e){}bd.saved=JSON.stringify(bd.decks);}
+bd.saved=JSON.stringify(bd.decks);
+const bdDirty=()=>JSON.stringify(bd.decks)!==bd.saved;
+function bdLeave(){try{const a=JSON.parse(bd.saved);for(let i=0;i<BD_SLOTS;i++)bd.decks[i]=a[i]||{};}catch(e){}bd.peek='';showStart();}
+function bdConfirmBack(){
+ const d=document.createElement('div');d.setAttribute('role','alertdialog');
+ d.style.cssText='position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:16px';
+ d.innerHTML='<div style="background:var(--panel);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:20px 22px;max-width:340px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.35)"><p style="margin:0 0 14px;font-weight:700;font-size:1.05rem;line-height:1.6">変更が保存されませんがよろしいですか?</p><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-x="y">戻る</button><button type="button" class="btn" data-x="n">編集を続ける</button></div></div>';
+ d.addEventListener('click',e=>{const x=e.target.closest&&e.target.closest('[data-x]');if(!x)return;e.stopPropagation();d.remove();if(x.dataset.x==='y')bdLeave();});
+ document.body.appendChild(d);
+}
 for(let i=0;i<BD_SLOTS;i++){DECKS['custom'+(i+1)]={name:'マイデッキ'+(i+1),note:'',hidden:true,gen(){return Object.assign({},bd.decks[i]);}};}
 const isCustomKey=k=>/^custom[12]$/.test(k);
 const customOk=k=>isCustomKey(k)&&slotValid(Number(k.slice(6))-1);
@@ -2047,15 +2062,15 @@ function bdRefresh(){
    r.querySelector('[data-bd="sub"]').disabled=!n;
    r.querySelector('[data-bd="add"]').disabled=n>=BD_MAX||full;
   });
-  $('bdGo').disabled=!bdValid();
+  $('bdGo').disabled=!bdValid();const sv=$('bdSv');if(sv&&sv.textContent==='保存する')sv.disabled=!bdDirty()||false;
  }catch(e){}
 }
 function showBuilder(){
- showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。マイデッキは${BD_SLOTS}つまで保存できます(変更は自動で保存されます)。(相手のCPUは無作為のデッキです)</p><div class="bdf" id="bdSlots"></div>`+
+ showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。(相手のCPUは無作為のデッキです)</p><div class="bdf" id="bdSlots"></div>`+
   `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div>`+
   `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
   `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
-  `<div class="row"><button type="button" class="btn pri" id="bdGo" data-bd="go" disabled>このデッキで始める</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
+  `<div class="row"><button type="button" class="btn pri" id="bdGo" data-bd="go" disabled>このデッキで始める</button><button type="button" class="btn pri" id="bdSv" data-bd="save">保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
  bdRefresh();
 }
 function bdAuto(){
@@ -2069,14 +2084,15 @@ function bdAuto(){
 function bdClick(b){
  const a=b.dataset.bd,ch=b.dataset.ch;
  if(a==='open'){showBuilder();return;}
- if(a==='back'){showStart();return;}
+ if(a==='back'){if(bdDirty())bdConfirmBack();else showStart();return;}
+ if(a==='save'){bdSave();bdRefresh();const t=$('bdSv');if(t){t.textContent='保存しました';setTimeout(()=>{const u=$('bdSv');if(u)u.textContent='保存する';},1200);}return;}
  if(a==='peek'){bd.peek=bd.peek===ch?'':ch;bdRefresh();return;}
  if(a==='slot'){bd.slot=Number(b.dataset.v)||0;bd.peek='';showBuilder();return;}
  if(a==='go'){if(bdValid()){bdSave();startGame('custom'+(bd.slot+1));}return;}
- if(a==='add'){if(CARDS[ch]&&(bd.deck[ch]||0)<BD_MAX&&bdTotal()<BD_SIZE){bd.deck[ch]=(bd.deck[ch]||0)+1;bdSave();bdRefresh();}return;}
- if(a==='sub'){if(bd.deck[ch]){bd.deck[ch]--;if(!bd.deck[ch]){delete bd.deck[ch];if(bd.peek===ch)bd.peek='';}bdSave();bdRefresh();}return;}
- if(a==='clear'){bd.deck={};bd.peek='';bdSave();bdRefresh();return;}
- if(a==='auto'){bdAuto();bdSave();bdRefresh();return;}
+ if(a==='add'){if(CARDS[ch]&&(bd.deck[ch]||0)<BD_MAX&&bdTotal()<BD_SIZE){bd.deck[ch]=(bd.deck[ch]||0)+1;bdRefresh();}return;}
+ if(a==='sub'){if(bd.deck[ch]){bd.deck[ch]--;if(!bd.deck[ch]){delete bd.deck[ch];if(bd.peek===ch)bd.peek='';}bdRefresh();}return;}
+ if(a==='clear'){bd.deck={};bd.peek='';bdRefresh();return;}
+ if(a==='auto'){bdAuto();bdRefresh();return;}
  if(a==='grade'||a==='cost'||a==='split'){
   const v=b.dataset.v;
   if(a==='grade')bd.grade=v==='s'?'s':Number(v);else if(a==='cost')bd.cost=Number(v);else if(v==='y')bd.sy=!bd.sy;else bd.sn=!bd.sn;
@@ -2229,7 +2245,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.11';
+const APP_VER='v2.12';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const ch=cutQ.shift();if(!ch){cutBusy=false;return;}cutBusy=true;
