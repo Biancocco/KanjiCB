@@ -1945,7 +1945,7 @@ function showStart(){
  netLeave();
  const custom=`<button type="button" class="btn deck" data-bd="open"><b>デッキを組む</b><span>全${BD_SIZE}枚を自由に選ぶ。コスト1の字を1枚以上、同じ字は${BD_MAX}枚まで。</span></button>`+Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-deck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)で対戦する(CPUは無作為)。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('')+`<button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button>`;
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-deck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
- showOverlay(`<h2>字崩し</h2><p>漢字をばらして戦う、1対1のカードバトル。あなたが先攻です。</p>${rulesH()}<h3>デッキを選ぶ(CPUは別のデッキ。無作為を選ぶとCPUも無作為)</h3><div class="decks">${decks}${custom}</div>`);
+ showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。あなたが先攻です。</p>${rulesH()}<h3>デッキを選ぶ(CPUは別のデッキ。無作為を選ぶとCPUも無作為)</h3><div class="decks">${decks}${custom}</div>`);
 }
 
 // ---- デッキ構築 ----
@@ -2170,12 +2170,26 @@ for(const n of NET_FNS){
  };
 }
 const NET_PRE='jkz-',NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const APP_VER='v1.1';
 let net={deck:'',peer:null,conn:null,role:'',wait:null,ice:'',code:''};
 const NET_CFG={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}};
-function netWatchIce(c){
+function netDiag(c){
+ net.log=[];const L=t=>{net.log.push(t);if(net.log.length>14)net.log.shift();if(net.conn===c&&!c.open&&!(ONLINE&&ONLINE.started)){if(net.role==='host')showNetWait('相手が入ってきました。接続中…'+netLogTxt(),net.code);else showNetWait('部屋に接続中…'+netLogTxt());}};net.L=L;
+ let n=0;const iv=setInterval(()=>{
+  if(!net.conn||net.conn!==c||++n>80){clearInterval(iv);return;}
+  try{const pc=c.peerConnection;if(pc&&!pc.__d){pc.__d=1;L('pc作成');const cnt={host:0,srflx:0,relay:0,prflx:0};
+   pc.addEventListener('icecandidate',e=>{if(!e.candidate){L('候補収集完了 '+JSON.stringify(cnt));return;}const m=/ typ (\w+)/.exec(e.candidate.candidate||'');if(m)cnt[m[1]]=(cnt[m[1]]||0)+1;});
+   pc.addEventListener('iceconnectionstatechange',()=>L('ice='+pc.iceConnectionState));
+   pc.addEventListener('signalingstatechange',()=>L('sig='+pc.signalingState));
+   pc.addEventListener('connectionstatechange',()=>L('conn='+pc.connectionState));
+   L('sig='+pc.signalingState+' ice='+pc.iceConnectionState);}}catch(e){}
+ },100);
+}
+const netLogTxt=()=>net.log&&net.log.length?' [ログ: '+net.log.join(' / ')+']':'';
+function netWatchIce(c){netDiag(c);
  let n=0;const iv=setInterval(()=>{
   if(++n>60||!net.conn||net.conn!==c){clearInterval(iv);return;}
-  try{const pc=c.peerConnection;if(pc){const st=pc.iceConnectionState;if(st!==net.ice){net.ice=st;if(net.role==='host'&&ONLINE&&!ONLINE.started&&!c.open)showNetWait('相手が入ってきました。接続中…(経路: '+st+')',net.code);}}}catch(e){}
+  try{const pc=c.peerConnection;if(pc){const st=pc.iceConnectionState;if(st!==net.ice){net.ice=st;if(net.role==='host'&&ONLINE&&!ONLINE.started&&!c.open)showNetWait('相手が入ってきました。接続中…(経路: '+st+')'+netLogTxt(),net.code);}}}catch(e){}
  },500);
 }
 function netLeave(){
@@ -2230,7 +2244,7 @@ async function netJoin(code){
  peer.on('disconnected',()=>{try{if(net.peer===peer&&!peer.destroyed)peer.reconnect();}catch(e){}});
  peer.on('open',()=>{
   const c=peer.connect(NET_PRE+code,{reliable:true});
-  net.wait=setTimeout(()=>netFail('相手の部屋につながりませんでした。合言葉が合っているか、相手が部屋を作ったまま待っているかを確かめてください。(診断: サーバー接続=OK / 経路='+(net.ice||'未開始')+')'),25000);
+  net.wait=setTimeout(()=>netFail('相手の部屋につながりませんでした。合言葉が合っているか、相手が部屋を作ったまま待っているかを確かめてください。(診断: サーバー接続=OK / 経路='+(net.ice||'未開始')+')'+netLogTxt()),25000);
   setTimeout(()=>{try{const pc=c.peerConnection;if(pc){net.ice=pc.iceConnectionState;pc.addEventListener('iceconnectionstatechange',()=>{net.ice=pc.iceConnectionState;});}}catch(e){}},800);
   netAttach(c);
  });
