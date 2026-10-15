@@ -115,13 +115,22 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .cband{width:100%;display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(20,24,40,.92) 20%,rgba(20,24,40,.92) 80%,rgba(0,0,0,0));animation:cutslide 1.1s cubic-bezier(.2,.8,.2,1) both}
 .clab{color:#fff;font-weight:700;letter-spacing:.2em;font-size:15px}
 .cch{color:#fff;font-size:84px;line-height:1;font-weight:800;text-shadow:0 0 18px var(--accent,#5b8cff)}
+.cutin.cutk{animation:cutfade 1.9s both}
+.cutk .cband{animation:cutslide 1.9s cubic-bezier(.2,.8,.2,1) both}
+.cstage{position:relative;width:110px;height:100px;display:inline-block;color:#fff;font-size:84px;font-weight:800;line-height:100px;text-align:center}
+.cstage .ca,.cstage .cb,.cstage .cr,.cstage .cp{position:absolute;inset:0;text-shadow:0 0 18px var(--accent,#5b8cff)}
+.cstage .ca{clip-path:polygon(0 0,100% 0,0 100%);animation:cutA 1.9s ease-in both}
+.cstage .cb{clip-path:polygon(100% 0,100% 100%,0 100%);animation:cutB 1.9s ease-in both}
+.cstage .cr{opacity:0;animation:cutR 1.9s ease-out both}
+.cstage .cp{font-size:56px;color:#ffd24a;opacity:0;animation:cutP 1.9s ease-in both}
+.cstage .cs{position:absolute;left:-30%;right:-30%;top:50%;height:4px;margin-top:-2px;background:#fff;box-shadow:0 0 10px #fff,0 0 22px var(--accent,#5b8cff);transform:rotate(-42deg) scaleX(0);opacity:0;animation:cutS 1.9s ease-out both}
+@keyframes cutS{0%,18%{transform:rotate(-42deg) scaleX(0);opacity:0}24%{transform:rotate(-42deg) scaleX(1);opacity:1}45%{transform:rotate(-42deg) scaleX(1);opacity:0}100%{opacity:0}}
+@keyframes cutA{0%,26%{transform:translate(0,0);opacity:1}60%,100%{transform:translate(-26px,-22px) rotate(-8deg);opacity:0}}
+@keyframes cutB{0%,26%{transform:translate(0,0);opacity:1}60%,100%{transform:translate(26px,22px) rotate(8deg);opacity:0}}
+@keyframes cutR{0%,40%{opacity:0;transform:scale(.8)}62%,100%{opacity:1;transform:scale(1)}}
+@keyframes cutP{0%,30%{opacity:0;transform:translate(0,0) rotate(0)}38%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(120px,-70px) rotate(70deg)}}
 @keyframes cutslide{0%{transform:translateX(-60%)}25%{transform:translateX(0)}80%{transform:translateX(0)}100%{transform:translateX(30%)}}
 @keyframes cutfade{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
-@keyframes partfly{0%{transform:translate(-50%,-50%) rotate(0);opacity:1}15%{transform:translate(-50%,-50%) rotate(0);opacity:1}100%{transform:translate(60%,-190%) rotate(55deg);opacity:0}}
-@keyframes slash{0%{opacity:0;transform:scaleX(0) rotate(-35deg)}20%{opacity:1;transform:scaleX(1) rotate(-35deg)}100%{opacity:0;transform:scaleX(1) rotate(-35deg)}}
-.cutfx{position:absolute;inset:0;pointer-events:none;z-index:7}
-.cutfx b{position:absolute;left:50%;top:45%;font-size:46cqw;line-height:1;font-weight:800;color:var(--accent);text-shadow:0 0 6px #fff,0 0 12px var(--accent);animation:partfly 1s ease-in both}
-.cutfx i{position:absolute;left:-10%;right:-10%;top:48%;height:3px;background:#fff;box-shadow:0 0 8px #fff,0 0 14px var(--accent);transform-origin:center;animation:slash .5s ease-out both}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
@@ -1416,7 +1425,7 @@ function cut(s,cid,uid,part){
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
  const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.crown=u.crown;n.fmax=u.fmax;
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
- op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn',cut:part};
+ op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};addCut({k:'cut',from:u.ch,part,to:y});
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
 }
 // 罠設置(止): 手札の「止」を、自分の罠の枠の空いている所へ無償で置く(真上に字がなくてもよい)。マナも行動回数も使わない。
@@ -1611,7 +1620,7 @@ function cardH(u,kind,cls,tag,gtag){
  return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.crown||u.fmax)?`<span class="tr">${(u.crown||multi)?`<span class="row1">${u.crown?`<span class="crwn" title="冠付加">冠${u.crown>1?u.crown:''}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
-  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}${fx&&fx.cut?`<span class="cutfx" aria-hidden="true"><b>${esc(fx.cut)}</b><i></i></span>`:''}</div>`;
+  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
 }
 function fieldH(s){
  const f=S(s).field;let h='';
@@ -2245,14 +2254,16 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.12';
+const APP_VER='v2.13';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
-function nextCut(){const ch=cutQ.shift();if(!ch){cutBusy=false;return;}cutBusy=true;
- const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');
- e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${ch}</span></div>`;
+function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
+ const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
+ if(typeof it==='object'){ms=1900;e.classList.add('cutk');
+  e.innerHTML=`<div class="cband"><span class="clab">切り離し</span><span class="cstage"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
+ else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
  document.body.appendChild(e);
- setTimeout(()=>{e.remove();nextCut();},1100);}
+ setTimeout(()=>{e.remove();nextCut();},ms);}
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
 const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
