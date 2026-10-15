@@ -1,4 +1,5 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>字崩し</title></head><body>
 
 <title>字崩し</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1156,20 +1157,20 @@ DECKS.random={name:'無作為',note:'小学1〜5年の字から、毎回ちが�
  const quota={1:10,2:8,3:6,4:4,5:2},list={};
  for(const [k,n] of Object.entries(quota)){
   const pool=Object.keys(CARDS).filter(c=>Number(k)===5?CARDS[c].c>=5:CARDS[c].c===Number(k));
-  let got=0;while(got<n){const c=pool[Math.floor(Math.random()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
+  let got=0;while(got<n){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  }
  return list;
 }};
 DECKS.test={name:'試験',note:'「刀」「花」「止」「再」「壊」「返」を3枚ずつ入れ、残り12枚は小1〜5年の字から毎回ランダムに選ぶ(新しい効果の動作確認用)。',gen(){
  const list={'刀':3,'花':3,'止':3,'再':3,'壊':3,'返':3};
  const pool=Object.keys(CARDS).filter(c=>!list[c]);let got=0;
- while(got<12){const c=pool[Math.floor(Math.random()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
+ while(got<12){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  return list;
 }};
 // 試験デッキ用のCPUのデッキ(選択画面には出さない): 「壊」を3枚入れ、残りは無作為。罠「返」の確認に使う。
 DECKS.cpubreak={name:'CPU試験',note:'',hidden:true,gen(){
  const list={'壊':3};const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell);let got=0;
- while(got<27){const c=pool[Math.floor(Math.random()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
+ while(got<27){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  return list;
 }};
 const NAME={p:'あなた',c:'CPU'};
@@ -1177,7 +1178,9 @@ let G=null,UID=0,GID=0;
 const S=s=>G.side[s],OP=s=>s==='p'?'c':'p';
 const sumSp=u=>u.sp.reduce((a,b)=>a+b,0);
 
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+let RNG=null;const rnd=()=>RNG?RNG():Math.random();
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function mk(ch){const d=CARDS[ch];return{id:++UID,ch,atk:d.a,hp:d.h,max:d.h,cost:d.c,parts:d.p.slice(),sp:d.sp.slice(),sick:true,done:false,slot:-1,spell:!!d.spell,trap:!!d.trap,label:d.label};}
 function toGy(me,c){(me.gy=me.gy||[]).push(c);me.grave=me.gy.length;}
 function mkDeck(key){const out=[];const list=DECKS[key].gen?DECKS[key].gen():DECKS[key].list;for(const [ch,n] of Object.entries(list))for(let i=0;i<n;i++)out.push(mk(ch));return shuffle(out);}
@@ -1187,7 +1190,7 @@ function ensureCost1(me){
  if(me.hand.some(c=>c.cost===1))return;
  const idx=me.deck.map((c,i)=>c.cost===1?i:-1).filter(i=>i>=0);
  if(!idx.length||!me.hand.length)return;
- const di=idx[Math.floor(Math.random()*idx.length)],hi=Math.floor(Math.random()*me.hand.length);
+ const di=idx[Math.floor(rnd()*idx.length)],hi=Math.floor(rnd()*me.hand.length);
  const tmp=me.hand[hi];me.hand[hi]=me.deck[di];me.deck[di]=tmp;
 }
 // 後攻(CPU)の最初の手札には、コスト1か2の字を最低1枚入れる。
@@ -1195,7 +1198,7 @@ function ensureCheap(me){
  if(me.hand.some(c=>!c.spell&&c.cost<=2))return;
  const idx=me.deck.map((c,i)=>!c.spell&&c.cost<=2?i:-1).filter(i=>i>=0);
  if(!idx.length||!me.hand.length)return;
- const di=idx[Math.floor(Math.random()*idx.length)],hi=Math.floor(Math.random()*me.hand.length);
+ const di=idx[Math.floor(rnd()*idx.length)],hi=Math.floor(rnd()*me.hand.length);
  const tmp=me.hand[hi];me.hand[hi]=me.deck[di];me.deck[di]=tmp;
 }
 function newGame(pk,ck){G={gid:++GID,cur:null,over:null,why:'',turn:0,log:[],fx:{},side:{p:newSide(pk,CFG.start.p),c:newSide(ck,CFG.start.c)}};ensureCost1(G.side.p);ensureCheap(G.side.c);}
@@ -1546,9 +1549,10 @@ function aiStep(s){
 const $=id=>document.getElementById(id);
 // 二人対戦では、手番の人(または罠「返」で壊す字を選ぶ人)が画面の下側。一人対戦では、あなた('p')が下側。
 let seenSide=null;
-const ME=()=>(G&&G.two)?(G.pending?G.pending.by:G.cur):'p';
+let ONLINE=null;
+const ME=()=>ONLINE?ONLINE.side:(G&&G.two)?(G.pending?G.pending.by:G.cur):'p';
 const FOE=()=>OP(ME());
-const mineTurn=()=>(G&&G.two)?true:G.cur==='p';
+const mineTurn=()=>ONLINE?(G.pending?G.pending.by===ONLINE.side:G.cur===ONLINE.side):(G&&G.two)?true:G.cur==='p';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 let ui={sel:null,mode:null,split:null};
 const resetUi=()=>{ui={sel:null,mode:null,split:null};};
@@ -1655,7 +1659,7 @@ function unitWhy(u){
 const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にします。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。'};
 function panelH(){
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
- if(!mineTurn())return '<div class="panel muted"><p>CPUが考えています…</p></div>';
+ if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
  if(ui.confirmEnd)return '<div class="panel alert"><p class="ttl">まだ攻撃していません。</p><p>ターン終了しますか?</p><div class="row"><button type="button" class="btn yes" data-act="endyes">はい</button><button type="button" class="btn" data-act="endno">いいえ</button></div></div>';
  const P=S(ME()),E=S(FOE());
  if(ui.sel&&ui.sel.kind==='trap'){
@@ -1779,7 +1783,7 @@ function trapH(s){
  return `<div class="traps" role="group" aria-label="${NAME[s]}の罠の枠">${h}</div>`;
 }
 function render(){
- if(G&&G.two&&!G.over){const need=G.pending?G.pending.by:G.cur;if(need!==seenSide){showHandover(need);return;}}
+ if(G&&G.two&&!ONLINE&&!G.over){const need=G.pending?G.pending.by:G.cur;if(need!==seenSide){showHandover(need);return;}}
  $('board').innerHTML=barH(FOE())+trapH(FOE())+`<div class="field">${fieldH(FOE())}</div>`+midH()+`<div class="field">${fieldH(ME())}</div>`+trapH(ME())+barH(ME())+panelH()+handH()+ctlH();
  G.fx={};
  if(ui.confirmEnd){try{document.querySelector('.panel').scrollIntoView({block:'nearest'});}catch(e){}}
@@ -1874,8 +1878,9 @@ function onAct(act,data){
  if(act==='endyes'){endPlayerTurn();return;}
  if(act==='endno'){resetUi();render();return;}
 }
+function doTwoEnd(){resetUi();startTurn(OP(G.cur));render();if(G.over)showEnd();}
 async function endPlayerTurn(){
- if(G.two){resetUi();startTurn(OP(G.cur));render();if(G.over)showEnd();return;}
+ if(G.two){const snd=ONLINE&&!ONLINE.replay;doTwoEnd();if(snd)ONLINE.send({t:'end',chk:netChk()});return;}
  resetUi();startTurn('c');render();
  if(G.over){showEnd();return;}
  await runCpu();
@@ -1937,7 +1942,8 @@ function refH(){
  return `<div class="row gradetabs">${tabs}</div><div class="tbl"><table><thead><tr><th>字</th><th>学年</th><th>画数</th><th>コスト</th><th>攻</th><th>体</th><th>分解</th><th>特性</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function showStart(){
- const custom=`<button type="button" class="btn deck" data-bd="open"><b>デッキを組む</b><span>全${BD_SIZE}枚を自由に選ぶ。コスト1の字を1枚以上、同じ字は${BD_MAX}枚まで。</span></button>`+Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-deck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)で対戦する(CPUは無作為)。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('')+`<button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button>`;
+ netLeave();
+ const custom=`<button type="button" class="btn deck" data-bd="open"><b>デッキを組む</b><span>全${BD_SIZE}枚を自由に選ぶ。コスト1の字を1枚以上、同じ字は${BD_MAX}枚まで。</span></button>`+Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-deck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)で対戦する(CPUは無作為)。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('')+`<button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button>`;
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-deck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
  showOverlay(`<h2>字崩し</h2><p>漢字をばらして戦う、1対1のカードバトル。あなたが先攻です。</p>${rulesH()}<h3>デッキを選ぶ(CPUは別のデッキ。無作為を選ぶとCPUも無作為)</h3><div class="decks">${decks}${custom}</div>`);
 }
@@ -2089,7 +2095,7 @@ function twoClick(b){
 }
 function showEnd(){
  const won=G.over==='p';
- showOverlay(`<h2>${G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p><div class="row"><button type="button" class="btn pri" data-act="again">もう一度</button><button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
+ showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p><div class="row"><button type="button" class="btn pri" data-act="again">もう一度</button><button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
 function startGame(pk){
  const ck=pk==='nature'?'force':pk==='force'?'nature':pk==='test'?'cpubreak':'random';
@@ -2134,6 +2140,8 @@ $('ov').addEventListener('click',e=>{
  if(twb){twoClick(twb);return;}
  const bdb=e.target.closest('[data-bd]');
  if(bdb){bdClick(bdb);return;}
+ const nb=e.target.closest('[data-net]');
+ if(nb){netClick(nb);return;}
  const d=e.target.closest('[data-deck]');
  if(d){startGame(d.dataset.deck);return;}
  const a=e.target.closest('[data-act]');
@@ -2146,6 +2154,143 @@ $('rules').innerHTML=rulesH();
 $('ref').innerHTML=refH();
 $('ref').addEventListener('click',e=>{const b=e.target.closest('[data-grade]');if(b){refGrade=Number(b.dataset.grade);$('ref').innerHTML=refH();}});
 
+
+// ---- オンライン対戦(PeerJS / WebRTC。ゲームの進行は両方の画面で同じ計算をして同期する) ----
+const NET_FNS=['summon','attackWhole','attackSplit','crown','paidDraw','compose','cut','setTrap','freeDiscard','breakUnit','resolveCounter','salvage','discard'];
+const netChk=()=>[G.turn,G.side.p.hp,G.side.c.hp,G.side.p.hand.length,G.side.c.hand.length,G.side.p.deck.length,G.side.c.deck.length,G.side.p.field.length,G.side.c.field.length,UID].join(',');
+let netDepth=0;
+for(const n of NET_FNS){
+ const orig=window[n];
+ window[n]=function(...a){
+  const sa=(ONLINE&&!ONLINE.replay)?JSON.parse(JSON.stringify(a)):null;
+  const top=!netDepth;netDepth++;let r;
+  try{r=orig.apply(this,a);}finally{netDepth--;}
+  if(top&&sa&&r!==false)ONLINE.send({t:'act',fn:n,args:sa,chk:netChk()});
+  return r;
+ };
+}
+const NET_PRE='jkz-',NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+let net={deck:'',peer:null,conn:null,role:'',wait:null};
+function netLeave(){
+ const c=net.conn,pr=net.peer,was=!!ONLINE;
+ net.conn=null;net.peer=null;net.role='';ONLINE=null;
+ if(net.wait){clearTimeout(net.wait);net.wait=null;}
+ try{if(c)c.close();}catch(e){}
+ try{if(pr)pr.destroy();}catch(e){}
+ if(was){RNG=null;NAME.p='あなた';NAME.c='CPU';G=null;}
+}
+function netLoadLib(){return new Promise((ok,ng)=>{if(window.Peer)return ok();const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=ok;sc.onerror=()=>ng(new Error('lib'));document.head.appendChild(sc);});}
+function netDeckSpec(k){return isCustomKey(k)?{name:DECKS[k].name,list:DECKS[k].gen()}:{key:k};}
+function netDeckKey(sp,slot){
+ if(sp&&sp.key&&DECKS[sp.key]&&!isCustomKey(sp.key))return sp.key;
+ const list={};let n=0;
+ if(sp&&sp.list)for(const [ch,v] of Object.entries(sp.list)){const c=Math.min(3,Math.max(0,Math.floor(Number(v))||0));if(CARDS[ch]&&c&&n<60){list[ch]=c;n+=c;}}
+ DECKS[slot]={name:String((sp&&sp.name)||'デッキ').slice(0,20),hidden:true,list};
+ return slot;
+}
+function showNetMenu(err){
+ const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
+  Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
+ const can=!!net.deck;
+ showOverlay(`<h2>オンライン対戦</h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="合言葉" autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="back">戻る</button></div>`);
+}
+function showNetWait(msg,code){
+ showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
+}
+async function netHost(){
+ try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
+ net.role='host';
+ const tryOpen=(left)=>{
+  const code=Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');
+  const peer=new Peer(NET_PRE+code);net.peer=peer;
+  peer.on('open',()=>showNetWait('相手が入るのを待っています…',code));
+  peer.on('connection',c=>{if(net.conn){try{c.close();}catch(e){}return;}netAttach(c);});
+  peer.on('error',er=>{
+   if(er&&er.type==='unavailable-id'&&left>0){try{peer.destroy();}catch(e){}tryOpen(left-1);return;}
+   netFail('接続できませんでした。もう一度お試しください。');
+  });
+ };
+ showNetWait('部屋を作っています…');tryOpen(4);
+}
+async function netJoin(code){
+ code=String(code||'').trim().toUpperCase();
+ if(code.length<5){showNetMenu('合言葉は5文字です。');return;}
+ try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
+ net.role='guest';
+ showNetWait('部屋に入っています…');
+ const peer=new Peer();net.peer=peer;
+ peer.on('open',()=>{
+  const c=peer.connect(NET_PRE+code,{reliable:true});
+  net.wait=setTimeout(()=>netFail('部屋が見つかりませんでした。合言葉を確かめてください。'),15000);
+  netAttach(c);
+ });
+ peer.on('error',er=>{netFail(er&&er.type==='peer-unavailable'?'その合言葉の部屋が見つかりません。':'接続できませんでした。もう一度お試しください。');});
+}
+function netFail(msg){netLeave();showNetMenu(msg);}
+function netAttach(c){
+ net.conn=c;
+ const go=()=>{
+  if(net.wait){clearTimeout(net.wait);net.wait=null;}
+  ONLINE={role:net.role,side:'p',replay:false,started:false,send:m=>{try{c.send(m);}catch(e){}}};
+  if(net.role==='guest'){showNetWait('接続しました。開始を待っています…');ONLINE.send({t:'hello',deck:netDeckSpec(net.deck)});}
+  else showNetWait('相手が入りました。開始を待っています…');
+ };
+ if(c.open)go();else c.on('open',go);
+ c.on('data',m=>{try{netRecv(m);}catch(e){console.error(e);}});
+ c.on('close',netClosed);
+ c.on('error',()=>netClosed());
+}
+function netClosed(){
+ if(!ONLINE)return;
+ const playing=ONLINE.started&&G&&G.two&&!G.over;
+ if(playing){showOverlay(`<h2>接続が切れました</h2><p>相手との通信が途切れたため、対戦を終了します。</p><div class="row"><button type="button" class="btn pri" data-act="again">メニューへ</button></div>`);}
+ else if(!G||!G.over){netFail('相手との接続が切れました。');}
+ ONLINE&&(ONLINE.send=()=>{});
+}
+function netRecv(m){
+ if(!m||typeof m!=='object')return;
+ if(m.t==='hello'&&net.role==='host'&&ONLINE&&!ONLINE.started){
+  const seed=Math.floor(Math.random()*2147483647),hostFirst=Math.random()<.5;
+  const hostSpec=netDeckSpec(net.deck);
+  ONLINE.send({t:'start',seed,hostFirst,hostSpec,guestSpec:m.deck});
+  netBegin(seed,hostFirst,hostSpec,m.deck);
+  return;
+ }
+ if(m.t==='start'&&net.role==='guest'&&ONLINE&&!ONLINE.started){netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);return;}
+ if(!ONLINE||!ONLINE.started||!G||!G.two||G.over)return;
+ const peerSide=OP(ONLINE.side);
+ if(m.t!=='act'&&m.t!=='end')return;
+ if((G.pending?G.pending.by:G.cur)!==peerSide)return;
+ ONLINE.replay=true;
+ try{
+  if(m.t==='act'){if(!NET_FNS.includes(m.fn)||!Array.isArray(m.args))return;window[m.fn](...m.args);}
+  else{if(G.pending||G.cur!==peerSide)return;doTwoEnd();}
+ }finally{ONLINE.replay=false;}
+ resetUi();render();if(G.over)showEnd();
+ if(m.chk&&m.chk!==netChk()){
+  const w=document.createElement('div');w.setAttribute('role','alert');w.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#fee;color:#900;border:2px solid #c33;border-radius:8px;padding:8px;font-size:.85rem';w.textContent='盤面が相手とずれた可能性があります。対戦をやり直してください。';document.body.appendChild(w);setTimeout(()=>w.remove(),8000);
+ }
+}
+function netBegin(seed,hostFirst,hostSpec,guestSpec){
+ const iHost=net.role==='host';
+ const side=(iHost===hostFirst)?'p':'c';
+ ONLINE.side=side;ONLINE.started=true;
+ const pk=netDeckKey(hostFirst?hostSpec:guestSpec,'net_p'),ck=netDeckKey(hostFirst?guestSpec:hostSpec,'net_c');
+ NAME[side]='あなた';NAME[OP(side)]='相手';
+ RNG=mulberry32(seed);UID=0;
+ newGame(pk,ck);G.two=true;resetUi();$('ov').hidden=true;
+ startTurn('p');render();
+}
+function netClick(b){
+ const a=b.dataset.net;
+ if(a==='open'){net.deck='';showNetMenu();return;}
+ if(a==='back'||a==='cancel'){netLeave();showStart();return;}
+ if(a==='pick'){const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;net.deck=k;showNetMenu();return;}
+ if(!net.deck)return;
+ if(a==='host'){netHost();return;}
+ if(a==='join'){const el=document.getElementById('netcode');netJoin(el?el.value:'');return;}
+}
+
 function boot(data){
  if(data&&data.G){
   G=data.G;UID=data.UID;GID=data.GID;ui=data.ui||ui;if(G.two){NAME.p='プレイヤー1';NAME.c='プレイヤー2';}
@@ -2153,7 +2298,7 @@ function boot(data){
   if(G.over)showEnd();else if(G.cur==='c'&&!G.two)runCpu();
  }else{showStart();}
 }
-try{window.claude?.hot?.snapshot?.(()=>({G,UID,GID,ui}));}catch(e){}
+try{window.claude?.hot?.snapshot?.(()=>ONLINE?{}:({G,UID,GID,ui}));}catch(e){}
 try{window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?.data??{});}catch(e){boot({});}
 </script>
 
