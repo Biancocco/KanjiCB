@@ -1908,7 +1908,7 @@ async function runCpu(){
  if(G.over)showEnd();
 }
 
-function showOverlay(html){$('sheet').innerHTML=html;$('ov').hidden=false;}
+function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').innerHTML=html;$('ov').hidden=false;}
 function rulesH(){
   return `<ol>
  <li>相手のHP(${CFG.hp})を0にすれば勝ち。山札が尽きたターンの持ち主は負け。</li>
@@ -2100,7 +2100,8 @@ function twoClick(b){
  }
 }
 function showSurrConfirm(){
- showOverlay(`<div style="background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:16px"><h2 style="margin-top:0">降参</h2><p>本当に降参しますか？</p><div class="row"><button type="button" class="btn" style="background:var(--panel);color:var(--ink);border-color:var(--panel)" data-act="surryes">降参する</button><button type="button" class="btn" style="background:transparent;color:var(--accent-ink);border-color:var(--accent-ink)" data-act="surrno">やめる</button></div></div>`);
+ showOverlay(`<h2>降参</h2><p>本当に降参しますか？</p><div class="row"><button type="button" class="btn" style="background:var(--panel);color:var(--ink);border-color:var(--panel)" data-act="surryes">降参する</button><button type="button" class="btn" style="background:transparent;color:var(--accent-ink);border-color:var(--accent-ink)" data-act="surrno">やめる</button></div>`);
+ $('sheet').style.cssText='background:var(--accent);color:var(--accent-ink);border-color:var(--accent)';
 }
 function doSurrender(){
  if(!G||G.over)return;
@@ -2203,12 +2204,12 @@ function showNetMenu(err){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
- showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="合言葉" autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
+ showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
 }
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.4';
+const APP_VER='v2.5';
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
 const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
@@ -2274,7 +2275,7 @@ function netRematchPress(){
 }
 function netRematchWait(){
  showOverlay('<h2>再戦</h2><p>相手の返事を待っています…</p><div class="row"><button type="button" class="btn" data-act="tomenu">メニューに戻る</button></div>');
- if(ONLINE){if(ONLINE.rt)clearTimeout(ONLINE.rt);ONLINE.rt=setTimeout(()=>{if(ONLINE&&ONLINE.myRematch&&G&&G.over)showOverlay('<h2>再戦</h2><p>相手から返事がありませんでした。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');},60000);}
+ if(ONLINE){if(ONLINE.rt)clearTimeout(ONLINE.rt);ONLINE.rt=setTimeout(()=>{if(ONLINE&&ONLINE.myRematch&&G&&G.over)showOverlay('<h2>再戦</h2><p>相手から返事がありませんでした。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');},10000);}
 }
 function netToMenu(){
  if(!ONLINE){showStart();return;}
@@ -2296,7 +2297,7 @@ function idleRecv(m){
  if(m.t==='rematch')showRematchBanner();
  else if(m.t==='bye')netIdleEnd();
 }
-function showRematchBanner(){
+function showRematchBanner(onYes,onNo){
  const old=document.getElementById('rmbanner');if(old)old.remove();
  const el=document.createElement('div');el.id='rmbanner';el.setAttribute('role','alert');
  el.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:101;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:10px 12px;font-weight:700;transition:opacity .5s;box-shadow:0 4px 16px rgba(0,0,0,.3)';
@@ -2305,8 +2306,8 @@ function showRematchBanner(){
  let t=null;
  const kill=fade=>{clearTimeout(t);if(fade){el.style.opacity='0';setTimeout(()=>el.remove(),500);}else el.remove();};
  t=setTimeout(()=>kill(true),5000);
- el.querySelector('[data-rm="yes"]').onclick=()=>{kill(false);netAcceptRematch();};
- el.querySelector('[data-rm="no"]').onclick=()=>{kill(true);netDecline();};
+ el.querySelector('[data-rm="yes"]').onclick=()=>{kill(false);(onYes||netAcceptRematch)();};
+ el.querySelector('[data-rm="no"]').onclick=()=>{kill(true);(onNo||netDecline)();};
 }
 function netDecline(){if(net.idle)netPub(net.idle.i,net.role==='host'?'g':'h',{t:'decline'});}
 function netAcceptRematch(){
@@ -2418,7 +2419,7 @@ async function netJoin(code){
 function netRecv(m){
  if(!m||typeof m!=='object')return;
  if(!ONLINE)return;
- if(m.t==='rematch'){ONLINE.peerRematch=true;if(ONLINE.myRematch&&net.role==='host')netRestart();else netRematchNote();return;}
+ if(m.t==='rematch'){ONLINE.peerRematch=true;if(ONLINE.myRematch&&net.role==='host')netRestart();else if(G&&G.over&&$('ov').hidden)showRematchBanner(()=>netRematchPress(),()=>{if(ONLINE){ONLINE.peerRematch=false;ONLINE.raw({t:'decline'});}});else netRematchNote();return;}
  if(m.t==='decline'){if(ONLINE.rt){clearTimeout(ONLINE.rt);ONLINE.rt=null;}ONLINE.myRematch=false;showOverlay('<h2>再戦</h2><p>相手が再戦を断りました。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');return;}
  if(m.t==='restart'&&net.role==='guest'){netResetCtr();netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);return;}
  if(!ONLINE.started||!G||!G.two||G.over)return;
