@@ -2170,7 +2170,14 @@ for(const n of NET_FNS){
  };
 }
 const NET_PRE='jkz-',NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-let net={deck:'',peer:null,conn:null,role:'',wait:null};
+let net={deck:'',peer:null,conn:null,role:'',wait:null,ice:'',code:''};
+const NET_CFG={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}};
+function netWatchIce(c){
+ let n=0;const iv=setInterval(()=>{
+  if(++n>60||!net.conn||net.conn!==c){clearInterval(iv);return;}
+  try{const pc=c.peerConnection;if(pc){const st=pc.iceConnectionState;if(st!==net.ice){net.ice=st;if(net.role==='host'&&ONLINE&&!ONLINE.started&&!c.open)showNetWait('相手が入ってきました。接続中…(経路: '+st+')',net.code);}}}catch(e){}
+ },500);
+}
 function netLeave(){
  const c=net.conn,pr=net.peer,was=!!ONLINE;
  net.conn=null;net.peer=null;net.role='';ONLINE=null;
@@ -2202,7 +2209,8 @@ async function netHost(){
  net.role='host';
  const tryOpen=(left)=>{
   const code=Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');
-  const peer=new Peer(NET_PRE+code);net.peer=peer;
+  const peer=new Peer(NET_PRE+code,NET_CFG);net.peer=peer;net.code=code;
+  peer.on('disconnected',()=>{try{if(net.peer===peer&&!peer.destroyed)peer.reconnect();}catch(e){}});
   peer.on('open',()=>showNetWait('相手が入るのを待っています…',code));
   peer.on('connection',c=>{if(net.conn){try{c.close();}catch(e){}return;}showNetWait('相手が入ってきました。接続中…',code);netAttach(c);});
   peer.on('error',er=>{
@@ -2218,7 +2226,8 @@ async function netJoin(code){
  try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
  net.role='guest';
  showNetWait('部屋に入っています…');
- const peer=new Peer();net.peer=peer;
+ const peer=new Peer(undefined,NET_CFG);net.peer=peer;
+ peer.on('disconnected',()=>{try{if(net.peer===peer&&!peer.destroyed)peer.reconnect();}catch(e){}});
  peer.on('open',()=>{
   const c=peer.connect(NET_PRE+code,{reliable:true});
   net.wait=setTimeout(()=>netFail('相手の部屋につながりませんでした。合言葉が合っているか、相手が部屋を作ったまま待っているかを確かめてください。(診断: サーバー接続=OK / 経路='+(net.ice||'未開始')+')'),25000);
@@ -2229,7 +2238,7 @@ async function netJoin(code){
 }
 function netFail(msg){netLeave();showNetMenu(msg);}
 function netAttach(c){
- net.conn=c;
+ net.conn=c;net.ice='';netWatchIce(c);
  const go=()=>{
   if(net.wait){clearTimeout(net.wait);net.wait=null;}
   ONLINE={role:net.role,side:'p',replay:false,started:false,send:m=>{try{c.send(m);}catch(e){}}};
