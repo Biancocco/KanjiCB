@@ -2213,7 +2213,7 @@ async function netHost(){
  showNetWait('部屋を作っています…');tryOpen(4);
 }
 async function netJoin(code){
- code=String(code||'').trim().toUpperCase();
+ code=String(code||'').normalize('NFKC').replace(/\s/g,'').toUpperCase();
  if(code.length<5){showNetMenu('合言葉は5文字です。');return;}
  try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
  net.role='guest';
