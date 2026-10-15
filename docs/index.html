@@ -2170,7 +2170,7 @@ for(const n of NET_FNS){
  };
 }
 const NET_PRE='jkz-',NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const APP_VER='v1.3';
+const APP_VER='v1.4';
 let net={deck:'',peer:null,conn:null,role:'',wait:null,ice:'',code:''};
 const NET_CFG={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}};
 function netDiag(c){
@@ -2237,12 +2237,34 @@ function showNetMenu(err){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
- showOverlay(`<h2>オンライン対戦</h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="合言葉" autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="back">戻る</button></div>`);
+ showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="合言葉" autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
 }
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
 const NET_SOFT=['network','server-error','socket-error','socket-closed'];
+async function netTest(){
+ const out=['テスト中…(約20秒)'];
+ const show=()=>showOverlay(`<h2>通信テスト <small style="font-size:.6rem;font-weight:400">${APP_VER}</small></h2><p style="white-space:pre-wrap;font-size:.85rem;font-family:monospace">${esc(out.join('\n'))}</p><div class="row"><button type="button" class="btn" data-net="open">もどる</button></div>`);
+ show();
+ try{await netLoadLib();out.length=0;out.push('ライブラリ読み込み: OK');}catch(e){out.length=0;out.push('ライブラリ読み込み: 失敗(unpkg.comに接続できません)');show();return;}
+ const mkPeer=()=>new Promise(res=>{let done=false;const p=new Peer(undefined,NET_CFG);p.on('open',()=>{if(!done){done=true;res(p);}});p.on('error',e=>{if(!done){done=true;res({err:(e&&e.type)||String(e)});}});setTimeout(()=>{if(!done){done=true;res({err:'timeout'});}},10000);});
+ const t0=Date.now();const a=await mkPeer();
+ if(a.err){out.push('サーバー接続: 失敗('+a.err+')');show();return;}
+ out.push('サーバー接続: OK('+(Date.now()-t0)+'ms)');show();
+ const b=await mkPeer();
+ if(b.err){out.push('2つ目の接続: 失敗('+b.err+')');try{a.destroy();}catch(e){}show();return;}
+ const got=await new Promise(res=>{const to=setTimeout(()=>res(false),8000);b.socket.on('message',m=>{if(m&&m.type==='CANDIDATE'&&m.payload&&m.payload.jkz==='test'){clearTimeout(to);res(true);}});a.socket.send({type:'CANDIDATE',dst:b.id,payload:{connectionId:'jkz-test',jkz:'test',m:1}});});
+ out.push('サーバー経由の送受信: '+(got?'OK':'失敗'));show();
+ try{
+  const pc=new RTCPeerConnection(NET_CFG.config);pc.createDataChannel('x');const cnt={host:0,srflx:0,relay:0};
+  pc.onicecandidate=e=>{if(e.candidate){const m=/ typ (\w+)/.exec(e.candidate.candidate);if(m)cnt[m[1]]=(cnt[m[1]]||0)+1;}};
+  await pc.setLocalDescription(await pc.createOffer());await new Promise(r=>setTimeout(r,6000));pc.close();
+  out.push('経路候補: 端末内='+cnt.host+' / STUN='+cnt.srflx+' / 中継(TURN)='+cnt.relay);
+ }catch(e){out.push('経路候補: 取得失敗');}
+ try{a.destroy();b.destroy();}catch(e){}
+ out.push('(この画面をそのまま教えてください)');show();
+}
 async function netHost(){
  try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
  net.role='host';
@@ -2363,6 +2385,7 @@ function netClick(b){
  if(a==='open'){net.deck='';showNetMenu();return;}
  if(a==='back'||a==='cancel'){netLeave();showStart();return;}
  if(a==='pick'){const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;net.deck=k;showNetMenu();return;}
+ if(a==='test'){netTest();return;}
  if(!net.deck)return;
  if(a==='host'){netHost();return;}
  if(a==='join'){const el=document.getElementById('netcode');netJoin(el?el.value:'');return;}
