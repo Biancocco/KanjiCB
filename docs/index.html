@@ -2209,7 +2209,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.6';
+const APP_VER='v2.7';
 const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const NET_BROKERS=['wss://mqtt.eclipseprojects.io:443/mqtt','wss://public.cloud.shiftr.io:443','wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
 const NET_AUTH=url=>/shiftr\.io/.test(url)?{username:'public',password:'public'}:{};
@@ -2280,7 +2280,6 @@ function netRematchWait(){
 function netToMenu(){
  if(!ONLINE){showStart();return;}
  const i=ONLINE.brk;
- try{ONLINE.raw({t:'cancel'});}catch(e){}
  if(net.pingIv){clearInterval(net.pingIv);net.pingIv=null;}
  if(ONLINE.rt)clearTimeout(ONLINE.rt);
  net.idle={i,t:setTimeout(()=>netIdleEnd(),600000)};
@@ -2295,7 +2294,6 @@ function netIdleEnd(){
  mq.forEach(e=>{try{e.cl&&e.cl.end(false);}catch(x){}});
 }
 function idleRecv(m){
- if(m.t==='cancel'){const bn=document.getElementById('rmbanner');if(bn)bn.remove();return;}
  if(m.t==='rematch')showRematchBanner();
  else if(m.t==='bye')netIdleEnd();
 }
@@ -2422,12 +2420,6 @@ function netRecv(m){
  if(!m||typeof m!=='object')return;
  if(!ONLINE)return;
  if(m.t==='rematch'){ONLINE.peerRematch=true;if(ONLINE.myRematch&&net.role==='host')netRestart();else if(G&&G.over&&$('ov').hidden)showRematchBanner(()=>netRematchPress(),()=>{if(ONLINE){ONLINE.peerRematch=false;ONLINE.raw({t:'decline'});}});else netRematchNote();return;}
- if(m.t==='cancel'){
-  ONLINE.peerRematch=false;
-  {const bn=document.getElementById('rmbanner');if(bn)bn.remove();}
-  try{document.querySelectorAll('#sheet .rmnote').forEach(x=>x.remove());}catch(e){}
-  if(ONLINE.myRematch){if(ONLINE.rt){clearTimeout(ONLINE.rt);ONLINE.rt=null;}ONLINE.myRematch=false;if(G&&G.over)showOverlay('<h2>再戦</h2><p>相手がメニューに戻ったため、再戦希望は取り消されました。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');}
-  return;}
  if(m.t==='decline'){if(ONLINE.rt){clearTimeout(ONLINE.rt);ONLINE.rt=null;}ONLINE.myRematch=false;showOverlay('<h2>再戦</h2><p>相手が再戦を断りました。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');return;}
  if(m.t==='restart'&&net.role==='guest'){netResetCtr();netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);return;}
  if(!ONLINE.started||!G||!G.two||G.over)return;
