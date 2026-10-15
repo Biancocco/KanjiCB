@@ -2155,7 +2155,7 @@ $('ref').innerHTML=refH();
 $('ref').addEventListener('click',e=>{const b=e.target.closest('[data-grade]');if(b){refGrade=Number(b.dataset.grade);$('ref').innerHTML=refH();}});
 
 
-// ---- オンライン対戦(PeerJS / WebRTC。ゲームの進行は両方の画面で同じ計算をして同期する) ----
+// ---- オンライン対戦(公開MQTTサーバー経由。ゲームの進行は両方の画面で同じ計算をして同期する) ----
 const NET_FNS=['summon','attackWhole','attackSplit','crown','paidDraw','compose','cut','setTrap','freeDiscard','breakUnit','resolveCounter','salvage','discard'];
 const netChk=()=>[G.turn,G.side.p.hp,G.side.c.hp,G.side.p.hand.length,G.side.c.hand.length,G.side.p.deck.length,G.side.c.deck.length,G.side.p.field.length,G.side.c.field.length,UID].join(',');
 let netDepth=0;
@@ -2169,62 +2169,6 @@ for(const n of NET_FNS){
   return r;
  };
 }
-const NET_PRE='jkz-',NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const APP_VER='v1.4';
-let net={deck:'',peer:null,conn:null,role:'',wait:null,ice:'',code:''};
-const NET_CFG={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'},{urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]}};
-function netDiag(c){
- net.log=[];const L=t=>{net.log.push(t);if(net.log.length>14)net.log.shift();if(net.conn===c&&!c.open&&!(ONLINE&&ONLINE.started)){if(net.role==='host')showNetWait('相手が入ってきました。接続中…'+netLogTxt(),net.code);else showNetWait('部屋に接続中…'+netLogTxt());}};net.L=L;
- let n=0;const iv=setInterval(()=>{
-  if(!net.conn||net.conn!==c||++n>80){clearInterval(iv);return;}
-  try{const pc=c.peerConnection;if(pc&&!pc.__d){pc.__d=1;L('pc作成');const cnt={host:0,srflx:0,relay:0,prflx:0};
-   pc.addEventListener('icecandidate',e=>{if(!e.candidate){L('候補収集完了 '+JSON.stringify(cnt));return;}const m=/ typ (\w+)/.exec(e.candidate.candidate||'');if(m)cnt[m[1]]=(cnt[m[1]]||0)+1;});
-   pc.addEventListener('iceconnectionstatechange',()=>L('ice='+pc.iceConnectionState));
-   pc.addEventListener('signalingstatechange',()=>L('sig='+pc.signalingState));
-   pc.addEventListener('connectionstatechange',()=>L('conn='+pc.connectionState));
-   L('sig='+pc.signalingState+' ice='+pc.iceConnectionState);}}catch(e){}
- },100);
-}
-const netLogTxt=()=>net.log&&net.log.length?' [ログ: '+net.log.join(' / ')+']':'';
-function netMakeOnline(send){ONLINE={role:net.role,side:'p',replay:false,started:false,mode:'',last:Date.now(),send};return ONLINE;}
-function netRelaySend(remote){return m=>{try{net.peer.socket.send({type:'CANDIDATE',dst:remote,payload:{connectionId:'jkz-relay',jkz:1,m}});}catch(e){}};}
-function netStartRelay(remote){
- net.remote=remote;netMakeOnline(netRelaySend(remote));ONLINE.mode='relay';
- if(net.pingIv)clearInterval(net.pingIv);
- net.pingIv=setInterval(()=>{
-  if(!ONLINE||ONLINE.mode!=='relay'){clearInterval(net.pingIv);return;}
-  ONLINE.send({t:'ping'});
-  if(Date.now()-ONLINE.last>25000){clearInterval(net.pingIv);netClosed(true);}
- },5000);
-}
-function netHookRelay(peer){
- try{peer.socket.on('message',msg=>{try{
-  if(!msg||msg.type!=='CANDIDATE'||!msg.payload||!msg.payload.jkz)return;
-  const m=msg.payload.m;
-  if(m&&m.t==='hello'&&net.role==='host'&&!ONLINE)netStartRelay(msg.src);
-  if(!ONLINE||ONLINE.mode!=='relay')return;
-  ONLINE.last=Date.now();
-  if(m&&m.t==='ping')return;
-  netRecv(m);
- }catch(e){console.error(e);}});}catch(e){}
-}
-function netWatchIce(c){netDiag(c);
- let n=0;const iv=setInterval(()=>{
-  if(++n>60||!net.conn||net.conn!==c){clearInterval(iv);return;}
-  try{const pc=c.peerConnection;if(pc){const st=pc.iceConnectionState;if(st!==net.ice){net.ice=st;if(net.role==='host'&&ONLINE&&!ONLINE.started&&!c.open)showNetWait('相手が入ってきました。接続中…(経路: '+st+')'+netLogTxt(),net.code);}}}catch(e){}
- },500);
-}
-function netLeave(){
- const c=net.conn,pr=net.peer,was=!!ONLINE;
- net.conn=null;net.peer=null;net.role='';ONLINE=null;
- if(net.wait){clearTimeout(net.wait);net.wait=null;}
- if(net.relayTimer){clearTimeout(net.relayTimer);net.relayTimer=null;}
- if(net.pingIv){clearInterval(net.pingIv);net.pingIv=null;}
- try{if(c)c.close();}catch(e){}
- try{if(pr)pr.destroy();}catch(e){}
- if(was){RNG=null;NAME.p='あなた';NAME.c='CPU';G=null;}
-}
-function netLoadLib(){return new Promise((ok,ng)=>{if(window.Peer)return ok();const sc=document.createElement('script');sc.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';sc.onload=ok;sc.onerror=()=>ng(new Error('lib'));document.head.appendChild(sc);});}
 function netDeckSpec(k){return isCustomKey(k)?{name:DECKS[k].name,list:DECKS[k].gen()}:{key:k};}
 function netDeckKey(sp,slot){
  if(sp&&sp.key&&DECKS[sp.key]&&!isCustomKey(sp.key))return sp.key;
@@ -2242,120 +2186,128 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const NET_SOFT=['network','server-error','socket-error','socket-closed'];
+const APP_VER='v2.0';
+const NET_ABC='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const NET_BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/'];
+const NET_TOPIC=(code,r)=>'jkzkcb/v1/'+code+'/'+r;
+let net={deck:'',role:'',code:'',mq:[],wait:null,hi:null,pingIv:null};
+function netLoadLib(){return new Promise((ok,ng)=>{if(window.mqtt)return ok();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js';sc.onload=ok;sc.onerror=()=>ng(new Error('lib'));document.head.appendChild(sc);});}
+function netConnectAll(inbox,onMsg,onReady){
+ net.mq=NET_BROKERS.map((url,i)=>{
+  const e={url,ready:false,cl:null};
+  try{
+   const cl=window.mqtt.connect(url,{clientId:'jkz_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:20});
+   e.cl=cl;
+   cl.on('connect',()=>{cl.subscribe(NET_TOPIC(net.code,inbox),{qos:1},err=>{if(!err){e.ready=true;if(onReady)onReady(i);}});});
+   cl.on('message',(t,p)=>{try{onMsg(i,JSON.parse(p.toString()));}catch(x){}});
+   cl.on('close',()=>{e.ready=false;});
+   cl.on('error',()=>{});
+  }catch(x){}
+  return e;
+ });
+}
+function netPub(i,role,o){try{const e=net.mq[i];if(e&&e.cl)e.cl.publish(NET_TOPIC(net.code,role),JSON.stringify(o),{qos:1});}catch(x){}}
+function netMakeOnline(i){
+ const out=net.role==='host'?'g':'h';
+ ONLINE={role:net.role,side:'p',replay:false,started:false,mode:'mqtt',brk:i,last:Date.now(),sn:0,rn:0,
+  raw:o=>netPub(i,out,o),send:o=>{o.n=++ONLINE.sn;netPub(i,out,o);}};
+ net.mq.forEach((e,j)=>{if(j!==i){try{e.cl&&e.cl.end(true);}catch(x){}}});
+ if(net.pingIv)clearInterval(net.pingIv);
+ net.pingIv=setInterval(()=>{
+  if(!ONLINE||ONLINE.mode!=='mqtt'){clearInterval(net.pingIv);return;}
+  ONLINE.send({t:'ping'});
+  if(Date.now()-ONLINE.last>30000){clearInterval(net.pingIv);netClosed(true);}
+ },5000);
+ return ONLINE;
+}
+function netIn(i,m){
+ if(!ONLINE||ONLINE.brk!==i||!m||typeof m!=='object')return;
+ ONLINE.last=Date.now();
+ if(m.n!=null){if(m.n<=ONLINE.rn)return;ONLINE.rn=m.n;}
+ netRecv(m);
+}
+function netLeave(){
+ const mq=net.mq,was=!!ONLINE;
+ net.mq=[];net.role='';ONLINE=null;
+ if(net.wait){clearTimeout(net.wait);net.wait=null;}
+ if(net.hi){clearInterval(net.hi);net.hi=null;}
+ if(net.pingIv){clearInterval(net.pingIv);net.pingIv=null;}
+ mq.forEach(e=>{try{e.cl&&e.cl.end(true);}catch(x){}});
+ if(was){RNG=null;NAME.p='あなた';NAME.c='CPU';G=null;}
+}
+function netFail(msg){netLeave();showNetMenu(msg);}
+function netClosed(force){
+ if(!ONLINE)return;
+ const playing=ONLINE.started&&G&&G.two&&!G.over;
+ if(playing){showOverlay(`<h2>接続が切れました</h2><p>相手からの応答が30秒以上ありません。相手が画面を閉じたか、通信が途切れた可能性があります。対戦を終了します。</p><div class="row"><button type="button" class="btn pri" data-act="again">メニューへ</button></div>`);}
+ else if(!G||!G.over){netFail('相手との接続が切れました。');}
+ if(ONLINE)ONLINE.send=()=>{};
+}
 async function netTest(){
- const out=['テスト中…(約20秒)'];
+ const out=['テスト中…(約10秒)'];
  const show=()=>showOverlay(`<h2>通信テスト <small style="font-size:.6rem;font-weight:400">${APP_VER}</small></h2><p style="white-space:pre-wrap;font-size:.85rem;font-family:monospace">${esc(out.join('\n'))}</p><div class="row"><button type="button" class="btn" data-net="open">もどる</button></div>`);
  show();
- try{await netLoadLib();out.length=0;out.push('ライブラリ読み込み: OK');}catch(e){out.length=0;out.push('ライブラリ読み込み: 失敗(unpkg.comに接続できません)');show();return;}
- const mkPeer=()=>new Promise(res=>{let done=false;const p=new Peer(undefined,NET_CFG);p.on('open',()=>{if(!done){done=true;res(p);}});p.on('error',e=>{if(!done){done=true;res({err:(e&&e.type)||String(e)});}});setTimeout(()=>{if(!done){done=true;res({err:'timeout'});}},10000);});
- const t0=Date.now();const a=await mkPeer();
- if(a.err){out.push('サーバー接続: 失敗('+a.err+')');show();return;}
- out.push('サーバー接続: OK('+(Date.now()-t0)+'ms)');show();
- const b=await mkPeer();
- if(b.err){out.push('2つ目の接続: 失敗('+b.err+')');try{a.destroy();}catch(e){}show();return;}
- const got=await new Promise(res=>{const to=setTimeout(()=>res(false),8000);b.socket.on('message',m=>{if(m&&m.type==='CANDIDATE'&&m.payload&&m.payload.jkz==='test'){clearTimeout(to);res(true);}});a.socket.send({type:'CANDIDATE',dst:b.id,payload:{connectionId:'jkz-test',jkz:'test',m:1}});});
- out.push('サーバー経由の送受信: '+(got?'OK':'失敗'));show();
- try{
-  const pc=new RTCPeerConnection(NET_CFG.config);pc.createDataChannel('x');const cnt={host:0,srflx:0,relay:0};
-  pc.onicecandidate=e=>{if(e.candidate){const m=/ typ (\w+)/.exec(e.candidate.candidate);if(m)cnt[m[1]]=(cnt[m[1]]||0)+1;}};
-  await pc.setLocalDescription(await pc.createOffer());await new Promise(r=>setTimeout(r,6000));pc.close();
-  out.push('経路候補: 端末内='+cnt.host+' / STUN='+cnt.srflx+' / 中継(TURN)='+cnt.relay);
- }catch(e){out.push('経路候補: 取得失敗');}
- try{a.destroy();b.destroy();}catch(e){}
+ try{await netLoadLib();out.length=0;out.push('ライブラリ読み込み: OK');}catch(e){out.length=0;out.push('ライブラリ読み込み: 失敗(cdn.jsdelivr.netに接続できません)');show();return;}
+ show();
+ const tid='jkzkcb/v1/test/'+Math.random().toString(36).slice(2);
+ const res=await Promise.all(NET_BROKERS.map(url=>new Promise(done=>{
+  const t0=Date.now();let cl;let fin=false;
+  const end=(txt)=>{if(fin)return;fin=true;try{cl&&cl.end(true);}catch(x){}done(url.replace(/^wss:\/\//,'').replace(/[:\/].*$/,'')+': '+txt);};
+  try{
+   cl=window.mqtt.connect(url,{clientId:'jkzt_'+Math.random().toString(36).slice(2,10),clean:true,connectTimeout:8000,reconnectPeriod:0});
+   cl.on('connect',()=>{cl.subscribe(tid,{qos:1},err=>{if(err)return end('購読失敗');cl.publish(tid,'x',{qos:1});});});
+   cl.on('message',()=>end('OK('+(Date.now()-t0)+'ms)'));
+   cl.on('error',e=>end('失敗('+((e&&e.message)||'error')+')'));
+  }catch(e){end('失敗');}
+  setTimeout(()=>end('失敗(時間切れ)'),10000);
+ })));
+ res.forEach(r=>out.push(r));
+ out.push(res.some(r=>/: OK/.test(r))?'→ 1つ以上OKなので、オンライン対戦できます。':'→ すべて失敗。この回線では使えません。');
  out.push('(この画面をそのまま教えてください)');show();
 }
+function netCode(){return Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');}
 async function netHost(){
+ showNetWait('通信の準備をしています…');
  try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
- net.role='host';
- let code=Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');
- const tryOpen=(idLeft,netLeft)=>{
-  const peer=new Peer(NET_PRE+code,NET_CFG);net.peer=peer;net.code=code;netHookRelay(peer);
-  peer.on('disconnected',()=>{try{if(net.peer===peer&&!peer.destroyed)peer.reconnect();}catch(e){}});
-  peer.on('open',()=>{if(!ONLINE)showNetWait('相手が入るのを待っています…',code);});
-  peer.on('connection',c=>{if(net.conn){try{c.close();}catch(e){}return;}showNetWait('相手が入ってきました。接続中…',code);netAttach(c);});
-  peer.on('error',er=>{
-   if(net.peer!==peer)return;
-   const ty=er&&er.type;
-   if(ty==='unavailable-id'&&idLeft>0){code=Array.from({length:5},()=>NET_ABC[Math.floor(Math.random()*NET_ABC.length)]).join('');try{peer.destroy();}catch(e){}tryOpen(idLeft-1,netLeft);return;}
-   if(NET_SOFT.includes(ty)){
-    if(ONLINE&&ONLINE.started)return;
-    if(netLeft>0){showNetWait('サーバーにつなぎ直しています…(あと'+netLeft+'回)');try{peer.destroy();}catch(e){}setTimeout(()=>{if(net.role==='host'&&net.peer===peer)tryOpen(idLeft,netLeft-1);},2000);return;}
-   }
-   netFail('接続できませんでした。(診断: '+(ty||er)+')。仲介サーバーにつながらない回線の可能性があります。別のWi-Fiやモバイルデータ通信に切り替えて試してください。');
-  });
- };
- showNetWait('部屋を作っています…');tryOpen(4,3);
+ net.role='host';net.code=netCode();let shown=false;
+ netConnectAll('h',(i,m)=>{
+  if(!m||typeof m!=='object')return;
+  if(m.t==='hello'){
+   if(!ONLINE){
+    const seed=Math.floor(Math.random()*2147483647),hostFirst=Math.random()<.5,hostSpec=netDeckSpec(net.deck);
+    net.startMsg={t:'start',seed,hostFirst,hostSpec,guestSpec:m.deck};
+    netMakeOnline(i);ONLINE.raw(net.startMsg);
+    if(net.wait){clearTimeout(net.wait);net.wait=null;}
+    netBegin(seed,hostFirst,hostSpec,m.deck);
+   }else if(ONLINE.brk===i&&net.startMsg){ONLINE.raw(net.startMsg);}
+   return;
+  }
+  netIn(i,m);
+ },()=>{if(!shown&&!ONLINE){shown=true;showNetWait('相手が入るのを待っています…',net.code);}});
+ net.wait=setTimeout(()=>{if(!shown)netFail('通信サーバーにつながりませんでした。「通信テスト」で確認してください。');},12000);
 }
 async function netJoin(code){
  code=String(code||'').normalize('NFKC').replace(/\s/g,'').toUpperCase();
  if(code.length<5){showNetMenu('合言葉は5文字です。');return;}
- try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
- net.role='guest';
  showNetWait('部屋に入っています…');
- const start=(netLeft)=>{
-  const peer=new Peer(undefined,NET_CFG);net.peer=peer;netHookRelay(peer);
-  peer.on('disconnected',()=>{try{if(net.peer===peer&&!peer.destroyed)peer.reconnect();}catch(e){}});
-  peer.on('open',()=>{
-   const c=peer.connect(NET_PRE+code,{reliable:true});
-   net.relayTimer=setTimeout(()=>{
-    if(ONLINE||net.peer!==peer)return;
-    if(net.wait){clearTimeout(net.wait);net.wait=null;}
-    netStartRelay(NET_PRE+code);
-    showNetWait('直接つなげなかったため、中継モードで接続しています…'+netLogTxt());
-    ONLINE.send({t:'hello',deck:netDeckSpec(net.deck)});
-    net.wait=setTimeout(()=>netFail('中継でもつながりませんでした。合言葉と、相手が待機しているかを確かめてください。'+netLogTxt()),20000);
-   },8000);
-   net.wait=setTimeout(()=>netFail('相手の部屋につながりませんでした。合言葉が合っているか、相手が部屋を作ったまま待っているかを確かめてください。'+netLogTxt()),25000);
-   netAttach(c);
-  });
-  peer.on('error',er=>{
-   if(net.peer!==peer)return;
-   const ty=er&&er.type;
-   if(NET_SOFT.includes(ty)){
-    if(ONLINE&&ONLINE.started)return;
-    if(!net.conn&&netLeft>0){showNetWait('サーバーにつなぎ直しています…(あと'+netLeft+'回)');try{peer.destroy();}catch(e){}setTimeout(()=>{if(net.role==='guest'&&net.peer===peer)start(netLeft-1);},2000);return;}
-    if(net.conn)return;
-   }
-   netFail(ty==='peer-unavailable'?'その合言葉の部屋が見つかりません。(診断: 部屋の作成者が待機していないか、合言葉の違いです)':'接続できませんでした。(診断: '+(ty||er)+')。仲介サーバーにつながらない回線の可能性があります。別のWi-Fiやモバイルデータ通信に切り替えて試してください。');
-  });
- };
- start(3);
-}
-function netFail(msg){netLeave();showNetMenu(msg);}
-function netAttach(c){
- net.conn=c;net.ice='';netWatchIce(c);
- const go=()=>{
-  if(ONLINE)return;
-  if(net.wait){clearTimeout(net.wait);net.wait=null;}
-  if(net.relayTimer){clearTimeout(net.relayTimer);net.relayTimer=null;}
-  netMakeOnline(m=>{try{c.send(m);}catch(e){}});
-  if(net.role==='guest'){showNetWait('接続しました。開始を待っています…');ONLINE.send({t:'hello',deck:netDeckSpec(net.deck)});}
-  else showNetWait('相手が入りました。開始を待っています…');
- };
- if(c.open)go();else c.on('open',go);
- c.on('data',m=>{try{if(ONLINE&&ONLINE.mode==='relay')return;netRecv(m);}catch(e){console.error(e);}});
- c.on('close',()=>netClosed());
- c.on('error',()=>netClosed());
-}
-function netClosed(force){
- if(!ONLINE)return;
- if(ONLINE.mode==='relay'&&force!==true)return;
- const playing=ONLINE.started&&G&&G.two&&!G.over;
- if(playing){showOverlay(`<h2>接続が切れました</h2><p>相手との通信が途切れたため、対戦を終了します。</p><div class="row"><button type="button" class="btn pri" data-act="again">メニューへ</button></div>`);}
- else if(!G||!G.over){netFail('相手との接続が切れました。');}
- ONLINE&&(ONLINE.send=()=>{});
+ try{await netLoadLib();}catch(e){showNetMenu('通信ライブラリを読み込めませんでした。ネットワークを確認してください。');return;}
+ net.role='guest';net.code=code;
+ netConnectAll('g',(i,m)=>{
+  if(!m||typeof m!=='object')return;
+  if(m.t==='start'&&!ONLINE){
+   if(net.hi){clearInterval(net.hi);net.hi=null;}
+   if(net.wait){clearTimeout(net.wait);net.wait=null;}
+   netMakeOnline(i);netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);
+   return;
+  }
+  netIn(i,m);
+ });
+ const hello=()=>{if(ONLINE)return;const o={t:'hello',deck:netDeckSpec(net.deck)};net.mq.forEach((e,i)=>{if(e.ready)netPub(i,'h',o);});};
+ net.hi=setInterval(hello,2000);setTimeout(hello,800);
+ net.wait=setTimeout(()=>netFail('その合言葉の部屋が見つかりません。合言葉が合っているか、相手が部屋を作って待っているかを確かめてください。'),25000);
 }
 function netRecv(m){
  if(!m||typeof m!=='object')return;
- if(m.t==='hello'&&net.role==='host'&&ONLINE&&!ONLINE.started){
-  const seed=Math.floor(Math.random()*2147483647),hostFirst=Math.random()<.5;
-  const hostSpec=netDeckSpec(net.deck);
-  ONLINE.send({t:'start',seed,hostFirst,hostSpec,guestSpec:m.deck});
-  netBegin(seed,hostFirst,hostSpec,m.deck);
-  return;
- }
- if(m.t==='start'&&net.role==='guest'&&ONLINE&&!ONLINE.started){netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);return;}
  if(!ONLINE||!ONLINE.started||!G||!G.two||G.over)return;
  const peerSide=OP(ONLINE.side);
  if(m.t!=='act'&&m.t!=='end')return;
