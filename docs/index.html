@@ -2230,6 +2230,13 @@ function bdSave(){try{localStorage.setItem(BD_KEY2,JSON.stringify(bd.decks));}ca
 bd.saved=JSON.stringify(bd.decks);
 const bdDirty=()=>JSON.stringify(bd.decks)!==bd.saved;
 function bdLeave(){try{const a=JSON.parse(bd.saved);for(let i=0;i<BD_SLOTS;i++)bd.decks[i]=a[i]||{};}catch(e){}bd.peek='';showStart();}
+function bdAsk(msg,onYes){
+ const d=document.createElement('div');d.setAttribute('role','alertdialog');
+ d.style.cssText='position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:16px';
+ d.innerHTML='<div style="background:var(--panel);color:var(--ink);border:2px solid var(--accent);border-radius:14px;padding:20px 22px;max-width:340px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.35)"><p style="margin:0 0 14px;font-weight:700;font-size:1.05rem;line-height:1.6">'+esc(msg)+'</p><div class="row" style="justify-content:center"><button type="button" class="btn pri" data-x="y">はい</button><button type="button" class="btn" data-x="n">いいえ</button></div></div>';
+ d.addEventListener('click',e=>{const x=e.target.closest&&e.target.closest('[data-x]');if(!x)return;e.stopPropagation();d.remove();if(x.dataset.x==='y')onYes();});
+ document.body.appendChild(d);
+}
 function bdConfirmBack(){
  const d=document.createElement('div');d.setAttribute('role','alertdialog');
  d.style.cssText='position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:16px';
@@ -2328,8 +2335,8 @@ function bdClick(b){
  if(a==='go'){if(bdValid()){bdSave();startGame('custom'+(bd.slot+1));}return;}
  if(a==='add'){if(CARDS[ch]&&(bd.deck[ch]||0)<BD_MAX&&bdTotal()<BD_SIZE){bd.deck[ch]=(bd.deck[ch]||0)+1;bdRefresh();}return;}
  if(a==='sub'){if(bd.deck[ch]){bd.deck[ch]--;if(!bd.deck[ch]){delete bd.deck[ch];if(bd.peek===ch)bd.peek='';}bdRefresh();}return;}
- if(a==='clear'){bd.deck={};bd.peek='';bdRefresh();return;}
- if(a==='auto'){bdAuto();bdRefresh();return;}
+ if(a==='clear'){bdAsk('いまのデッキの字を、全部はずしますか?',()=>{bd.deck={};bd.peek='';bdRefresh();});return;}
+ if(a==='auto'){bdAsk('残りの枚数を、自動で埋めますか?',()=>{bdAuto();bdRefresh();});return;}
  if(a==='grade'||a==='cost'||a==='split'){
   const v=b.dataset.v;
   if(a==='grade')bd.grade=v==='s'?'s':Number(v);else if(a==='cost')bd.cost=Number(v);else if(v==='y')bd.sy=!bd.sy;else bd.sn=!bd.sn;
@@ -2467,7 +2474,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.23';
+const APP_VER='v2.24';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
