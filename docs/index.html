@@ -2148,7 +2148,7 @@ function rulesH(){
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
  <li>攻撃は2種類。<b>単体攻撃</b>は字ひとつで1つの標的を狙う。<b>分解攻撃</b>はパーツが順番に別々の標的を狙う。分解できる字は分解攻撃だけ、分解できない字は単体攻撃だけ。</li>
  <li><b>冠付加</b>: 分解のパーツに穴冠(穴)・わ冠・う冠(宀)を含む字と「学」は、手札から使って自分の場の字1枚の体力を増やせる。マナ${CFG.crownCost}とその字を消費し、行動回数は使わない。削られていれば体力が1回復、満タンなら最大体力が+1。付加された字には「冠」の印が付く。</li>
- <li><b>花回復</b>: 分解のパーツにくさかんむり(艹)を含む字と「菜」は、同じように使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費する。</li>
+ <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費する。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li>冠付加を使うと、1回につき追加でカードを1枚引く(花回復では引かない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
@@ -2444,7 +2444,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.19';
+const APP_VER='v2.20';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
