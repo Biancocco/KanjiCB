@@ -133,6 +133,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @keyframes cutP{0%,30%{opacity:0;transform:translate(0,0) scale(1) rotate(0)}38%{opacity:1;transform:translate(0,0) scale(1) rotate(0)}100%{opacity:0;transform:translate(130px,-80px) scale(.2) rotate(70deg)}}
 @keyframes cutslide{0%{transform:translateX(-60%)}25%{transform:translateX(0)}80%{transform:translateX(0)}100%{transform:translateX(30%)}}
 @keyframes cutfade{0%{opacity:0}15%{opacity:1}85%{opacity:1}100%{opacity:0}}
+@keyframes redblink{0%,100%{background-color:var(--panel)}15%,55%{background-color:#e5484d}35%,75%{background-color:var(--panel)}}
+.bar.hitflash{animation:redblink .9s}
+@keyframes brkblink{0%,30%,60%{background:rgba(229,72,77,.55);opacity:1}15%,45%,75%{background:rgba(229,72,77,0);opacity:1}100%{opacity:0}}
+.slot.brk{border:2px solid #e5484d;color:#e5484d;font-family:var(--kanji);font-size:2.4rem;display:grid;place-items:center;animation:brkblink 1.1s both}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
@@ -1467,7 +1471,7 @@ function dmgUnit(s,u,n){
  if(n<=0)return false;
  const me=S(s);const prev=G.fx[u.id];const eff=Math.min(n,u.hp);
  G.fx[u.id]={t:'hit',n:eff+(prev&&prev.t==='hit'?prev.n:0)};u.hp-=n;
- if(u.hp<=0){me.field.splice(me.field.indexOf(u),1);toGy(me,u);log(`${NAME[s]}の「${u.ch}」が崩れ落ちた`);return true;}
+ if(u.hp<=0){G.fx['brk'+s+u.slot]={ch:u.ch};me.field.splice(me.field.indexOf(u),1);toGy(me,u);log(`${NAME[s]}の「${u.ch}」が崩れ落ちた`);return true;}
  return false;
 }
 function dmgFace(s,n){const me=S(s);if(n<=0)return;me.hp=Math.max(0,me.hp-n);const pf=G.fx['face'+s];G.fx['face'+s]={t:'hit',n:n+(pf?pf.n:0)};if(me.hp<=0)win(OP(s),`${NAME[s]}のHPが0になった`);}
@@ -1540,7 +1544,7 @@ function attackSplit(s,uid,tids){
   else if(!st.alive.some(t=>t.id===tids[i]))return false;
  }
  log(`${NAME[s]}の「${u.ch}」が「${u.parts.join('')}」に分解して攻撃`);
- const blocked={};
+ const blocked={},firedNow=[];
  for(let i=0;i<tids.length&&!G.over;i++){
   if(isHealTid(tids[i])){healPart(s,u,i,tids[i]);continue;}
   if(tids[i]==='face')dmgFace(OP(s),u.sp[i]);
@@ -1549,7 +1553,7 @@ function attackSplit(s,uid,tids){
    if(t){
     const tr=(op.traps||[])[t.slot];
     if(tr&&tr.card.ch==='止'){
-     if(!tr.fired&&tr.np!==G.turn){if(trapPay(op,'止')){tr.fired=true;tr.turn=G.turn;tr.blocked=[];log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}else tr.np=G.turn;}
+     if(!tr.fired&&tr.np!==G.turn){if(trapPay(op,'止')){tr.fired=true;tr.turn=G.turn;tr.blocked=[];firedNow.push(tr);log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}else tr.np=G.turn;}
      if(tr.fired&&tr.turn===G.turn){
       const lb=`${u.parts[i]}${u.sp[i]}`;tr.blocked.push(lb);
       (blocked[t.slot]=blocked[t.slot]||{unit:t.ch,labels:[]}).labels.push(lb);
@@ -1561,6 +1565,7 @@ function attackSplit(s,uid,tids){
   }
  }
  for(const k of Object.keys(blocked)){const b=blocked[k];log(`罠「止」が「${b.unit}」への ${u.ch}の${b.labels.join('・')} を無効にした`);}
+ for(const tr of firedNow){const k=(op.traps||[]).indexOf(tr);if(k>=0){op.traps[k]=null;toGy(op,tr.card);log(`罠「止」は役目を終えて壊れた`);}}
  u.done=true;me.acts--;return true;
 }
 
@@ -1638,7 +1643,7 @@ function cut(s,cid,uid,part){
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
 }
 // 罠設置(止): 手札の「止」を、自分の罠の枠の空いている所へ無償で置く(真上に字がなくてもよい)。マナも行動回数も使わない。
-// 置かれた止は、真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字への分解攻撃のパーツをすべて無効にする。発動した止は、次のターンの始めに墓地へ行く。
+// 置かれた止は、真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字への分解攻撃のパーツをすべて無効にする。
 function setTrap(s,cid,slot){
  const me=S(s);if(G.over||G.cur!==s)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||!me.hand[i].trap)return false;
@@ -1657,7 +1662,7 @@ function freeDiscard(s,cid){
 // 壊す: 手札の「壊」とマナ5を使い、敵の場の字を1枚壊す。1ターンに1回、行動回数は使わない。
 // 壊された字の真上の罠が「返」なら発動する。その字と返が消える代わりに、壊した側の場の字を1枚壊す(壊す字が返を持っていても効かない)。
 // 壊した側の場に字がなければ、本体に5ダメージ。返を持つ側が人間なら、壊す字を自分で選ぶ。
-function killUnit(s,u){const me=S(s);const i=me.field.indexOf(u);if(i>=0)me.field.splice(i,1);toGy(me,u);G.fx[u.id]={t:'hit',n:0};log(`${NAME[s]}の「${u.ch}」が壊された`);}
+function killUnit(s,u){const me=S(s);G.fx['brk'+s+u.slot]={ch:u.ch};const i=me.field.indexOf(u);if(i>=0)me.field.splice(i,1);toGy(me,u);G.fx[u.id]={t:'hit',n:0};log(`${NAME[s]}の「${u.ch}」が壊された`);}
 const counterTarget=s=>S(s).field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
 function breakUnit(s,cid,uid){
  const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||G.pending||me.bk||me.mana<CFG.breakCost)return false;
@@ -1841,6 +1846,7 @@ function fieldH(s){
  for(let i=0;i<CFG.field;i++){
   const u=f.find(x=>x.slot===i);
   if(!u){
+   const bx=G.fx['brk'+s+i];if(bx){h+=`<div class="slot brk" aria-hidden="true">${esc(bx.ch)}</div>`;continue;}
    if(s===ME()){
     const ok=mineTurn()&&ui.sel&&ui.sel.kind==='hand'&&(()=>{const c=S(ME()).hand.find(x=>x.id===ui.sel.id);return c&&!summonWhy(ME(),c);})();
     h+=ok?`<div class="slot drop" data-act="slot" data-slot="${i}" role="button" tabindex="0" aria-label="${i+1}番目の枠に召喚">ここに召喚</div>`:'<div class="slot">空き</div>';
@@ -1879,7 +1885,7 @@ function barH(s){
  const aiming=s!==ME()&&mineTurn()&&((ui.mode==='whole'&&!S(FOE()).field.length&&!hoSel)||!!(cx&&!cx.done&&cx.pr.face));
  const healAim=s===ME()&&mineTurn()&&nextHeal();
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
- return `<div class="bar ${aiming||healAim?'target':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
+ return `<div class="bar ${aiming||healAim?'target':''}${fx&&fx.t==='hit'?' hitflash':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
   `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i style="width:${pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
   `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
@@ -1898,7 +1904,7 @@ function unitWhy(u){
  return '';
 }
 const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
-const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にします。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
+const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
 function panelH(){
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
  if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
@@ -2168,7 +2174,7 @@ function rulesH(){
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
  <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
  <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
- <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にする。<b class="atkw">単体攻撃</b>は止められない。発動した止は、次のターンの始めに墓地へ行く。</li>
+ <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にして、そのあと止は壊れる。<b class="atkw">単体攻撃</b>は止められない。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
  <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
  <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・力付与・花回復の分は引き継ぐ。</li>
@@ -2191,7 +2197,7 @@ function refH(){
 }
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
+ showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
 }
 // ---- 解放 ----
 // 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
@@ -2365,9 +2371,33 @@ $('ov').addEventListener('input',e=>{
 });
 
 // ---- 二人対戦 ----
+let two={step:0,first:null};
 function showHandover(side){
  const pend=G.pending;
  showOverlay(`<h2>${esc(NAME[side])}の番</h2><p>${pend?'罠「返」が発動しました。壊す字を選ぶ'+esc(NAME[side])+'に画面を渡してください。':'画面を'+esc(NAME[side])+'に渡してください。'}</p><p style="font-size:.88rem;color:var(--ink2)">相手に手札が見えないようにしてから、「準備OK」を押してください。</p><div class="row"><button type="button" class="btn pri" data-ready="${side}">準備OK</button></div>`);
+}
+function showTwoSelect(){
+ const nm=k=>DECKS[k].name;
+ const btns=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-two="pick" data-key="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
+  Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-two="pick" data-key="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。「デッキを組む」で30枚を組むと選べます。`}</span></button>`).join('');
+ const head=two.step===0?'先攻のデッキを選ぶ':`後攻のデッキを選ぶ(先攻: ${esc(nm(two.first))})`;
+ showOverlay(`<h2>二人対戦</h2><p>1台の画面を交代で使って、2人で対戦します。先攻と後攻のデッキを順に選びます。</p><h3>${head}</h3><div class="decks">${btns}</div><div class="row"><button type="button" class="btn" data-two="back">${two.step===0?'戻る':'先攻を選び直す'}</button></div>`);
+}
+function startTwo(pk,ck){
+ netIdleEnd();
+ NAME.p='プレイヤー1';NAME.c='プレイヤー2';
+ newGame(pk,ck);G.two=true;G.pk=pk;G.ck=ck;resetUi();seenSide=null;$('ov').hidden=true;
+ startTurn('p');render();
+}
+function twoClick(b){
+ const a=b.dataset.two;
+ if(a==='open'){two={step:0,first:null};showTwoSelect();return;}
+ if(a==='back'){if(two.step===0)showStart();else{two={step:0,first:null};showTwoSelect();}return;}
+ if(a==='pick'){
+  const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
+  if(two.step===0){two.first=k;two.step=1;showTwoSelect();}
+  else{startTwo(two.first,k);}
+ }
 }
 function showSurrConfirm(){
  showOverlay(`<h2>降参</h2><p>本当に降参しますか？</p><div class="row"><button type="button" class="btn" style="background:var(--panel);color:var(--ink);border-color:var(--panel)" data-act="surryes">降参する</button><button type="button" class="btn" style="background:transparent;color:var(--accent-ink);border-color:var(--accent-ink)" data-act="surrno">やめる</button></div>`);
@@ -2383,8 +2413,8 @@ function doSurrender(){
 }
 function showEnd(){
  const won=G.over==='p';
- let unl=[];if(!ONLINE&&won&&!G.cnt){G.cnt=1;unl=addCpuWin();}
- showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${unl.map(u=>`<p style="font-weight:700;color:var(--accent)">CPUに${u.wins}勝!${u.name}が解放されました(字は順次追加されます)。</p>`).join('')}${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
+ let unl=[];if(!ONLINE&&!G.two&&won&&!G.cnt){G.cnt=1;unl=addCpuWin();}
+ showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${unl.map(u=>`<p style="font-weight:700;color:var(--accent)">CPUに${u.wins}勝!${u.name}が解放されました(字は順次追加されます)。</p>`).join('')}${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row${!ONLINE&&G.two?' endr':''}">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':G.two?'<button type="button" class="btn pri" data-act="tworematch">再戦する</button><button type="button" class="btn" data-act="again">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
 function startGame(pk,ck,first){
  netIdleEnd();
@@ -2432,6 +2462,8 @@ $('ov').addEventListener('click',e=>{
  const cd=e.target.closest('[data-cpudeck]');
  if(cd){const k=cd.dataset.cpudeck;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
   if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first);return;}
+ const twb=e.target.closest('[data-two]');
+ if(twb){twoClick(twb);return;}
  const cb=e.target.closest('[data-cpu]');
  if(cb){const a=cb.dataset.cpu;
   if(a==='open'){cpu.step=0;cpu.mine=null;showCpuSelect();}
@@ -2447,6 +2479,7 @@ $('ov').addEventListener('click',e=>{
  const a=e.target.closest('[data-act]');
  if(!a)return;
  if(a.dataset.act==='again')showStart();
+ if(a.dataset.act==='tworematch'&&G&&G.pk)startTwo(G.pk,G.ck);
  if(a.dataset.act==='surryes')doSurrender();
  if(a.dataset.act==='surrno')$('ov').hidden=true;
  if(a.dataset.act==='look')netLook();
@@ -2490,7 +2523,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.27';
+const APP_VER='v2.28';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
