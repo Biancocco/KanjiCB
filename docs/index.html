@@ -11,7 +11,7 @@
 :root{
   --bg:#e6ebea; --panel:#f3f6f5; --ink:#17201f; --ink2:#566664; --line:#bdc9c7;
   --accent:#2c4a8c; --accent-ink:#ffffff;
-  --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#fbe9ee; --heal2:#dff3e4; --pow:#f6d3d3;
+  --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#fbe9ee; --heal2:#dff3e4; --pow:#f6d3d3; --rip:#e6dcf5;
   --good:#2f7d5b; --warn:#a86a0c; --bad:#b3372c;
   --kanji:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
   --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
@@ -20,7 +20,7 @@
   :root:not([data-theme="light"]){
     --bg:#101619; --panel:#182126; --ink:#e4ebea; --ink2:#93a3a1; --line:#2c393e;
     --accent:#8fa8e8; --accent-ink:#0f1626;
-    --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828;
+    --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828; --rip:#3d2f55;
     --good:#66c298; --warn:#e0a640; --bad:#ec7a6e;
     color-scheme:dark;
   }
@@ -28,7 +28,7 @@
 :root[data-theme="dark"]{
   --bg:#101619; --panel:#182126; --ink:#e4ebea; --ink2:#93a3a1; --line:#2c393e;
   --accent:#8fa8e8; --accent-ink:#0f1626;
-  --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828;
+  --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828; --rip:#3d2f55;
   --good:#66c298; --warn:#e0a640; --bad:#ec7a6e;
   color-scheme:dark;
 }
@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .card.hl,.chip2.hl,.bdr.hl{background:var(--heal)}
 .card.hg,.chip2.hg,.bdr.hg{background:var(--heal2)}
 .card.hr,.chip2.hr,.bdr.hr{background:var(--pow)}
+.chip2.hv,.bdr.hv{background:var(--rip)}
 .crwn.pwb{background:#b3261e;color:#fff;font-family:inherit}
 .card.dim{opacity:.55}
 .card.rest .glyph{opacity:.4}
@@ -120,6 +121,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .cutin.cutk{animation:cutfade 1.9s both}
 .cutk .cband{animation:cutslide 1.9s cubic-bezier(.2,.8,.2,1) both}
 .cstage{position:relative;width:110px;height:100px;display:inline-block;color:#fff;font-size:84px;font-weight:800;line-height:100px;text-align:center}
+.cstage.two .ca,.cstage.two .cb,.cstage.two .cr{font-size:48px}
 .cstage .ca,.cstage .cb,.cstage .cr,.cstage .cp{position:absolute;inset:0;text-shadow:0 0 18px var(--accent,#5b8cff)}
 .cstage .ca{clip-path:polygon(0 0,100% 0,0 100%);animation:cutA 1.9s ease-in both}
 .cstage .cb{clip-path:polygon(100% 0,100% 100%,0 100%);animation:cutB 1.9s ease-in both}
@@ -137,6 +139,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .bar.hitflash{animation:redblink .9s}
 @keyframes brkblink{0%,30%,60%{background:rgba(229,72,77,.55);opacity:1}15%,45%,75%{background:rgba(229,72,77,0);opacity:1}100%{opacity:0}}
 .slot.brk{border:2px solid #e5484d;color:#e5484d;font-family:var(--kanji);font-size:2.4rem;display:grid;place-items:center;animation:brkblink 1.1s both}
+@keyframes pushleft{0%{transform:translateX(0)}100%{transform:translateX(-105%)}}
+.hp>i.crush{transition:none;animation:pushleft .9s cubic-bezier(.6,0,.9,.4) .15s both}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
@@ -240,7 +244,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,trap:3,trapCost:1,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -1290,7 +1294,8 @@ const G6=[
  ['臨',18,''],
  ['朗',10,'良月'],
  ['論',15,''],
- ['攻',7,'']
+ ['攻',7,''],
+ ['裂',12,'列衣']
 ];
 const POOL=G1.concat(G2,G3,G4,G5,G6);
 const POOLS=new Set(POOL.map(x=>x[0]));
@@ -1383,6 +1388,21 @@ const CUTS={};
   });
  }
 })();
+// 切り裂きの表: RIPS[Z]=[{a,b,to}] (3つのパーツからなる字Zから、パーツaとbの2つを裂くと、残った1つの字toになる)
+const RIPS={};
+(()=>{
+ for(const z of Object.keys(CARDS)){
+  const p=CARDS[z].p;if(CARDS[z].spell||p.length!==3)continue;
+  const seen=new Set();
+  for(let k=0;k<3;k++){
+   const r=p[k];const rest=p.filter((_,j)=>j!==k);
+   let y=null;if(CARDS[r]&&!CARDS[r].spell)y=r;else if(RAD2KANJI[r]&&CARDS[RAD2KANJI[r]])y=RAD2KANJI[r];
+   if(!y||y===z)continue;
+   const key=rest.slice().sort().join('')+'>'+y;if(seen.has(key))continue;seen.add(key);
+   (RIPS[z]=RIPS[z]||[]).push({a:rest[0],b:rest[1],to:y,left:r});
+  }
+ }
+})();
 const DECKS={
  nature:{name:'自然',note:'木・草・花・水など、自然の字。林や森のように部品の多い字で数を押さえる。',
   list:{'木':3,'林':3,'森':2,'草':2,'花':2,'竹':2,'山':2,'川':2,'水':2,'土':2,'日':2,'月':2,'雨':1,'空':1,'天':1,'田':1}},
@@ -1443,7 +1463,7 @@ function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
 function startTurn(s){
- G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
+ G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.rp=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
  me.field.forEach(u=>{u.sick=false;u.done=false;});
  for(const sd of ['p','c']){const sx=S(sd);(sx.traps||[]).forEach((tr,i)=>{if(tr&&tr.fired&&tr.turn<G.turn){toGy(sx,tr.card);sx.traps[i]=null;}});}
  log(`${NAME[s]}の ${me.tn} ターン目`);
@@ -1465,6 +1485,7 @@ const isFlower=c=>c.parts.includes('艹')||FLOWER_EXTRA.has(c.ch);
 const isBoost=c=>isPower(c)||isFlower(c);
 const boostCost=c=>isPower(c)?CFG.powerCost:CFG.crownCost;
 function canSplit(s,u){return u.parts.length>1;}
+const hintWrap=(b,h)=>h?'<span class="hintw" data-hint="'+h+'">'+b+'</span>':b;
 function summonWhy(s,c){const me=S(s);if(c.spell)return 'この字は召喚できません(手札から使う効果だけです)';if(c.cost>me.mana)return `マナが足りません(必要 ${c.cost})`;if(me.field.length>=CFG.field)return '場が埋まっています';return '';}
 
 function dmgUnit(s,u,n){
@@ -1474,7 +1495,7 @@ function dmgUnit(s,u,n){
  if(u.hp<=0){G.fx['brk'+s+u.slot]={ch:u.ch};me.field.splice(me.field.indexOf(u),1);toGy(me,u);log(`${NAME[s]}の「${u.ch}」が崩れ落ちた`);return true;}
  return false;
 }
-function dmgFace(s,n){const me=S(s);if(n<=0)return;me.hp=Math.max(0,me.hp-n);const pf=G.fx['face'+s];G.fx['face'+s]={t:'hit',n:n+(pf?pf.n:0)};if(me.hp<=0)win(OP(s),`${NAME[s]}のHPが0になった`);}
+function dmgFace(s,n){const me=S(s);if(n<=0)return;const hp0=me.hp;me.hp=Math.max(0,me.hp-n);const pf=G.fx['face'+s];G.fx['face'+s]={t:'hit',n:n+(pf?pf.n:0),pv:pf&&pf.pv!==undefined?pf.pv:hp0};if(me.hp<=0){G.faceKO=true;win(OP(s),`${NAME[s]}のHPが0になった`);}}
 
 function summon(s,id,slot){
  const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||G.over||G.cur!==s)return false;
@@ -1641,6 +1662,22 @@ function cut(s,cid,uid,part){
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
  op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};addCut({k:'cut',from:u.ch,part,to:y});
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
+}
+// 切り裂き(裂): 手札の「裂」を使い、相手の場の3つのパーツからなる字から2つのパーツを裂いて、残った1つの字にする。
+// マナ6・1ターン1回・行動回数は使わない。受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ。
+const ripsOf=u=>RIPS[u.ch]||[];
+function rip(s,cid,uid,idx){
+ const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||me.rp||me.mana<CFG.ripCost)return false;
+ const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].ch!=='裂')return false;
+ const u=op.field.find(x=>x.id===uid);if(!u)return false;
+ const r=ripsOf(u)[idx];if(!r)return false;
+ const y=r.to,c=me.hand[i];me.mana-=CFG.ripCost;me.rp=true;me.hand.splice(i,1);toGy(me,c);
+ const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
+ const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
+ n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
+ op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
+ addCut({k:'cut',lab:'切り裂き',from:u.ch,part:r.a,to:r.b+r.left});addCut({k:'cut',lab:'切り裂き',from:r.b+r.left,part:r.b,to:y});
+ log(`${NAME[s]}は「裂」で${NAME[OP(s)]}の「${u.ch}」から「${r.a}」「${r.b}」を裂き、「${y}」にした`);return true;
 }
 // 罠設置(止): 手札の「止」を、自分の罠の枠の空いている所へ無償で置く(真上に字がなくてもよい)。マナも行動回数も使わない。
 // 置かれた止は、真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字への分解攻撃のパーツをすべて無効にする。
@@ -1868,6 +1905,7 @@ function fieldH(s){
    if(dead)cls+=' dim';
    if(ui.sel&&ui.sel.kind==='enemy'&&ui.sel.id===u.id)cls+=' sel';
    if(ui.mode==='cut'&&ui.sel&&ui.sel.kind==='hand'){cls+=Object.keys(cutsOf(u)).length?' target':' dim';if(ui.cut&&ui.cut.uid===u.id)cls+=' sel';}
+   if(ui.mode==='rip'&&ui.sel&&ui.sel.kind==='hand'){cls+=ripsOf(u).length?' target':' dim';if(ui.rip&&ui.rip.uid===u.id)cls+=' sel';}
   }
   const tg=s!==ME()?((tags[u.id]||[]).join(' ')).trim():((htags[u.id]||[]).join(' ')).trim();
   const gt0=(S(s).traps||[])[u.slot];
@@ -1886,7 +1924,7 @@ function barH(s){
  const healAim=s===ME()&&mineTurn()&&nextHeal();
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
  return `<div class="bar ${aiming||healAim?'target':''}${fx&&fx.t==='hit'?' hitflash':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
-  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i style="width:${pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
+  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
   `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
 function midH(){
@@ -1953,6 +1991,12 @@ function panelH(){
    const bt=Object.entries(cutsOf(eu)).map(([x,y])=>`<button type="button" class="btn pri" data-act="cutpart" data-part="${x}">「${x}」を切る→「${y}」</button>`).join('');
    return `<div class="panel"><p class="ttl">切り離し: 相手の「${eu.ch}」</p><p>切り離すパーツを選んでください。</p><div class="row">${bt}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
+  if(c&&ui.mode==='rip'){
+   const eu=ui.rip&&E.field.find(x=>x.id===ui.rip.uid);
+   if(!eu)return `<div class="panel"><p class="ttl">切り裂き: 「裂」</p><p>パーツを裂く相手の字を選んでください(光っている、3つのパーツからなる字が対象です)。マナ${CFG.ripCost}を使い、1ターンに1回だけです。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   const bt=ripsOf(eu).map((r,i)=>`<button type="button" class="btn pri" data-act="rippart" data-i="${i}">「${r.a}」「${r.b}」を裂く</button>`).join('');
+   return `<div class="panel"><p class="ttl">切り裂き: 相手の「${eu.ch}」</p><p>裂く2つのパーツを選んでください。</p><div class="row">${bt}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+  }
   if(c&&ui.mode==='compose'){
    const opts=P.field.filter(u=>composeTo(c.ch,u.ch)).map(u=>`${u.ch}→${composeTo(c.ch,u.ch)}`).join(' / ');
    return `<div class="panel"><p class="ttl">パーツ付与: 「${c.ch}」</p><p>付与する自分の場の字を選んでください(${esc(opts)})。「${c.ch}」とマナ${CFG.composeCost}を使います。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
@@ -1967,7 +2011,7 @@ function panelH(){
   if(c){
    const why=summonWhy(ME(),c);
    const info=(c.parts.length>1?`分解攻撃のみ: ${planTxt(c)}`:healerOnly(c.ch)?'回復のみ(攻撃はできません)':'単体攻撃のみ')+(c.ch==='刀'?(P.ct?'。切り離しはこのターン使用済み':'。切り離しで、相手の字のパーツを1つ切り落とせます'):'')+(P.field.some(u=>composeTo(c.ch,u.ch))?'。パーツ付与で、場の字を合成できます':'')+(isFlower(c)?'。花回復で、この字を使って場の字の体力を3回復できます':isPower(c)?'。力付与で、この字を使って場の字の攻撃力を'+CFG.powerAtk+'増やせます':'')+'。召喚すると、空き枠を選んで好きな位置に置けます。';
-   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=P.mana<CFG.cutCost?'マナが足りません':P.ct?'このターンは使用済みです':!E.field.some(u=>Object.keys(cutsOf(u)).length)?'':'切り離しできます';return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<boostCost(c)||!P.field.length||(isPower(c)?P.ph:P.fh)?'disabled':''}>${isFlower(c)?'花回復':'力付与'}</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=(isPower(c)?P.ph:P.fh)?'このターンは使用済みです':P.mana<boostCost(c)?'マナが足りません':!P.field.length?'':(isFlower(c)?'花回復できます':'力付与できます');return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='裂'?hintWrap(`<button type="button" class="btn pri" data-act="ripmode" ${P.mana<CFG.ripCost||P.rp||!E.field.some(u=>ripsOf(u).length)?'disabled':''}>切り裂き</button>`,P.mana<CFG.ripCost?'マナが足りません':P.rp?'このターンは使用済みです':!E.field.some(u=>ripsOf(u).length)?'':'切り裂きできます'):''}${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=P.mana<CFG.cutCost?'マナが足りません':P.ct?'このターンは使用済みです':!E.field.some(u=>Object.keys(cutsOf(u)).length)?'':'切り離しできます';return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<boostCost(c)||!P.field.length||(isPower(c)?P.ph:P.fh)?'disabled':''}>${isFlower(c)?'花回復':'力付与'}</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=(isPower(c)?P.ph:P.fh)?'このターンは使用済みです':P.mana<boostCost(c)?'マナが足りません':!P.field.length?'':(isFlower(c)?'花回復できます':'力付与できます');return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='field'){
@@ -2070,6 +2114,10 @@ function onCard(kind,id){
    const eu=S(FOE()).field.find(x=>x.id===id);
    ui.cut=eu&&Object.keys(cutsOf(eu)).length?{uid:id}:null;render();return;
   }
+  if(ui.mode==='rip'&&ui.sel&&ui.sel.kind==='hand'){
+   const eu=S(FOE()).field.find(x=>x.id===id);
+   ui.rip=eu&&ripsOf(eu).length?{uid:id}:null;render();return;
+  }
   if(ui.mode==='break'&&ui.sel&&ui.sel.kind==='hand'){breakUnit(ME(),ui.sel.id,id);resetUi();render();if(G.over)showEnd();return;}
   if(ui.mode==='whole'&&ui.sel&&ui.sel.kind==='field'){const su=S(ME()).field.find(x=>x.id===ui.sel.id);if(su&&healerOnly(su.ch))return;performWhole(id);return;}
   if(ui.mode==='split'&&ui.sel&&ui.sel.kind==='field'&&ui.split){
@@ -2101,6 +2149,8 @@ function onAct(act,data){
  if(act==='dosalv'&&ui.salv&&ui.sel&&ui.sel.kind==='hand'){salvage(ME(),ui.sel.id,ui.salv.dis,ui.salv.take);resetUi();render();return;}
  if(act==='cutmode'&&ui.sel&&ui.sel.kind==='hand'){ui.mode='cut';ui.cut=null;render();return;}
  if(act==='cutpart'&&ui.mode==='cut'&&ui.sel&&ui.sel.kind==='hand'&&ui.cut){cut(ME(),ui.sel.id,ui.cut.uid,data&&data.part);resetUi();render();return;}
+ if(act==='ripmode'&&ui.sel&&ui.sel.kind==='hand'){ui.mode='rip';ui.rip=null;render();return;}
+ if(act==='rippart'&&ui.mode==='rip'&&ui.sel&&ui.sel.kind==='hand'&&ui.rip){rip(ME(),ui.sel.id,ui.rip.uid,Number(data&&data.i));resetUi();render();return;}
  if(act==='compose'&&ui.sel&&ui.sel.kind==='hand'){ui.mode='compose';render();return;}
  if(act==='crown'&&ui.sel&&ui.sel.kind==='hand'){ui.mode='crown';render();return;}
  if(act==='slot'&&ui.sel&&ui.sel.kind==='hand'){summon(ME(),ui.sel.id,Number(data&&data.slot));resetUi();render();return;}
@@ -2268,7 +2318,7 @@ function bdInfoH(){
 function bdChipsH(){
  const items=Object.entries(bd.deck).filter(([k,v])=>v>0).sort((x,y)=>(CARDS[x[0]].spell?1:0)-(CARDS[y[0]].spell?1:0)||CARDS[x[0]].c-CARDS[y[0]].c||CARDS[x[0]].s-CARDS[y[0]].s);
  if(!items.length)return '<span class="sm" style="color:var(--ink2);font-size:.82rem">字を選ぶとここに並びます(押すとステータスが見られます)</span>';
- return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':bdPw(k)?'hr':bdFl(k)?'hl hg':isHealCard({parts:CARDS[k].p,ch:k})?'hl':''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
+ return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':bdPw(k)?'hr':k==='裂'?'hv':bdFl(k)?'hl hg':isHealCard({parts:CARDS[k].p,ch:k})?'hl':''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
 }
 function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
@@ -2278,7 +2328,7 @@ function bdPeekH(){
 }
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
 const bdPw=ch=>POWER_CHARS.has(ch);
-const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:3;
+const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:ch==='裂'?3:4;
 const BD_SORTS=[['','標準'],['a','攻撃力'],['h','体力']];
 function bdSortCmp(x,y){
  if(!bd.sort)return 0;
@@ -2291,7 +2341,7 @@ function bdFiltered(){
  return Object.entries(CARDS).filter(([ch,d])=>{
   if(!gradeOpen(d.g))return false;
   if(q.length)return q.includes(ch);
-  if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!bdPw(ch)&&!isHealCard({parts:d.p,ch}))return false;}
+  if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!bdPw(ch)&&ch!=='裂'&&!isHealCard({parts:d.p,ch}))return false;}
   else if(bd.grade&&(d.spell||d.g!==bd.grade))return false;
   if(bd.cost&&(d.spell||d.c!==bd.cost))return false;
   if(bd.sy!==bd.sn&&(d.spell||(d.p.length>1)!==bd.sy))return false;
@@ -2302,7 +2352,7 @@ function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
  const info=d.spell?`<b>${esc(d.label||'特殊')}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
- return `<div class="bdr ${d.spell?'spc':bdPw(ch)?'hr':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
+ return `<div class="bdr ${d.spell?'spc':bdPw(ch)?'hr':ch==='裂'?'hv':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
 }
 function bdListH(){const rows=bdFiltered();return rows.length?rows.map(bdRowH).join(''):'<p style="padding:12px;color:var(--ink2)">該当する字がありません</p>';}
 function bdFilterH(){
@@ -2412,6 +2462,7 @@ function doSurrender(){
  resetUi();showEnd();
 }
 function showEnd(){
+ if(G&&G.faceKO&&!G.koDone){G.koDone=true;setTimeout(()=>{if(G&&G.over)showEnd();},1300);return;}
  const won=G.over==='p';
  let unl=[];if(!ONLINE&&!G.two&&won&&!G.cnt){G.cnt=1;unl=addCpuWin();}
  showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${unl.map(u=>`<p style="font-weight:700;color:var(--accent)">CPUに${u.wins}勝!${u.name}が解放されました(字は順次追加されます)。</p>`).join('')}${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row${!ONLINE&&G.two?' endr':''}">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':G.two?'<button type="button" class="btn pri" data-act="tworematch">再戦する</button><button type="button" class="btn" data-act="again">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
@@ -2436,8 +2487,8 @@ function manaPreview(n){
  }catch(e){}
 }
 // 「ドロー」「破棄」に触れている間、使うマナ(右から数個)を網線で示す
-const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost,cutmode:()=>CFG.cutCost,crown:()=>{const c=S(ME()).hand.find(x=>ui.sel&&x.id===ui.sel.id);return c&&isBoost(c)?boostCost(c):0;}};
-const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"],[data-act="cutmode"],[data-act="crown"]');
+const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost,cutmode:()=>CFG.cutCost,ripmode:()=>CFG.ripCost,crown:()=>{const c=S(ME()).hand.find(x=>ui.sel&&x.id===ui.sel.id);return c&&isBoost(c)?boostCost(c):0;}};
+const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"],[data-act="cutmode"],[data-act="ripmode"],[data-act="crown"]');
 document.addEventListener('mouseover',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h)return;const pn=h.closest('.panel');if(!pn)return;let w=pn.querySelector('.why');if(!w){w=document.createElement('p');w.className='why';w.dataset.tmp='1';const sm=pn.querySelector('.sm');(sm||pn.firstChild).after(w);}else if(w.dataset.orig===undefined)w.dataset.orig=w.textContent;w.textContent=h.dataset.hint;});
 document.addEventListener('mouseout',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h||h.contains(e.relatedTarget))return;const pn=h.closest('.panel');const w=pn&&pn.querySelector('.why');if(!w)return;if(w.dataset.tmp)w.remove();else if(w.dataset.orig!==undefined){w.textContent=w.dataset.orig;delete w.dataset.orig;}});
 $('board').addEventListener('mouseover',e=>{const b=costBtn(e);if(b&&!b.disabled)manaPreview(PREVIEW_COST[b.dataset.act]());});
@@ -2493,7 +2544,7 @@ $('ref').addEventListener('click',e=>{const b=e.target.closest('[data-grade]');i
 
 
 // ---- オンライン対戦(公開MQTTサーバー経由。ゲームの進行は両方の画面で同じ計算をして同期する) ----
-const NET_FNS=['summon','attackWhole','attackSplit','crown','paidDraw','compose','cut','setTrap','freeDiscard','breakUnit','resolveCounter','salvage','discard'];
+const NET_FNS=['summon','attackWhole','attackSplit','crown','paidDraw','compose','cut','rip','setTrap','freeDiscard','breakUnit','resolveCounter','salvage','discard'];
 const netChk=()=>[G.turn,G.side.p.hp,G.side.c.hp,G.side.p.hand.length,G.side.c.hand.length,G.side.p.deck.length,G.side.c.deck.length,G.side.p.field.length,G.side.c.field.length,UID].join(',');
 let netDepth=0;
 for(const n of NET_FNS){
@@ -2523,13 +2574,13 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.29';
+const APP_VER='v2.30';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
  const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
  if(typeof it==='object'){ms=1900;e.classList.add('cutk');
-  e.innerHTML=`<div class="cband"><span class="clab">切り離し</span><span class="cstage"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
+  e.innerHTML=`<div class="cband"><span class="clab">${esc(it.lab||'切り離し')}</span><span class="cstage${it.from.length>1||it.to.length>1?' two':''}"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
  else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
  document.body.appendChild(e);
  setTimeout(()=>{e.remove();nextCut();},ms);}
