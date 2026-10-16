@@ -1165,7 +1165,7 @@ const G6=[
  ['射',10,''],
  ['捨',11,'扌舎'],
  ['尺',4,''],
- ['若',8,''],
+ ['若',8,'艹右'],
  ['樹',16,''],
  ['収',4,''],
  ['宗',8,'宀示'],
@@ -1295,7 +1295,7 @@ const BUSHU_PART={'艹':3,'宀':3,'亻':2,'扌':3,'辶':3,'阝':3,'灬':4,'广':
 const BUSHU_OF={'花':'艹','草':'艹','字':'宀','何':'亻','科':'禾','回':'囗','教':'攵','近':'辶','兄':'儿','元':'儿','原':'厂','京':'亠','交':'亠','国':'囗','社':'礻','週':'辶','秋':'禾','数':'攵','茶':'艹','点':'灬','店':'广','道':'辶','体':'亻','頭':'頁',
  '安':'宀','院':'阝','運':'辶','屋':'尸','荷':'艹','階':'阝','客':'宀','宮':'宀','局':'尸','苦':'艹','係':'亻','庫':'广','仕':'亻','使':'亻','指':'扌','持':'扌','式':'弋','者':'耂','守':'宀','取':'又','拾':'扌','集':'隹','住':'亻','神':'礻','整':'攵','速':'辶','打':'扌','待':'彳','題':'頁','帳':'巾','定':'宀','庭':'广','都':'阝','登':'癶','配':'酉','秒':'禾','病':'疒','返':'辶','放':'攵','薬':'艹','葉':'艹','室':'宀','酒':'酉','達':'辶','情':'忄','性':'忄','慣':'忄','借':'亻','仲':'亻','付':'亻','例':'亻','似':'亻',
  '位':'亻','茨':'艹','英':'艹','億':'亻','芽':'艹','改':'攵','完':'宀','願':'頁','季':'禾','郡':'阝','健':'亻','固':'囗','佐':'亻','察':'宀','祝':'礻','順':'頁','種':'禾','初':'衤','照':'灬','信':'亻','積':'禾','折':'扌','戦':'戈','側':'亻','低':'亻','徒':'彳','働':'亻','敗':'攵','阪':'阝','府':'广','便':'亻','牧':'攵','類':'頁','冷':'冫','連':'辶','移':'禾','因':'囗','往':'彳','仮':'亻','価':'亻','額':'頁','寄':'宀','技':'扌','救':'攵','居':'尸','件':'亻','故':'攵','際':'阝','個':'亻','像':'亻','政':'攵','税':'禾','造':'辶','団':'囗','損':'扌','提':'扌','授':'扌','招':'扌','序':'广','防':'阝','領':'頁','容':'宀','迷':'辶'};
-Object.assign(BUSHU_OF,{'遺':'辶','拡':'扌','揮':'扌','供':'亻','困':'囗','視':'礻','捨':'扌','宗':'宀','仁':'亻','値':'亻','宙':'宀','頂':'頁','秘':'禾','俳':'亻','俵':'亻','批':'扌','枚':'攵','密':'宀','預':'頁'});
+Object.assign(BUSHU_OF,{'若':'艹','遺':'辶','拡':'扌','揮':'扌','供':'亻','困':'囗','視':'礻','捨':'扌','宗':'宀','仁':'亻','値':'亻','宙':'宀','頂':'頁','秘':'禾','俳':'亻','俵':'亻','批':'扌','枚':'攵','密':'宀','預':'頁'});
 const COMP=Object.assign({},JOYO_PART,BUSHU_PART);
 const DANGER=new Set(Array.from('危射敵乱'+'火力虫赤車'+'戦敗殺犯罪暴毒災険破燃熱'+'刀弓矢強切角当電'+'悪打投死病苦血追炭湯発放波'));
 const STURDY=new Set(Array.from('鋼宝聖宙盛層蔵厳'+'大山森天空千百石金玉貝竹土木休正村町校'+'岩太長高広多家室戸門国海船地体寺社万'+'固城倉岡阜堂墓銅鉱厚築防久豊'+'安守助柱鉄皿館宮橋庫屋院階都島港駅重全平福幸神命箱氷湖岸板世'));
@@ -1452,7 +1452,8 @@ function startTurn(s){
 function canAct(s,u){return !G.over&&G.cur===s&&S(s).acts>0&&!u.sick&&!u.done;}
 const CROWN_PARTS=['穴','冖','宀'];
 const isCrown=c=>c.ch==='学'||c.parts.some(p=>CROWN_PARTS.includes(p));
-const isFlower=c=>c.parts.includes('艹');
+const FLOWER_EXTRA=new Set(['菜']);
+const isFlower=c=>c.parts.includes('艹')||FLOWER_EXTRA.has(c.ch);
 const isBoost=c=>isCrown(c)||isFlower(c);
 function canSplit(s,u){return u.parts.length>1;}
 function summonWhy(s,c){const me=S(s);if(c.spell)return 'この字は召喚できません(手札から使う効果だけです)';if(c.cost>me.mana)return `マナが足りません(必要 ${c.cost})`;if(me.field.length>=CFG.field)return '場が埋まっています';return '';}
@@ -2147,7 +2148,7 @@ function rulesH(){
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
  <li>攻撃は2種類。<b>単体攻撃</b>は字ひとつで1つの標的を狙う。<b>分解攻撃</b>はパーツが順番に別々の標的を狙う。分解できる字は分解攻撃だけ、分解できない字は単体攻撃だけ。</li>
  <li><b>冠付加</b>: 分解のパーツに穴冠(穴)・わ冠・う冠(宀)を含む字と「学」は、手札から使って自分の場の字1枚の体力を増やせる。マナ${CFG.crownCost}とその字を消費し、行動回数は使わない。削られていれば体力が1回復、満タンなら最大体力が+1。付加された字には「冠」の印が付く。</li>
- <li><b>花回復</b>: 分解のパーツにくさかんむり(艹)を含む字は、同じように使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費する。</li>
+ <li><b>花回復</b>: 分解のパーツにくさかんむり(艹)を含む字と「菜」は、同じように使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費する。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li>冠付加を使うと、1回につき追加でカードを1枚引く(花回復では引かない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
@@ -2238,7 +2239,7 @@ function bdPeekH(){
  const body=d.spell?`${esc(d.trap?(k==='止'?'罠(分)':k==='返'?'罠(単)':'罠'):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
  return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
 }
-const bdFl=ch=>CARDS[ch].p.includes('艹');
+const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
 const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:2;
 function bdFiltered(){
  const q=Array.from(bd.q);
@@ -2359,8 +2360,8 @@ function manaPreview(n){
  }catch(e){}
 }
 // 「ドロー」「破棄」に触れている間、使うマナ(右から数個)を網線で示す
-const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost};
-const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"]');
+const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost,cutmode:()=>CFG.cutCost};
+const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"],[data-act="cutmode"]');
 document.addEventListener('mouseover',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h)return;const pn=h.closest('.panel');if(!pn)return;let w=pn.querySelector('.why');if(!w){w=document.createElement('p');w.className='why';w.dataset.tmp='1';const sm=pn.querySelector('.sm');(sm||pn.firstChild).after(w);}else if(w.dataset.orig===undefined)w.dataset.orig=w.textContent;w.textContent=h.dataset.hint;});
 document.addEventListener('mouseout',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h||h.contains(e.relatedTarget))return;const pn=h.closest('.panel');const w=pn&&pn.querySelector('.why');if(!w)return;if(w.dataset.tmp)w.remove();else if(w.dataset.orig!==undefined){w.textContent=w.dataset.orig;delete w.dataset.orig;}});
 $('board').addEventListener('mouseover',e=>{const b=costBtn(e);if(b&&!b.disabled)manaPreview(PREVIEW_COST[b.dataset.act]());});
@@ -2443,7 +2444,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.18';
+const APP_VER='v2.19';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
