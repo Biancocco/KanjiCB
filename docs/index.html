@@ -2011,7 +2011,7 @@ function panelH(){
   if(c){
    const why=summonWhy(ME(),c);
    const info=(c.parts.length>1?`分解攻撃のみ: ${planTxt(c)}`:healerOnly(c.ch)?'回復のみ(攻撃はできません)':'単体攻撃のみ')+(c.ch==='刀'?(P.ct?'。切り離しはこのターン使用済み':'。切り離しで、相手の字のパーツを1つ切り落とせます'):'')+(P.field.some(u=>composeTo(c.ch,u.ch))?'。パーツ付与で、場の字を合成できます':'')+(isFlower(c)?'。花回復で、この字を使って場の字の体力を3回復できます':isPower(c)?'。力付与で、この字を使って場の字の攻撃力を'+CFG.powerAtk+'増やせます':'')+'。召喚すると、空き枠を選んで好きな位置に置けます。';
-   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='裂'?hintWrap(`<button type="button" class="btn pri" data-act="ripmode" ${P.mana<CFG.ripCost||P.rp||!E.field.some(u=>ripsOf(u).length)?'disabled':''}>切り裂き</button>`,P.mana<CFG.ripCost?'マナが足りません(必要 '+CFG.ripCost+')':P.rp?'このターンは使用済みです':!E.field.some(u=>ripsOf(u).length)?'':'切り裂きできます'):''}${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=P.mana<CFG.cutCost?'マナが足りません(必要 '+CFG.cutCost+')':P.ct?'このターンは使用済みです':!E.field.some(u=>Object.keys(cutsOf(u)).length)?'':'切り離しできます';return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<boostCost(c)||!P.field.length||(isPower(c)?P.ph:P.fh)?'disabled':''}>${isFlower(c)?'花回復':'力付与'}</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=(isPower(c)?P.ph:P.fh)?'このターンは使用済みです':P.mana<boostCost(c)?'マナが足りません(必要 '+boostCost(c)+')':!P.field.length?'':(isFlower(c)?'花回復できます':'力付与できます');return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='裂'?hintWrap(`<button type="button" class="btn pri" data-act="ripmode" ${P.mana<CFG.ripCost||P.rp||!E.field.some(u=>ripsOf(u).length)?'disabled':''}>切り裂き</button>`,P.mana<CFG.ripCost?'マナが足りません(必要 '+CFG.ripCost+')':P.rp?'このターンは使用済みです':!E.field.some(u=>ripsOf(u).length)?'':''):''}${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=P.mana<CFG.cutCost?'マナが足りません(必要 '+CFG.cutCost+')':P.ct?'このターンは使用済みです':!E.field.some(u=>Object.keys(cutsOf(u)).length)?'':'';return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<boostCost(c)||!P.field.length||(isPower(c)?P.ph:P.fh)?'disabled':''}>${isFlower(c)?'花回復':'力付与'}</button>`.replace(/^<button[\s\S]*<\/button>$/,(m0)=>{const h=(isPower(c)?P.ph:P.fh)?'このターンは使用済みです':P.mana<boostCost(c)?'マナが足りません(必要 '+boostCost(c)+')':!P.field.length?'':'';return h?'<span class="hintw" data-hint="'+h+'">'+m0+'</span>':m0;}):''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='field'){
@@ -2058,8 +2058,7 @@ function handH(){
  return `<p class="lbl2">手札 ${P.hand.length}/${CFG.hand}</p><div class="hand">${cards||'<span class="empty">手札がありません</span>'}</div>`;
 }
 function ctlH(){
- if(G.over)return '<div class="ctl"><button type="button" class="btn pri" data-act="again">メニューに戻る</button></div>';
- const mine=mineTurn();
+ const mine=mineTurn()&&!G.over;
  const dw=mine?paidDrawWhy(ME()):'x';
  return `<div class="ctl"><button type="button" class="btn" data-act="pdraw" ${dw?'disabled':''}>ドロー</button><button type="button" class="btn pri" data-act="end" ${mine?'':'disabled'}>ターン終了</button></div>`;
 }
@@ -2574,7 +2573,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.31';
+const APP_VER='v2.32';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
