@@ -213,6 +213,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .chip2.sel{outline:2px solid var(--accent);outline-offset:1px}
 .mini{font:inherit;font-weight:700;min-height:36px;min-width:36px;padding:0 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--card-ink);cursor:pointer}
 .mini.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.mini.boxed{border:2px solid var(--ink2);border-radius:4px}
 .mini:disabled{opacity:.4;cursor:not-allowed}
 .bdq{font:inherit;min-height:40px;padding:0 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--card-ink);width:100%}
 .bdl{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
@@ -235,7 +236,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,trap:3,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,trap:3,trapCost:1,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -1478,6 +1479,8 @@ function summon(s,id,slot){
  const used=me.field.map(x=>x.slot);let sl=0;while(used.includes(sl))sl++;if(Number.isInteger(slot)&&slot>=0&&slot<CFG.field&&!used.includes(slot))sl=slot;c.slot=sl;me.field.push(c);G.fx[c.id]={t:'spawn'};
  log(`${NAME[s]}は「${c.ch}」を召喚`);return true;
 }
+// 罠が発動するには、罠の持ち主のマナを1使う(持ち主の前のターンの残り。足りなければ発動しない)。
+function trapPay(owner,ch){if(owner.mana<CFG.trapCost){log(`罠「${ch}」は、マナが足りず発動しなかった`);return false;}owner.mana-=CFG.trapCost;return true;}
 // 単体攻撃: 1つの標的に atk ダメージ。相手の場が空なら本体('face')のみ。
 const addCut=ch=>{(G.fx.cutin=G.fx.cutin||[]).push(ch);};
 function attackWhole(s,uid,tid){
@@ -1491,7 +1494,7 @@ function attackWhole(s,uid,tid){
   const t=op.field.find(x=>x.id===tid);if(!t)return false;
   log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);
   const tr=(op.traps||[])[t.slot];
-  if(tr&&tr.card.ch==='返'&&!tr.fired){
+  if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
    // 返: 真上の字への単体攻撃を一度だけ無効にして、墓地へ行く
    op.traps[t.slot]=null;toGy(op,tr.card);G.fx[t.id]={t:'guard'};addCut('返');
    log(`${NAME[OP(s)]}の罠「返」が発動し、「${t.ch}」への${u.atk}ダメージを無効にした`);
@@ -1546,7 +1549,7 @@ function attackSplit(s,uid,tids){
    if(t){
     const tr=(op.traps||[])[t.slot];
     if(tr&&tr.card.ch==='止'){
-     if(!tr.fired){tr.fired=true;tr.turn=G.turn;tr.blocked=[];log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}
+     if(!tr.fired&&tr.np!==G.turn){if(trapPay(op,'止')){tr.fired=true;tr.turn=G.turn;tr.blocked=[];log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}else tr.np=G.turn;}
      if(tr.fired&&tr.turn===G.turn){
       const lb=`${u.parts[i]}${u.sp[i]}`;tr.blocked.push(lb);
       (blocked[t.slot]=blocked[t.slot]||{unit:t.ch,labels:[]}).labels.push(lb);
@@ -1664,7 +1667,7 @@ function breakUnit(s,cid,uid){
  log(`${NAME[s]}は「壊」で${NAME[OP(s)]}の「${u.ch}」を壊した`);
  const tr=(op.traps||[])[u.slot];
  killUnit(OP(s),u);
- if(tr&&tr.card.ch==='返'&&!tr.fired){
+ if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
   op.traps[u.slot]=null;toGy(op,tr.card);addCut('返');
   log(`${NAME[OP(s)]}の罠「返」が発動した`);
   if(!me.field.length){log(`${NAME[s]}の場に字がないので、本体に${CFG.counterDmg}ダメージ`);dmgFace(s,CFG.counterDmg);}
@@ -1895,7 +1898,7 @@ function unitWhy(u){
  return '';
 }
 const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
-const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にします。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。'};
+const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にします。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
 function panelH(){
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
  if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
@@ -2164,6 +2167,7 @@ function rulesH(){
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
  <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
+ <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
  <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にする。<b class="atkw">単体攻撃</b>は止められない。発動した止は、次のターンの始めに墓地へ行く。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
  <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
@@ -2211,7 +2215,7 @@ function showCpuSelect(){
 // ---- デッキ構築 ----
 const BD_KEY='jikuzushi_deck_v1',BD_KEY2='jikuzushi_decks_v2',BD_SIZE=30,BD_MAX=3,BD_SLOTS=2;
 // マイデッキは2つまで保存できる。bd.deck は、いま編集している方のデッキ。
-let bd={decks:[{},{}],slot:0,get deck(){return this.decks[this.slot];},set deck(v){this.decks[this.slot]=v;},grade:0,cost:0,sy:true,sn:true,q:'',peek:'',sort:''};
+let bd={decks:[{},{}],slot:0,get deck(){return this.decks[this.slot];},set deck(v){this.decks[this.slot]=v;},grade:0,cost:0,sy:true,sn:true,q:'',peek:'',sort:'',dir:'+'};
 (function(){
  const clean=o=>{const d={};if(o&&typeof o==='object'){for(const [k,v] of Object.entries(o)){if(CARDS[k]&&Number.isInteger(v)&&v>0)d[k]=Math.min(BD_MAX,v);}}return d;};
  try{
@@ -2269,11 +2273,11 @@ function bdPeekH(){
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
 const bdPw=ch=>POWER_CHARS.has(ch);
 const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:3;
-const BD_SORTS=[['','標準'],['c+','コスト 昇順'],['c-','コスト 降順'],['a+','攻撃力 昇順'],['a-','攻撃力 降順'],['h+','体力 昇順'],['h-','体力 降順']];
+const BD_SORTS=[['','標準'],['a','攻撃力'],['h','体力']];
 function bdSortCmp(x,y){
  if(!bd.sort)return 0;
  if(bd.grade==='s'){const r=bdRank(x[0])-bdRank(y[0]);if(r)return r;}
- const k=bd.sort[0],dir=bd.sort[1]==='-'?-1:1,g=e=>k==='c'?e[1].c:k==='a'?e[1].a:e[1].h;
+ const k=bd.sort,dir=bd.dir==='-'?-1:1,g=e=>k==='a'?e[1].a:e[1].h;
  return (g(x)-g(y))*dir;
 }
 function bdFiltered(){
@@ -2299,7 +2303,7 @@ function bdFilterH(){
  const gs=[[0,'すべて'],[1,'小1'],[2,'小2'],[3,'小3'],[4,'小4'],[5,'小5'],[6,'小6'],['s','特殊']];
  const g=gs.map(([v,l])=>`<button type="button" class="mini ${bd.grade===v?'pri':''}" data-bd="grade" data-v="${v}">${l}</button>`).join('');
  const c=[0,1,2,3,4,5,6,7,8,9].map(v=>`<button type="button" class="mini ${bd.cost===v?'pri':''}" data-bd="cost" data-v="${v}">${v?v:'全コスト'}</button>`).join('');
- const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select>`;
+ const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select><select class="mini boxed" id="bdDir" aria-label="昇順・降順" ${bd.sort?'':'disabled'}><option value="+"${bd.dir==='+'?' selected':''}>昇順</option><option value="-"${bd.dir==='-'?' selected':''}>降順</option></select>`;
  return `<div class="bdf" role="group" aria-label="学年">${g}</div><div class="bdf gap" role="group" aria-label="コスト">${c}</div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
 }
 function bdRefresh(){
@@ -2349,8 +2353,12 @@ function bdClick(b){
   $('bdFilt').innerHTML=bdFilterH();$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();return;
  }
 }
+$('ov').addEventListener('keydown',e=>{
+ if(e.target&&e.target.id==='netcode'&&(e.key==='Enter'||e.code==='NumpadEnter')){e.preventDefault();const b=document.querySelector('[data-net="join"]');if(b&&!b.disabled)netClick(b);}
+});
+$('ov').addEventListener('input',e=>{if(e.target&&e.target.id==='netcode'){const w=document.getElementById('netwarn');if(w)w.hidden=true;}});
 $('ov').addEventListener('change',e=>{
- if(e.target&&e.target.id==='bdSort'){bd.sort=e.target.value;$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();}
+ if(e.target&&(e.target.id==='bdSort'||e.target.id==='bdDir')){if(e.target.id==='bdSort')bd.sort=e.target.value;else bd.dir=e.target.value;$('bdFilt').innerHTML=bdFilterH();$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();}
 });
 $('ov').addEventListener('input',e=>{
  if(e.target&&e.target.id==='bdQ'){bd.q=e.target.value;$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();}
@@ -2477,12 +2485,12 @@ function showNetMenu(err){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
- showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
+ showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
 }
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.26';
+const APP_VER='v2.27';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
@@ -2740,7 +2748,10 @@ function netClick(b){
  if(a==='test'){netTest();return;}
  if(!net.deck)return;
  if(a==='host'){netHost();return;}
- if(a==='join'){const el=document.getElementById('netcode');netJoin(el?el.value:'');return;}
+ if(a==='join'){const el=document.getElementById('netcode');
+  const cd=String(el?el.value:'').normalize('NFKC').replace(/\s/g,'');
+  if(cd.length<5){const w=document.getElementById('netwarn');if(w)w.hidden=false;return;}
+  netJoin(cd);return;}
 }
 
 function boot(data){
