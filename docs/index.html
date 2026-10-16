@@ -11,7 +11,7 @@
 :root{
   --bg:#e6ebea; --panel:#f3f6f5; --ink:#17201f; --ink2:#566664; --line:#bdc9c7;
   --accent:#2c4a8c; --accent-ink:#ffffff;
-  --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#f9dfe7; --heal2:#dff3e4;
+  --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#fbe9ee; --heal2:#dff3e4; --pow:#f6d3d3;
   --good:#2f7d5b; --warn:#a86a0c; --bad:#b3372c;
   --kanji:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
   --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
@@ -20,7 +20,7 @@
   :root:not([data-theme="light"]){
     --bg:#101619; --panel:#182126; --ink:#e4ebea; --ink2:#93a3a1; --line:#2c393e;
     --accent:#8fa8e8; --accent-ink:#0f1626;
-    --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#4b2a37; --heal2:#25422f;
+    --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828;
     --good:#66c298; --warn:#e0a640; --bad:#ec7a6e;
     color-scheme:dark;
   }
@@ -28,7 +28,7 @@
 :root[data-theme="dark"]{
   --bg:#101619; --panel:#182126; --ink:#e4ebea; --ink2:#93a3a1; --line:#2c393e;
   --accent:#8fa8e8; --accent-ink:#0f1626;
-  --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#4b2a37; --heal2:#25422f;
+  --card:#232d33; --card-ink:#eef2ee; --spell:#22384f; --heal:#412c35; --heal2:#25422f; --pow:#552828;
   --good:#66c298; --warn:#e0a640; --bad:#ec7a6e;
   color-scheme:dark;
 }
@@ -79,6 +79,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .card.spc{background:var(--spell)}
 .card.hl,.chip2.hl,.bdr.hl{background:var(--heal)}
 .card.hg,.chip2.hg,.bdr.hg{background:var(--heal2)}
+.card.hr,.chip2.hr,.bdr.hr{background:var(--pow)}
+.crwn.pwb{background:#b3261e;color:#fff;font-family:inherit}
 .card.dim{opacity:.55}
 .card.rest .glyph{opacity:.4}
 .glyph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--kanji);font-size:2.6rem;font-size:54cqw;line-height:1;padding-bottom:14cqw}
@@ -233,7 +235,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,trap:3,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:2,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,trap:3,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -1282,7 +1284,8 @@ const G6=[
  ['律',9,''],
  ['臨',18,''],
  ['朗',10,'良月'],
- ['論',15,'']
+ ['論',15,''],
+ ['攻',7,'']
 ];
 const POOL=G1.concat(G2,G3,G4,G5,G6);
 const POOLS=new Set(POOL.map(x=>x[0]));
@@ -1435,7 +1438,7 @@ function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
 function startTurn(s){
- G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.ct=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
+ G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
  me.field.forEach(u=>{u.sick=false;u.done=false;});
  for(const sd of ['p','c']){const sx=S(sd);(sx.traps||[]).forEach((tr,i)=>{if(tr&&tr.fired&&tr.turn<G.turn){toGy(sx,tr.card);sx.traps[i]=null;}});}
  log(`${NAME[s]}の ${me.tn} ターン目`);
@@ -1450,11 +1453,12 @@ function startTurn(s){
  }
 }
 function canAct(s,u){return !G.over&&G.cur===s&&S(s).acts>0&&!u.sick&&!u.done;}
-const CROWN_PARTS=['穴','冖','宀'];
-const isCrown=c=>c.ch==='学'||c.parts.some(p=>CROWN_PARTS.includes(p));
+const POWER_CHARS=new Set(Array.from('力勝功攻勢努勇'));
+const isPower=c=>POWER_CHARS.has(c.ch);
 const FLOWER_EXTRA=new Set(['菜']);
 const isFlower=c=>c.parts.includes('艹')||FLOWER_EXTRA.has(c.ch);
-const isBoost=c=>isCrown(c)||isFlower(c);
+const isBoost=c=>isPower(c)||isFlower(c);
+const boostCost=c=>isPower(c)?CFG.powerCost:CFG.crownCost;
 function canSplit(s,u){return u.parts.length>1;}
 function summonWhy(s,c){const me=S(s);if(c.spell)return 'この字は召喚できません(手札から使う効果だけです)';if(c.cost>me.mana)return `マナが足りません(必要 ${c.cost})`;if(me.field.length>=CFG.field)return '場が埋まっています';return '';}
 
@@ -1557,10 +1561,10 @@ function attackSplit(s,uid,tids){
  u.done=true;me.acts--;return true;
 }
 
-// 冠付加・花回復: 手札の字を使って自分の場の字1枚を強める。マナを払い、その字は墓地へ。行動回数は使わない。
-//  冠付加(穴冠・わ冠・う冠を含む字と「学」): 削られていれば1回復、満タンなら最大体力と体力が+1。
+// 力付与・花回復: 手札の字を使って自分の場の字1枚を強める。マナを払い、その字は墓地へ。行動回数は使わない。
+//  力付与(力勝功攻勢努勇): マナ2で攻撃力+2。1ターンに1回。
 //  花回復(くさかんむり艹を含む字): 体力を3回復。満タンを超える分は最大体力が増える。
-// 冠付加を使うたびに、追加で1枚ドローする(花回復では引かない)。
+// 花回復も1ターンに1回だけ。
 function drawExtra(s,n){
  const me=S(s);
  for(let k=0;k<n;k++){
@@ -1571,18 +1575,17 @@ function drawExtra(s,n){
  }
 }
 function crown(s,cid,uid){
- const me=S(s);if(G.over||G.cur!==s||me.mana<CFG.crownCost)return false;
+ const me=S(s);if(G.over||G.cur!==s)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||!isBoost(me.hand[i]))return false;
+ const c0=me.hand[i],pw=isPower(c0);
+ if(me.mana<boostCost(c0)||(pw?me.ph:me.fh))return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
- const c=me.hand[i];me.mana-=CFG.crownCost;me.hand.splice(i,1);toGy(me,c);
- let n;
- if(isFlower(c)){const h=Math.min(CFG.flowerHeal,u.max-u.hp),r=CFG.flowerHeal-h;u.hp+=h;if(r>0){u.max+=r;u.hp+=r;u.fmax=(u.fmax||0)+r;}n=CFG.flowerHeal;log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n,heal:1};}
- else{
-  if(u.hp<u.max){u.hp++;log(`${NAME[s]}は「${c.ch}」を冠として「${u.ch}」を回復(体力${u.hp})`);}
-  else{u.max++;u.hp++;log(`${NAME[s]}は「${c.ch}」を冠として「${u.ch}」の体力を+1(${u.hp})`);}
-  u.crown=(u.crown||0)+1;G.fx[u.id]={t:'crown',n:1};
- }
-if(!isFlower(c))drawExtra(s,1);return true;
+ const c=c0;me.mana-=boostCost(c);me.hand.splice(i,1);toGy(me,c);
+ if(pw){me.ph=true;u.atk+=CFG.powerAtk;u.pow=(u.pow||0)+CFG.powerAtk;G.fx[u.id]={t:'crown',n:CFG.powerAtk,pow:1};log(`${NAME[s]}は「${c.ch}」の力で「${u.ch}」の攻撃力を${CFG.powerAtk}増やした(攻撃${u.atk})`);return true;}
+ me.fh=true;
+ const h=Math.min(CFG.flowerHeal,u.max-u.hp),r=CFG.flowerHeal-h;u.hp+=h;if(r>0){u.max+=r;u.hp+=r;u.fmax=(u.fmax||0)+r;}
+ log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n:CFG.flowerHeal,heal:1};
+ return true;
 }
 // ドロー: マナを払って1枚引く。1ターンに1回。行動回数は使わない。
 function paidDrawWhy(s){
@@ -1599,7 +1602,7 @@ function paidDraw(s){
  log(s==='p'&&!G.two?`あなたはマナを使って「${c.ch}」を引いた`:`${NAME[s]}はマナを使って1枚引いた`);return true;
 }
 // パーツ付与: 手札の字Xを使い、場の字Yを合成後の字Zに変える。マナを払い、Xは墓地へ。行動回数は使わない。
-// 受けたダメージ・冠付加の分・動けるかどうかは引き継ぐ(ZはYと同じ枠に入る)。
+// 受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ(ZはYと同じ枠に入る)。
 function composeTo(ch,y){return COMPOSE[ch+'+'+y];}
 function compose(s,cid,uid){
  const me=S(s);if(G.over||G.cur!==s||me.mana<CFG.composeCost)return false;
@@ -1608,13 +1611,13 @@ function compose(s,cid,uid){
  const c=me.hand[i],z=composeTo(c.ch,u.ch);if(!z)return false;
  me.mana-=CFG.composeCost;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.crown=u.crown;n.fmax=u.fmax;
+ const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow)n.atk+=n.pow;n.fmax=u.fmax;
  n.max=CARDS[z].h+bonus;n.hp=Math.max(1,n.max-dmg);
  me.field[me.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
  log(`${NAME[s]}は「${c.ch}」を付与して「${u.ch}」を「${z}」にした`);return true;
 }
 // 切り離し(刀): 手札の「刀」を使い、相手の場の字からパーツを1つ切り離して別の字にする。
-// マナ3・1ターン1回・行動回数は使わない。受けたダメージ・冠付加の分・動けるかどうかは引き継ぐ。
+// マナ3・1ターン1回・行動回数は使わない。受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ。
 const cutsOf=u=>CUTS[u.ch]||{};
 function cut(s,cid,uid,part){
  const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||me.ct||me.mana<CFG.cutCost)return false;
@@ -1623,7 +1626,7 @@ function cut(s,cid,uid,part){
  const y=cutsOf(u)[part];if(!y)return false;
  const c=me.hand[i];me.mana-=CFG.cutCost;me.ct=true;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.crown=u.crown;n.fmax=u.fmax;
+ const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow)n.atk+=n.pow;n.fmax=u.fmax;
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
  op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};addCut({k:'cut',from:u.ch,part,to:y});
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
@@ -1817,8 +1820,8 @@ function cardH(u,kind,cls,tag,gtag){
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
  const hpTxt=kind==='hand'?u.hp:(u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp);
- return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
-  `<span class="cost">${u.cost}</span>${(multi||u.crown||u.fmax)?`<span class="tr">${(u.crown||multi)?`<span class="row1">${u.crown?`<span class="crwn" title="冠付加">冠${u.crown>1?u.crown:''}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
+ return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
+  `<span class="cost">${u.cost}</span>${(multi||u.pow||u.fmax)?`<span class="tr">${(u.pow||multi)?`<span class="row1">${u.pow?`<span class="crwn pwb" title="力付与で攻撃力+${u.pow}">力+${u.pow}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
   (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
 }
@@ -1943,12 +1946,12 @@ function panelH(){
    return `<div class="panel"><p class="ttl">パーツ付与: 「${c.ch}」</p><p>付与する自分の場の字を選んでください(${esc(opts)})。「${c.ch}」とマナ${CFG.composeCost}を使います。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&ui.mode==='crown'){
-   return `<div class="panel"><p class="ttl">${isFlower(c)?'花回復':'冠付加'}: 「${c.ch}」</p><p>体力を増やす自分の場の字を選んでください。「${c.ch}」とマナ${CFG.crownCost}を使い、${isFlower(c)?`体力が${CFG.flowerHeal}回復します(満タンを超える分は最大体力が増えます)`:'体力が削られていれば1回復、満タンなら最大体力が+1されます'}。${isFlower(c)?'':'使うと追加で1枚引けます。'}</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">${isFlower(c)?'花回復':'力付与'}: 「${c.ch}」</p><p>強める自分の場の字を選んでください。「${c.ch}」とマナ${boostCost(c)}を使い、${isFlower(c)?`体力が${CFG.flowerHeal}回復します(満タンを超える分は最大体力が増えます)。1ターンに1回だけです`:`攻撃力が${CFG.powerAtk}増えます。1ターンに1回だけです`}。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c){
    const why=summonWhy(ME(),c);
-   const info=(c.parts.length>1?`分解攻撃のみ: ${planTxt(c)}`:healerOnly(c.ch)?'回復のみ(攻撃はできません)':'単体攻撃のみ')+(c.ch==='刀'?(P.ct?'。切り離しはこのターン使用済み':'。切り離しで、相手の字のパーツを1つ切り落とせます'):'')+(P.field.some(u=>composeTo(c.ch,u.ch))?'。パーツ付与で、場の字を合成できます':'')+(isFlower(c)?'。花回復で、この字を使って場の字の体力を3回復できます':isCrown(c)?'。冠付加で、この字を使って場の字の体力を増やせます':'')+'。召喚すると、空き枠を選んで好きな位置に置けます。';
-   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace('<button',P.mana<CFG.cutCost?'<span class="hintw" data-hint="マナが足りません"><button':'<button').replace('</button>',P.mana<CFG.cutCost?'</button></span>':'</button>'):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<CFG.crownCost||!P.field.length?'disabled':''}>${isFlower(c)?'花回復':'冠付加'}</button>`:''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   const info=(c.parts.length>1?`分解攻撃のみ: ${planTxt(c)}`:healerOnly(c.ch)?'回復のみ(攻撃はできません)':'単体攻撃のみ')+(c.ch==='刀'?(P.ct?'。切り離しはこのターン使用済み':'。切り離しで、相手の字のパーツを1つ切り落とせます'):'')+(P.field.some(u=>composeTo(c.ch,u.ch))?'。パーツ付与で、場の字を合成できます':'')+(isFlower(c)?'。花回復で、この字を使って場の字の体力を3回復できます':isPower(c)?'。力付与で、この字を使って場の字の攻撃力を'+CFG.powerAtk+'増やせます':'')+'。召喚すると、空き枠を選んで好きな位置に置けます。';
+   return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost} / 攻 ${c.atk} 体 ${c.hp}</p><p class="sm">${info}</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>${c.ch==='刀'?`<button type="button" class="btn pri" data-act="cutmode" ${P.mana<CFG.cutCost||P.ct||!E.field.some(u=>Object.keys(cutsOf(u)).length)?'disabled':''}>切り離し</button>`.replace('<button',P.mana<CFG.cutCost?'<span class="hintw" data-hint="マナが足りません"><button':'<button').replace('</button>',P.mana<CFG.cutCost?'</button></span>':'</button>'):''}${P.field.some(u=>composeTo(c.ch,u.ch))?`<button type="button" class="btn pri" data-act="compose" ${P.mana<CFG.composeCost?'disabled':''}>パーツ付与</button>`:''}${isBoost(c)?`<button type="button" class="btn pri" data-act="crown" ${P.mana<boostCost(c)||!P.field.length||(isPower(c)?P.ph:P.fh)?'disabled':''}>${isFlower(c)?'花回復':'力付与'}</button>`.replace('<button',(isPower(c)?P.ph:P.fh)?'<span class="hintw" data-hint="このターンは使用済みです"><button':'<button').replace('</button>',(isPower(c)?P.ph:P.fh)?'</button></span>':'</button>'):''}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='field'){
@@ -2147,19 +2150,18 @@ function rulesH(){
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
  <li>攻撃は2種類。<b>単体攻撃</b>は字ひとつで1つの標的を狙う。<b>分解攻撃</b>はパーツが順番に別々の標的を狙う。分解できる字は分解攻撃だけ、分解できない字は単体攻撃だけ。</li>
- <li><b>冠付加</b>: 分解のパーツに穴冠(穴)・わ冠・う冠(宀)を含む字と「学」は、手札から使って自分の場の字1枚の体力を増やせる。マナ${CFG.crownCost}とその字を消費し、行動回数は使わない。削られていれば体力が1回復、満タンなら最大体力が+1。付加された字には「冠」の印が付く。</li>
- <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費する。</li>
+ <li><b>力付与</b>: 「力」「勝」「功」「攻」「勢」「努」「勇」は、手札から使って自分の場の字1枚の攻撃力を${CFG.powerAtk}増やせる。マナ${CFG.powerCost}とその字を消費し、行動回数は使わない。1ターンに1回だけ。付与された字には「力」の印が付く。</li>
+ <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費し、1ターンに1回だけ使える。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
- <li>冠付加を使うと、1回につき追加でカードを1枚引く(花回復では引かない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
  <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
  <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、そのターンの間、その字へのパーツの攻撃をすべて無効にする。<b class="atkw">単体攻撃</b>は止められない。発動した止は、次のターンの始めに墓地へ行く。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
  <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
- <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・冠付加の分は引き継ぐ。</li>
+ <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・力付与・花回復の分は引き継ぐ。</li>
  <li>罠の枠が自分と相手に${CFG.trap}つずつある。枠の位置は、場の字の枠と同じ列に対応する。</li>
- <li><b>パーツ付与</b>: 手札の字Xを使い、場の字Yに足すと別の字Zになるとき、YをZに変えられる(例: 手札の「木」で場の「林」→「森」、「日」で「月」→「明」)。マナ${CFG.composeCost}とXを消費し、行動回数は使わない。Zは同じ枠に入り、受けたダメージや冠付加の分、動けるかどうかは引き継ぐ。足りないパーツが1つの字だけが対象で、手札・場の両方に実装済みの字どうしに限る。</li>
+ <li><b>パーツ付与</b>: 手札の字Xを使い、場の字Yに足すと別の字Zになるとき、YをZに変えられる(例: 手札の「木」で場の「林」→「森」、「日」で「月」→「明」)。マナ${CFG.composeCost}とXを消費し、行動回数は使わない。Zは同じ枠に入り、受けたダメージや力付与・花回復の分、動けるかどうかは引き継ぐ。足りないパーツが1つの字だけが対象で、手札・場の両方に実装済みの字どうしに限る。</li>
  <li>手札の字を選ぶと空き枠に「ここに召喚」と出る。押した枠に召喚できる。</li>
  <li>分解できるのは、パーツがすべて「単体で常用漢字になる字」か「その字自身の部首」で、1画のパーツを含まず、字そのものが部首ではない字だけ。それ以外の字は単体攻撃だけ。さんずい(氵)は「水」として分解できる。分解しても字は壊れず、攻撃後も元の字のまま場に残る。体力は字ごとに1つ。同じパーツなら、攻撃力はどの字の中でも同じ(木は常に2)。</li>
  <li><b>回復するパーツ</b>: 「心」とりっしんべん(忄)は体力を2、「幸」は5回復できる。分解攻撃でそのパーツが動くとき、または「心」「幸」の字そのものが行動するときに、自分の場の字1枚か自分の本体を選んで回復できる。「心」「幸」の字そのものは攻撃できず、回復だけができる。分解攻撃のパーツのときは、相手を攻撃するかわりに回復できる(本体の体力は${CFG.hp}まで、字は最大体力まで)。回復できる字は、背景が淡いピンク色になる。</li>
@@ -2231,7 +2233,7 @@ function bdInfoH(){
 function bdChipsH(){
  const items=Object.entries(bd.deck).filter(([k,v])=>v>0).sort((x,y)=>(CARDS[x[0]].spell?1:0)-(CARDS[y[0]].spell?1:0)||CARDS[x[0]].c-CARDS[y[0]].c||CARDS[x[0]].s-CARDS[y[0]].s);
  if(!items.length)return '<span class="sm" style="color:var(--ink2);font-size:.82rem">字を選ぶとここに並びます(押すとステータスが見られます)</span>';
- return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':bdFl(k)?'hl hg':isHealCard({parts:CARDS[k].p,ch:k})?'hl':''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
+ return items.map(([k,v])=>`<button type="button" class="chip2 ${CARDS[k].spell?'spc':bdPw(k)?'hr':bdFl(k)?'hl hg':isHealCard({parts:CARDS[k].p,ch:k})?'hl':''}${bd.peek===k?' sel':''}" data-bd="peek" data-ch="${k}" aria-label="${k} ${v}枚 ステータスを見る">${k}<small>${CARDS[k].spell?'特':CARDS[k].c}×${v}</small></button>`).join('');
 }
 function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
@@ -2240,12 +2242,13 @@ function bdPeekH(){
  return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
 }
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
-const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:2;
+const bdPw=ch=>POWER_CHARS.has(ch);
+const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:3;
 function bdFiltered(){
  const q=Array.from(bd.q);
  return Object.entries(CARDS).filter(([ch,d])=>{
   if(q.length)return q.includes(ch);
-  if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!isHealCard({parts:d.p,ch}))return false;}
+  if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!bdPw(ch)&&!isHealCard({parts:d.p,ch}))return false;}
   else if(bd.grade&&(d.spell||d.g!==bd.grade))return false;
   if(bd.cost&&(d.spell||d.c!==bd.cost))return false;
   if(bd.sy!==bd.sn&&(d.spell||(d.p.length>1)!==bd.sy))return false;
@@ -2257,7 +2260,7 @@ function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
  const info=d.spell?`<b>${esc(d.label||'特殊')}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
- return `<div class="bdr ${d.spell?'spc':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
+ return `<div class="bdr ${d.spell?'spc':bdPw(ch)?'hr':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
 }
 function bdListH(){const rows=bdFiltered();return rows.length?rows.map(bdRowH).join(''):'<p style="padding:12px;color:var(--ink2)">該当する字がありません</p>';}
 function bdFilterH(){
@@ -2360,8 +2363,8 @@ function manaPreview(n){
  }catch(e){}
 }
 // 「ドロー」「破棄」に触れている間、使うマナ(右から数個)を網線で示す
-const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost,cutmode:()=>CFG.cutCost};
-const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"],[data-act="cutmode"]');
+const PREVIEW_COST={pdraw:()=>CFG.drawCost,discard:()=>CFG.discardCost,breakmode:()=>CFG.breakCost,cutmode:()=>CFG.cutCost,crown:()=>{const c=S(ME()).hand.find(x=>ui.sel&&x.id===ui.sel.id);return c&&isBoost(c)?boostCost(c):0;}};
+const costBtn=e=>e.target.closest&&e.target.closest('[data-act="pdraw"],[data-act="discard"],[data-act="breakmode"],[data-act="cutmode"],[data-act="crown"]');
 document.addEventListener('mouseover',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h)return;const pn=h.closest('.panel');if(!pn)return;let w=pn.querySelector('.why');if(!w){w=document.createElement('p');w.className='why';w.dataset.tmp='1';const sm=pn.querySelector('.sm');(sm||pn.firstChild).after(w);}else if(w.dataset.orig===undefined)w.dataset.orig=w.textContent;w.textContent=h.dataset.hint;});
 document.addEventListener('mouseout',e=>{const h=e.target.closest&&e.target.closest('[data-hint]');if(!h||h.contains(e.relatedTarget))return;const pn=h.closest('.panel');const w=pn&&pn.querySelector('.why');if(!w)return;if(w.dataset.tmp)w.remove();else if(w.dataset.orig!==undefined){w.textContent=w.dataset.orig;delete w.dataset.orig;}});
 $('board').addEventListener('mouseover',e=>{const b=costBtn(e);if(b&&!b.disabled)manaPreview(PREVIEW_COST[b.dataset.act]());});
@@ -2444,7 +2447,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.20';
+const APP_VER='v2.21';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
