@@ -1388,20 +1388,20 @@ const DECKS={
 DECKS.random={name:'無作為',note:'小学1〜6年の字から、毎回ちがう30枚を自動で選ぶ(同じ字は3枚まで)。',gen(){
  const quota={1:10,2:8,3:6,4:4,5:2},list={};
  for(const [k,n] of Object.entries(quota)){
-  const pool=Object.keys(CARDS).filter(c=>Number(k)===5?CARDS[c].c>=5:CARDS[c].c===Number(k));
+  const pool=Object.keys(CARDS).filter(c=>(CARDS[c].g||0)<=6&&(Number(k)===5?CARDS[c].c>=5:CARDS[c].c===Number(k)));
   let got=0;while(got<n){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  }
  return list;
 }};
 DECKS.test={name:'試験',note:'「刀」「花」「止」「再」「壊」「返」を3枚ずつ入れ、残り12枚は小1〜6年の字から毎回ランダムに選ぶ(新しい効果の動作確認用)。',gen(){
  const list={'刀':3,'花':3,'止':3,'再':3,'壊':3,'返':3};
- const pool=Object.keys(CARDS).filter(c=>!list[c]);let got=0;
+ const pool=Object.keys(CARDS).filter(c=>!list[c]&&(CARDS[c].g||0)<=6);let got=0;
  while(got<12){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  return list;
 }};
 // 試験デッキ用のCPUのデッキ(選択画面には出さない): 「壊」を3枚入れ、残りは無作為。罠「返」の確認に使う。
 DECKS.cpubreak={name:'CPU試験',note:'',hidden:true,gen(){
- const list={'壊':3};const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell);let got=0;
+ const list={'壊':3};const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell&&(CARDS[c].g||0)<=6);let got=0;
  while(got<27){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  return list;
 }};
@@ -1574,14 +1574,17 @@ function drawExtra(s,n){
   else{me.hand.push(c);log(s==='p'&&!G.two?`あなたは「${c.ch}」を追加で引いた`:`${NAME[s]}は1枚追加で引いた`);}
  }
 }
-function crown(s,cid,uid){
+function crown(s,cid,uid,part){
  const me=S(s);if(G.over||G.cur!==s)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||!isBoost(me.hand[i]))return false;
  const c0=me.hand[i],pw=isPower(c0);
  if(me.mana<boostCost(c0)||(pw?me.ph:me.fh))return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
+ if(pw&&u.parts.length>1&&!(Number.isInteger(part)&&part>=0&&part<u.parts.length))return false;
  const c=c0;me.mana-=boostCost(c);me.hand.splice(i,1);toGy(me,c);
- if(pw){me.ph=true;u.atk+=CFG.powerAtk;u.pow=(u.pow||0)+CFG.powerAtk;G.fx[u.id]={t:'crown',n:CFG.powerAtk,pow:1};log(`${NAME[s]}は「${c.ch}」の力で「${u.ch}」の攻撃力を${CFG.powerAtk}増やした(攻撃${u.atk})`);return true;}
+ if(pw){me.ph=true;u.atk+=CFG.powerAtk;u.pow=(u.pow||0)+CFG.powerAtk;G.fx[u.id]={t:'crown',n:CFG.powerAtk,pow:1};
+  if(u.parts.length>1){u.sp[part]+=CFG.powerAtk;log(`${NAME[s]}は「${c.ch}」の力で「${u.ch}」の「${u.parts[part]}」の攻撃力を${CFG.powerAtk}増やした(${u.parts[part]}${u.sp[part]})`);}
+  else log(`${NAME[s]}は「${c.ch}」の力で「${u.ch}」の攻撃力を${CFG.powerAtk}増やした(攻撃${u.atk})`);return true;}
  me.fh=true;
  const h=Math.min(CFG.flowerHeal,u.max-u.hp),r=CFG.flowerHeal-h;u.hp+=h;if(r>0){u.max+=r;u.hp+=r;u.fmax=(u.fmax||0)+r;}
  log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n:CFG.flowerHeal,heal:1};
@@ -1611,7 +1614,7 @@ function compose(s,cid,uid){
  const c=me.hand[i],z=composeTo(c.ch,u.ch);if(!z)return false;
  me.mana-=CFG.composeCost;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow)n.atk+=n.pow;n.fmax=u.fmax;
+ const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
  n.max=CARDS[z].h+bonus;n.hp=Math.max(1,n.max-dmg);
  me.field[me.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
  log(`${NAME[s]}は「${c.ch}」を付与して「${u.ch}」を「${z}」にした`);return true;
@@ -1626,7 +1629,7 @@ function cut(s,cid,uid,part){
  const y=cutsOf(u)[part];if(!y)return false;
  const c=me.hand[i];me.mana-=CFG.cutCost;me.ct=true;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow)n.atk+=n.pow;n.fmax=u.fmax;
+ const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
  op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};addCut({k:'cut',from:u.ch,part,to:y});
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
@@ -1945,8 +1948,12 @@ function panelH(){
    const opts=P.field.filter(u=>composeTo(c.ch,u.ch)).map(u=>`${u.ch}→${composeTo(c.ch,u.ch)}`).join(' / ');
    return `<div class="panel"><p class="ttl">パーツ付与: 「${c.ch}」</p><p>付与する自分の場の字を選んでください(${esc(opts)})。「${c.ch}」とマナ${CFG.composeCost}を使います。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
+  if(c&&ui.mode==='crownpart'){
+   const cu=S(ME()).field.find(x=>x.id===ui.cu);
+   if(cu)return `<div class="panel"><p class="ttl">力付与: 「${c.ch}」→「${cu.ch}」</p><p>攻撃力を${CFG.powerAtk}増やすパーツを1つ選んでください。</p><div class="row">${cu.parts.map((p,i)=>`<button type="button" class="btn pri" data-act="crpart" data-i="${i}">${esc(p)} ${cu.sp[i]}→${cu.sp[i]+CFG.powerAtk}</button>`).join('')}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+  }
   if(c&&ui.mode==='crown'){
-   return `<div class="panel"><p class="ttl">${isFlower(c)?'花回復':'力付与'}: 「${c.ch}」</p><p>強める自分の場の字を選んでください。「${c.ch}」とマナ${boostCost(c)}を使い、${isFlower(c)?`体力が${CFG.flowerHeal}回復します(満タンを超える分は最大体力が増えます)。1ターンに1回だけです`:`攻撃力が${CFG.powerAtk}増えます。1ターンに1回だけです`}。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">${isFlower(c)?'花回復':'力付与'}: 「${c.ch}」</p><p>強める自分の場の字を選んでください。「${c.ch}」とマナ${boostCost(c)}を使い、${isFlower(c)?`体力が${CFG.flowerHeal}回復します(満タンを超える分は最大体力が増えます)。1ターンに1回だけです`:`攻撃力が${CFG.powerAtk}増えます(分解攻撃を持つ字は、好きなパーツ1つの攻撃力が増えます)。1ターンに1回だけです`}。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c){
    const why=summonWhy(ME(),c);
@@ -2047,7 +2054,7 @@ function onCard(kind,id){
   if(ui.mode==='whole'&&ui.sel&&ui.sel.kind==='field'&&nextHeal()){performWhole('h:'+id);return;}
   if(ui.mode==='trapset'&&ui.sel&&ui.sel.kind==='hand'){const fu=S(ME()).field.find(x=>x.id===id);if(fu&&!(S(ME()).traps||[])[fu.slot]){setTrap(ME(),ui.sel.id,fu.slot);resetUi();}render();return;}
   if(ui.mode==='compose'&&ui.sel&&ui.sel.kind==='hand'){const hc=S(ME()).hand.find(x=>x.id===ui.sel.id),fu=S(ME()).field.find(x=>x.id===id);if(hc&&fu&&composeTo(hc.ch,fu.ch)){compose(ME(),ui.sel.id,id);resetUi();}render();return;}
-  if(ui.mode==='crown'&&ui.sel&&ui.sel.kind==='hand'){crown(ME(),ui.sel.id,id);resetUi();render();return;}
+  if(ui.mode==='crown'&&ui.sel&&ui.sel.kind==='hand'){const hc=S(ME()).hand.find(x=>x.id===ui.sel.id),fu=S(ME()).field.find(x=>x.id===id);if(hc&&fu&&isPower(hc)&&fu.parts.length>1){ui.mode='crownpart';ui.cu=id;render();return;}crown(ME(),ui.sel.id,id);resetUi();render();return;}
   ui={sel:{kind:'field',id},mode:null,split:null};render();return;}
  if(kind==='enemy'){
   if(ui.mode==='cut'&&ui.sel&&ui.sel.kind==='hand'){
@@ -2069,6 +2076,7 @@ function onAct(act,data){
  if(act==='surrender'){if(G&&!G.over)showSurrConfirm();return;}
  if(G.over||!mineTurn())return;
  if(act==='cancel'){resetUi();render();return;}
+ if(act==='crpart'&&ui.mode==='crownpart'&&ui.sel&&ui.sel.kind==='hand'){crown(ME(),ui.sel.id,ui.cu,Number(data.i));resetUi();render();return;}
  if(act==='trapinfo'){if(ui.mode==='trapset')return;const sl=Number(data&&data.slot);ui=(ui.sel&&ui.sel.kind==='trap'&&ui.sel.slot===sl)?{sel:null,mode:null,split:null}:{sel:{kind:'trap',slot:sl},mode:null,split:null};render();return;}
  if(act==='summon'&&ui.sel&&ui.sel.kind==='hand'){summon(ME(),ui.sel.id);resetUi();render();return;}
  if(act==='breakmode'&&ui.sel&&ui.sel.kind==='hand'){ui.mode='break';render();return;}
@@ -2150,7 +2158,7 @@ function rulesH(){
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
  <li>攻撃は2種類。<b>単体攻撃</b>は字ひとつで1つの標的を狙う。<b>分解攻撃</b>はパーツが順番に別々の標的を狙う。分解できる字は分解攻撃だけ、分解できない字は単体攻撃だけ。</li>
- <li><b>力付与</b>: 「力」「勝」「功」「攻」「勢」「努」「勇」は、手札から使って自分の場の字1枚の攻撃力を${CFG.powerAtk}増やせる。マナ${CFG.powerCost}とその字を消費し、行動回数は使わない。1ターンに1回だけ。付与された字には「力」の印が付く。</li>
+ <li><b>力付与</b>: 「力」「勝」「功」「攻」「勢」「努」「勇」は、手札から使って自分の場の字1枚の攻撃力を${CFG.powerAtk}増やせる(分解攻撃を持つ字は、好きなパーツ1つの攻撃力が${CFG.powerAtk}増える)。マナ${CFG.powerCost}とその字を消費し、行動回数は使わない。1ターンに1回だけ。付与された字には「力」の印が付く。</li>
  <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費し、1ターンに1回だけ使える。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
@@ -2179,8 +2187,18 @@ function refH(){
 }
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
+ showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
 }
+// ---- 解放 ----
+// 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
+const DEV=(()=>{try{return location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';}catch(e){return false;}})();
+// CPUに勝った回数で、中学校(学年7)・高校(学年8)の漢字が一斉に解放される(字の実装はこれから)。
+const WIN_KEY='jikuzushi_cpuwins_v1';
+const UNLOCKS=[{wins:3,g:7,name:'中学校の漢字'},{wins:5,g:8,name:'高校の漢字'}];
+let cpuWins=0;try{cpuWins=Math.max(0,parseInt(localStorage.getItem(WIN_KEY)||'0',10)||0);}catch(e){}
+const gradeOpen=g=>!(g===7||g===8)||DEV||UNLOCKS.some(u=>u.g===g&&cpuWins>=u.wins);
+function addCpuWin(){cpuWins++;try{localStorage.setItem(WIN_KEY,String(cpuWins));}catch(e){}return UNLOCKS.filter(u=>u.wins===cpuWins);}
+const unlockTxt=()=>DEV?'開発モード: すべての字を使えます。':`CPUに${UNLOCKS[0].wins}勝で${UNLOCKS[0].name}、${UNLOCKS[1].wins}勝で${UNLOCKS[1].name}が解放されます(いまCPUに${cpuWins}勝)。`;
 let cpu={step:0,mine:null,first:true};
 function showCpuSelect(){
  const st=cpu.step;
@@ -2247,6 +2265,7 @@ const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:3;
 function bdFiltered(){
  const q=Array.from(bd.q);
  return Object.entries(CARDS).filter(([ch,d])=>{
+  if(!gradeOpen(d.g))return false;
   if(q.length)return q.includes(ch);
   if(bd.grade==='s'){if(!d.spell&&!bdFl(ch)&&!bdPw(ch)&&!isHealCard({parts:d.p,ch}))return false;}
   else if(bd.grade&&(d.spell||d.g!==bd.grade))return false;
@@ -2293,7 +2312,7 @@ function showBuilder(){
 }
 function bdAuto(){
  // 残りを、攻撃できる字から無作為に埋める。コスト1が1枚もなければ先に1枚入れる。
- const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell);
+ const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell&&gradeOpen(CARDS[c].g));
  const c1=pool.filter(c=>CARDS[c].c===1);
  const add=ch=>{if(bdTotal()<BD_SIZE&&(bd.deck[ch]||0)<BD_MAX){bd.deck[ch]=(bd.deck[ch]||0)+1;return true;}return false;};
  if(!bdCost1()){let g=0;while(g++<100&&!add(c1[Math.floor(Math.random()*c1.length)]));}
@@ -2341,7 +2360,8 @@ function doSurrender(){
 }
 function showEnd(){
  const won=G.over==='p';
- showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
+ let unl=[];if(!ONLINE&&won&&!G.cnt){G.cnt=1;unl=addCpuWin();}
+ showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${unl.map(u=>`<p style="font-weight:700;color:var(--accent)">CPUに${u.wins}勝!${u.name}が解放されました(字は順次追加されます)。</p>`).join('')}${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
 function startGame(pk,ck,first){
  netIdleEnd();
@@ -2447,7 +2467,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.21';
+const APP_VER='v2.22';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
