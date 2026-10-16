@@ -2211,7 +2211,7 @@ function showCpuSelect(){
 // ---- デッキ構築 ----
 const BD_KEY='jikuzushi_deck_v1',BD_KEY2='jikuzushi_decks_v2',BD_SIZE=30,BD_MAX=3,BD_SLOTS=2;
 // マイデッキは2つまで保存できる。bd.deck は、いま編集している方のデッキ。
-let bd={decks:[{},{}],slot:0,get deck(){return this.decks[this.slot];},set deck(v){this.decks[this.slot]=v;},grade:0,cost:0,sy:true,sn:true,q:'',peek:''};
+let bd={decks:[{},{}],slot:0,get deck(){return this.decks[this.slot];},set deck(v){this.decks[this.slot]=v;},grade:0,cost:0,sy:true,sn:true,q:'',peek:'',sort:''};
 (function(){
  const clean=o=>{const d={};if(o&&typeof o==='object'){for(const [k,v] of Object.entries(o)){if(CARDS[k]&&Number.isInteger(v)&&v>0)d[k]=Math.min(BD_MAX,v);}}return d;};
  try{
@@ -2269,6 +2269,13 @@ function bdPeekH(){
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
 const bdPw=ch=>POWER_CHARS.has(ch);
 const bdRank=ch=>CARDS[ch].spell?0:bdFl(ch)?1:bdPw(ch)?2:3;
+const BD_SORTS=[['','標準'],['c+','コスト 昇順'],['c-','コスト 降順'],['a+','攻撃力 昇順'],['a-','攻撃力 降順'],['h+','体力 昇順'],['h-','体力 降順']];
+function bdSortCmp(x,y){
+ if(!bd.sort)return 0;
+ if(bd.grade==='s'){const r=bdRank(x[0])-bdRank(y[0]);if(r)return r;}
+ const k=bd.sort[0],dir=bd.sort[1]==='-'?-1:1,g=e=>k==='c'?e[1].c:k==='a'?e[1].a:e[1].h;
+ return (g(x)-g(y))*dir;
+}
 function bdFiltered(){
  const q=Array.from(bd.q);
  return Object.entries(CARDS).filter(([ch,d])=>{
@@ -2279,8 +2286,7 @@ function bdFiltered(){
   if(bd.cost&&(d.spell||d.c!==bd.cost))return false;
   if(bd.sy!==bd.sn&&(d.spell||(d.p.length>1)!==bd.sy))return false;
   return true;
- }).sort((x,y)=>bd.grade==='s'?(bdRank(x[0])-bdRank(y[0])||x[1].c-y[1].c||x[1].s-y[1].s):((x[1].spell?1:0)-(y[1].spell?1:0)||x[1].c-y[1].c||x[1].s-y[1].s));
- //x[1].c-y[1].c||x[1].s-y[1].s);
+ }).sort((x,y)=>bdSortCmp(x,y)||(bd.grade==='s'?(bdRank(x[0])-bdRank(y[0])||x[1].c-y[1].c||x[1].s-y[1].s):((x[1].spell?1:0)-(y[1].spell?1:0)||x[1].c-y[1].c||x[1].s-y[1].s)));
 }
 function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
@@ -2293,7 +2299,7 @@ function bdFilterH(){
  const gs=[[0,'すべて'],[1,'小1'],[2,'小2'],[3,'小3'],[4,'小4'],[5,'小5'],[6,'小6'],['s','特殊']];
  const g=gs.map(([v,l])=>`<button type="button" class="mini ${bd.grade===v?'pri':''}" data-bd="grade" data-v="${v}">${l}</button>`).join('');
  const c=[0,1,2,3,4,5,6,7,8,9].map(v=>`<button type="button" class="mini ${bd.cost===v?'pri':''}" data-bd="cost" data-v="${v}">${v?v:'全コスト'}</button>`).join('');
- const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button>`;
+ const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select>`;
  return `<div class="bdf" role="group" aria-label="学年">${g}</div><div class="bdf gap" role="group" aria-label="コスト">${c}</div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
 }
 function bdRefresh(){
@@ -2306,15 +2312,15 @@ function bdRefresh(){
    r.querySelector('[data-bd="sub"]').disabled=!n;
    r.querySelector('[data-bd="add"]').disabled=n>=BD_MAX||full;
   });
-  $('bdGo').disabled=!bdValid();const sv=$('bdSv');if(sv&&sv.textContent==='保存する')sv.disabled=!bdDirty()||false;
+  const sv=$('bdSv');if(sv&&sv.textContent==='保存する')sv.disabled=!bdDirty()||false;
  }catch(e){}
 }
 function showBuilder(){
- showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。(相手のCPUは無作為のデッキです)</p><div class="bdf" id="bdSlots"></div>`+
+ showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
   `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div>`+
   `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
   `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
-  `<div class="row"><button type="button" class="btn pri" id="bdGo" data-bd="go" disabled>このデッキで始める</button><button type="button" class="btn pri" id="bdSv" data-bd="save">保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
+  `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save">保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
  bdRefresh();
 }
 function bdAuto(){
@@ -2332,7 +2338,6 @@ function bdClick(b){
  if(a==='save'){bdSave();bdRefresh();const t=$('bdSv');if(t){t.textContent='保存しました';setTimeout(()=>{const u=$('bdSv');if(u)u.textContent='保存する';},1200);}return;}
  if(a==='peek'){bd.peek=bd.peek===ch?'':ch;bdRefresh();return;}
  if(a==='slot'){bd.slot=Number(b.dataset.v)||0;bd.peek='';showBuilder();return;}
- if(a==='go'){if(bdValid()){bdSave();startGame('custom'+(bd.slot+1));}return;}
  if(a==='add'){if(CARDS[ch]&&(bd.deck[ch]||0)<BD_MAX&&bdTotal()<BD_SIZE){bd.deck[ch]=(bd.deck[ch]||0)+1;bdRefresh();}return;}
  if(a==='sub'){if(bd.deck[ch]){bd.deck[ch]--;if(!bd.deck[ch]){delete bd.deck[ch];if(bd.peek===ch)bd.peek='';}bdRefresh();}return;}
  if(a==='clear'){bdAsk('いまのデッキの字を、全部はずしますか?',()=>{bd.deck={};bd.peek='';bdRefresh();});return;}
@@ -2344,6 +2349,9 @@ function bdClick(b){
   $('bdFilt').innerHTML=bdFilterH();$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();return;
  }
 }
+$('ov').addEventListener('change',e=>{
+ if(e.target&&e.target.id==='bdSort'){bd.sort=e.target.value;$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();}
+});
 $('ov').addEventListener('input',e=>{
  if(e.target&&e.target.id==='bdQ'){bd.q=e.target.value;$('bdList').innerHTML=bdListH();$('bdList').scrollTop=0;bdRefresh();}
 });
@@ -2360,7 +2368,7 @@ function showSurrConfirm(){
 function doSurrender(){
  if(!G||G.over)return;
  const me=ME();
- if(ONLINE&&ONLINE.started)ONLINE.send({t:'surrender'});
+ if(ONLINE&&ONLINE.started){const o={t:'surrender'},sn=ONLINE.sn+1,ep=ONLINE.ep,raw=ONLINE.raw;ONLINE.send(o);let k=0;const iv=setInterval(()=>{if(++k>8){clearInterval(iv);return;}try{raw({t:'surrender',n:sn,g:ep});}catch(e){clearInterval(iv);}},900);}
  G.over=OP(me);
  G.why=ONLINE?'あなたが降参したので、あなたの負けです':NAME[me]+'が降参しました';
  resetUi();showEnd();
@@ -2474,7 +2482,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.24';
+const APP_VER='v2.26';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
@@ -2508,7 +2516,7 @@ function netPub(i,role,o){try{const e=net.mq[i];if(e&&e.cl)e.cl.publish(NET_TOPI
 function netMakeOnline(i){
  const out=net.role==='host'?'g':'h';
  ONLINE={role:net.role,side:'p',replay:false,started:false,mode:'mqtt',brk:i,last:Date.now(),sn:0,rn:0,
-  raw:o=>netPub(i,out,o),send:o=>{o.n=++ONLINE.sn;netPub(i,out,o);}};
+  raw:o=>netPub(i,out,o),send:o=>{o.n=++ONLINE.sn;o.g=ONLINE.ep;netPub(i,out,o);}};
  net.mq.forEach((e,j)=>{if(j!==i){try{e.cl&&e.cl.end(true);}catch(x){}}});
  if(net.pingIv)clearInterval(net.pingIv);
  net.pingIv=setInterval(()=>{
@@ -2606,6 +2614,7 @@ function netIn(i,m){
  if(ONLINE.brk!==i||!m||typeof m!=='object')return;
  ONLINE.last=Date.now();
  if(m.t==='bye'){netPeerLeft();return;}
+ if(m.g!=null&&m.g!==ONLINE.ep)return;
  if(m.n!=null){if(m.n<=ONLINE.rn)return;ONLINE.rn=m.n;}
  netRecv(m);
 }
@@ -2716,7 +2725,7 @@ function netBegin(seed,hostFirst,hostSpec,guestSpec){
  {const br=document.getElementById('backres');if(br)br.remove();}
  const iHost=net.role==='host';
  const side=(iHost===hostFirst)?'p':'c';
- ONLINE.side=side;ONLINE.started=true;
+ ONLINE.side=side;ONLINE.started=true;ONLINE.ep=seed;
  const pk=netDeckKey(hostFirst?hostSpec:guestSpec,'net_p'),ck=netDeckKey(hostFirst?guestSpec:hostSpec,'net_c');
  NAME[side]='あなた';NAME[OP(side)]='相手';
  RNG=mulberry32(seed);UID=0;
