@@ -188,6 +188,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .sheet p{margin:0}
 .sheet ol{margin:0;padding-left:1.3em;display:grid;gap:5px;font-size:.88rem}
 .decks{display:grid;gap:10px}
+.swrow{display:flex;align-items:center;gap:10px;margin:8px 0;font-weight:700}
+.sw{width:46px;height:26px;border-radius:13px;border:1px solid var(--line);background:#b9c1bf;position:relative;padding:0;cursor:pointer;transition:background .15s}
+.sw i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:left .15s}
+.sw.on{background:var(--accent)}.sw.on i{left:22px}
 .deck{display:grid;gap:2px;text-align:left;padding:12px 14px;min-height:64px}
 .deck b{font-family:var(--kanji);font-size:1.4rem;font-weight:400;letter-spacing:.1em}
 .deck span{font-size:.82rem;font-weight:400;color:var(--ink2)}
@@ -1232,12 +1236,12 @@ function ensureCheap(me){
  const di=idx[Math.floor(rnd()*idx.length)],hi=Math.floor(rnd()*me.hand.length);
  const tmp=me.hand[hi];me.hand[hi]=me.deck[di];me.deck[di]=tmp;
 }
-function newGame(pk,ck){G={gid:++GID,cur:null,over:null,why:'',turn:0,log:[],fx:{},side:{p:newSide(pk,CFG.start.p),c:newSide(ck,CFG.start.c)}};ensureCost1(G.side.p);ensureCheap(G.side.c);}
+function newGame(pk,ck,pFirst){const pf=pFirst!==false;G={gid:++GID,cur:null,over:null,why:'',turn:0,log:[],fx:{},sec:pf?'c':'p',side:{p:newSide(pk,pf?CFG.start.p:CFG.start.c),c:newSide(ck,pf?CFG.start.c:CFG.start.p)}};ensureCost1(G.side.p);ensureCheap(G.side.c);}
 function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
 function startTurn(s){
- G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s==='c'?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.ct=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
+ G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.ct=false;me.bk=false;me.acts=CFG.acts;me.cw=0;
  me.field.forEach(u=>{u.sick=false;u.done=false;});
  for(const sd of ['p','c']){const sx=S(sd);(sx.traps||[]).forEach((tr,i)=>{if(tr&&tr.fired&&tr.turn<G.turn){toGy(sx,tr.card);sx.traps[i]=null;}});}
  log(`${NAME[s]}の ${me.tn} ターン目`);
@@ -1978,12 +1982,15 @@ function refH(){
 }
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>使うデッキを選んで、CPUと対戦する。あなたが先攻です。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
+ showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
 }
+let cpu={step:0,mine:null,first:true};
 function showCpuSelect(){
- const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-deck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
- const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-deck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)で対戦する(CPUは無作為)。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
- showOverlay(`<h2>CPU対戦</h2><h3>デッキを選ぶ(CPUは別のデッキ。無作為を選ぶとCPUも無作為)</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-act="again">戻る</button></div>`);
+ const st=cpu.step;
+ const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
+ const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-cpudeck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
+ const head=st===0?'あなたのデッキを選ぶ':`CPUのデッキを選ぶ(あなた: ${esc(DECKS[cpu.mine].name)})`;
+ showOverlay(`<h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
 }
 
 // ---- デッキ構築 ----
@@ -2138,11 +2145,12 @@ function showEnd(){
  const won=G.over==='p';
  showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">もう一度</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
-function startGame(pk){
+function startGame(pk,ck,first){
  netIdleEnd();
- const ck=pk==='nature'?'force':pk==='force'?'nature':pk==='test'?'cpubreak':'random';
+ if(!ck)ck=pk==='nature'?'force':pk==='force'?'nature':pk==='test'?'cpubreak':'random';
  NAME.p='あなた';NAME.c='CPU';
- newGame(pk,ck);resetUi();$('ov').hidden=true;
+ newGame(pk,ck,first!==false);resetUi();$('ov').hidden=true;
+ if(first===false){startTurn('c');render();if(G.over){showEnd();return;}runCpu();return;}
  startTurn('p');render();
 }
 
@@ -2180,8 +2188,15 @@ $('board').addEventListener('keydown',e=>{
 $('ov').addEventListener('click',e=>{
  const rd=e.target.closest('[data-ready]');
  if(rd){seenSide=rd.dataset.ready;$('ov').hidden=true;render();return;}
+ const cd=e.target.closest('[data-cpudeck]');
+ if(cd){const k=cd.dataset.cpudeck;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
+  if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first);return;}
  const cb=e.target.closest('[data-cpu]');
- if(cb){showCpuSelect();return;}
+ if(cb){const a=cb.dataset.cpu;
+  if(a==='open'){cpu.step=0;cpu.mine=null;showCpuSelect();}
+  else if(a==='flip'){cpu.first=!cpu.first;showCpuSelect();}
+  else if(a==='back'){if(cpu.step===1){cpu.step=0;showCpuSelect();}else showStart();}
+  return;}
  const bdb=e.target.closest('[data-bd]');
  if(bdb){bdClick(bdb);return;}
  const nb=e.target.closest('[data-net]');
@@ -2234,7 +2249,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.16';
+const APP_VER='v2.17';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
