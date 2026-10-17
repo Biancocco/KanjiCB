@@ -3723,13 +3723,13 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.39';
+const APP_VER='v2.40';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
  const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
  if(typeof it==='object'&&it.k==='salv'){ms=2100;e.classList.add('cutk');
-  e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s"${(it.by===ME()&&!(G.two&&!ONLINE))?'':' class="sbk"'}>${(it.by===ME()&&!(G.two&&!ONLINE))?esc(c):''}</span>`).join('')}</span></div>`;}
+  e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s">${esc(c)}</span>`).join('')}</span></div>`;}
  else if(typeof it==='object'){ms=1900;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">${esc(it.lab||'切り離し')}</span><span class="cstage${it.from.length>1||it.to.length>1?' two':''}"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
  else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
