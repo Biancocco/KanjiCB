@@ -2522,7 +2522,7 @@ function devClick(b){
  if(a==='open'){showDev();return;}
  if(a==='back'){showStart();return;}
  if(a==='off'){try{localStorage.removeItem(DEV_KEY);}catch(e){}location.reload();return;}
- if(a==='ok'){const v=(document.getElementById('devpw')||{}).value||'';if(devHash('jkz:'+v)===DEV_HASH){DEV=true;try{localStorage.setItem(DEV_KEY,'1');}catch(e){}location.reload();}else showDev('パスワードが違います');}
+ if(a==='ok'){const v=(document.getElementById('devpw')||{}).value||'';if(devHash('jkz:'+v)===DEV_HASH){try{localStorage.setItem(DEV_KEY,'1');}catch(e){}location.reload();}else showDev('パスワードが違います');}
 }
 // CPUに勝った回数で、中学校(学年7)・高校(学年8)の漢字が一斉に解放される(字の実装はこれから)。
 const WIN_KEY='jikuzushi_cpuwins_v1';
