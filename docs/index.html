@@ -2469,7 +2469,8 @@ for(const [ch,s,ps] of POOL){
 }
 if(CARDS['嚇'])CARDS['嚇'].h=12;
 if(CARDS['鬱'])Object.assign(CARDS['鬱'],{a:13,h:24,p:[],sp:[]});
-if(CARDS['鑑'])CARDS['鑑'].h=21;
+for(const k of Object.keys(CARDS)){const d=CARDS[k];if(!d.spell&&d.c===10&&d.a===14&&!d.p.length)d.h=17;}
+if(CARDS['鑑'])CARDS['鑑'].h=15;
 // 「再」: 墓地回収カード。攻撃も召喚もできず、手札から使うだけ。
 ['心','幸'].forEach(k=>{CARDS[k].a=0;CARDS[k].tag='';});
 CARDS['再']={s:6,c:0,h:1,p:[],sp:[],a:0,g:5,tag:'',spell:true,label:'墓地回収'};
@@ -3726,7 +3727,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.41';
+const APP_VER='v2.42';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
