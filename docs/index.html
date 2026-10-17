@@ -128,6 +128,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .sring.r2{animation-delay:.7s}
 @keyframes sringx{0%{transform:scale(.4);opacity:.95}100%{transform:scale(2.8);opacity:0}}
 .sch{display:inline-flex;gap:6px;font-size:40px;color:#ffd24a;font-weight:800;text-shadow:0 0 10px #000}
+.sch .sbk{width:30px;height:42px;border-radius:5px;border:2px solid #ffd24a;background:repeating-linear-gradient(45deg,#2a3a6a 0 4px,#223059 4px 8px)}
 .sch span{display:inline-block;animation:schUp 2.1s both}
 @keyframes schUp{0%,28%{transform:translateY(46px) scale(.6);opacity:0}48%,100%{transform:translateY(0) scale(1);opacity:1}}
 .cstage.two .ca,.cstage.two .cb,.cstage.two .cr{font-size:48px}
@@ -2865,7 +2866,7 @@ function salvage(s,cid,disIds,takeIds){
  const take=takeIds.map(id=>el.find(c=>c.id===id));if(take.some(x=>!x))return false;
  [rc,...dis].forEach(c=>{me.hand.splice(me.hand.indexOf(c),1);toGy(me,c);});
  take.forEach(c=>{me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);});
- addCut({k:'salv',chars:take.map(c=>c.ch)});
+ addCut({k:'salv',by:s,chars:take.map(c=>c.ch)});
  log(`${NAME[s]}は「再」で手札${dis.length}枚を捨て、墓地から${s==='p'&&!G.two?take.map(c=>`「${c.ch}」`).join(''):take.length+'枚'}を回収した`);return true;
 }
 // 破棄: 自分の場の字を1枚、マナを払って墓地へ送る。行動回数は使わない。
@@ -3722,13 +3723,13 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.38';
+const APP_VER='v2.39';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
  const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
  if(typeof it==='object'&&it.k==='salv'){ms=2100;e.classList.add('cutk');
-  e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s">${esc(c)}</span>`).join('')}</span></div>`;}
+  e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s"${(it.by===ME()&&!(G.two&&!ONLINE))?'':' class="sbk"'}>${(it.by===ME()&&!(G.two&&!ONLINE))?esc(c):''}</span>`).join('')}</span></div>`;}
  else if(typeof it==='object'){ms=1900;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">${esc(it.lab||'切り離し')}</span><span class="cstage${it.from.length>1||it.to.length>1?' two':''}"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
  else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
