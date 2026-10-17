@@ -193,6 +193,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 [hidden]{display:none!important}
 .overlay{position:fixed;inset:0;background:var(--bg);display:grid;align-items:start;justify-items:center;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));overflow:auto;z-index:10}
 .sheet{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;margin-block:auto}
+.sheet{position:relative}
+.devdot{position:absolute;top:12px;right:12px;width:18px;height:18px;padding:0;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer}
+.devdot.on{background:var(--accent);border-color:var(--accent)}
 .sheet h2{margin:0;font-family:var(--kanji);font-weight:400;font-size:2.2rem;letter-spacing:.1em;line-height:1.1}
 .sheet h3{margin:0;font-size:1rem}
 .sheet p{margin:0}
@@ -2246,18 +2249,33 @@ function refH(){
 }
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
+ showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
 }
 // ---- 解放 ----
 // 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
-const DEV=(()=>{try{return location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';}catch(e){return false;}})();
+// 右上の丸いアイコン→パスワード入力で有効にする(この端末のブラウザに記憶)。パスワードはハッシュで持つ(簡易的な目隠しで、強い防御ではない)。
+const DEV_KEY='jikuzushi_dev_v1';
+const devHash=str=>{let h1=0xdeadbeef^7,h2=0x41c6ce57^7;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0);};
+const DEV_HASH=4466367537901166;
+let DEV=false;try{DEV=localStorage.getItem(DEV_KEY)==='1';}catch(e){}
+function showDev(msg){
+ showOverlay(`<h2>開発者モード</h2>${DEV?'<p>いま有効です。中学校・高校の漢字を使えます。</p><div class="row"><button type="button" class="btn pri" data-dev="off">無効にする</button><button type="button" class="btn" data-dev="back">戻る</button></div>':`<p>パスワードを入力してください。</p><input id="devpw" type="password" autocomplete="off" aria-label="パスワード" style="width:100%;font-size:1.1rem;padding:8px;box-sizing:border-box"><p id="devwarn" style="margin:0;font-size:.78rem;color:#d9a400"${msg?'':' hidden'}>${msg||''}</p><div class="row"><button type="button" class="btn pri" data-dev="ok">確定</button><button type="button" class="btn" data-dev="back">戻る</button></div>`}`);
+ const i=document.getElementById('devpw');if(i)i.focus();
+}
+function devClick(b){
+ const a=b.dataset.dev;
+ if(a==='open'){showDev();return;}
+ if(a==='back'){showStart();return;}
+ if(a==='off'){DEV=false;try{localStorage.removeItem(DEV_KEY);}catch(e){}showStart();return;}
+ if(a==='ok'){const v=(document.getElementById('devpw')||{}).value||'';if(devHash('jkz:'+v)===DEV_HASH){DEV=true;try{localStorage.setItem(DEV_KEY,'1');}catch(e){}showStart();}else showDev('パスワードが違います');}
+}
 // CPUに勝った回数で、中学校(学年7)・高校(学年8)の漢字が一斉に解放される(字の実装はこれから)。
 const WIN_KEY='jikuzushi_cpuwins_v1';
 const UNLOCKS=[{wins:3,g:7,name:'中学校の漢字'},{wins:5,g:8,name:'高校の漢字'}];
 let cpuWins=0;try{cpuWins=Math.max(0,parseInt(localStorage.getItem(WIN_KEY)||'0',10)||0);}catch(e){}
 const gradeOpen=g=>!(g===7||g===8)||DEV||UNLOCKS.some(u=>u.g===g&&cpuWins>=u.wins);
 function addCpuWin(){cpuWins++;try{localStorage.setItem(WIN_KEY,String(cpuWins));}catch(e){}return UNLOCKS.filter(u=>u.wins===cpuWins);}
-const unlockTxt=()=>DEV?'開発モード: すべての字を使えます。':`CPUに${UNLOCKS[0].wins}勝で${UNLOCKS[0].name}、${UNLOCKS[1].wins}勝で${UNLOCKS[1].name}が解放されます(いまCPUに${cpuWins}勝)。`;
+const unlockTxt=()=>DEV?'開発者モード: 中学校・高校の漢字を使えます。':`CPUに${UNLOCKS[0].wins}勝で${UNLOCKS[0].name}、${UNLOCKS[1].wins}勝で${UNLOCKS[1].name}が解放されます(いまCPUに${cpuWins}勝)。`;
 let cpu={step:0,mine:null,first:true};
 function showCpuSelect(){
  const st=cpu.step;
@@ -2409,6 +2427,7 @@ function bdClick(b){
  }
 }
 $('ov').addEventListener('keydown',e=>{
+ if(e.target&&e.target.id==='devpw'&&(e.key==='Enter'||e.code==='NumpadEnter')){e.preventDefault();const b=document.querySelector('[data-dev="ok"]');if(b)devClick(b);}
  if(e.target&&e.target.id==='netcode'&&(e.key==='Enter'||e.code==='NumpadEnter')){e.preventDefault();const b=document.querySelector('[data-net="join"]');if(b&&!b.disabled)netClick(b);}
 });
 $('ov').addEventListener('input',e=>{if(e.target&&e.target.id==='netcode'){const w=document.getElementById('netwarn');if(w)w.hidden=true;}});
@@ -2514,6 +2533,8 @@ $('ov').addEventListener('click',e=>{
   if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first);return;}
  const twb=e.target.closest('[data-two]');
  if(twb){twoClick(twb);return;}
+ const dvb=e.target.closest('[data-dev]');
+ if(dvb){devClick(dvb);return;}
  const cb=e.target.closest('[data-cpu]');
  if(cb){const a=cb.dataset.cpu;
   if(a==='open'){cpu.step=0;cpu.mine=null;showCpuSelect();}
@@ -2573,7 +2594,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.33';
+const APP_VER='v2.34';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
