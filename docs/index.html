@@ -2468,6 +2468,8 @@ for(const [ch,s,ps] of POOL){
  CARDS[ch]={s,c:costOf(s),h:hp,p,sp,a,g:GRADE[ch],tag:DANGER.has(ch)&&!p.length?'danger':STURDY.has(ch)?'sturdy':''};
 }
 if(CARDS['嚇'])CARDS['嚇'].h=12;
+if(CARDS['鬱'])Object.assign(CARDS['鬱'],{a:13,h:24,p:[],sp:[]});
+if(CARDS['鑑'])CARDS['鑑'].h=21;
 // 「再」: 墓地回収カード。攻撃も召喚もできず、手札から使うだけ。
 ['心','幸'].forEach(k=>{CARDS[k].a=0;CARDS[k].tag='';});
 CARDS['再']={s:6,c:0,h:1,p:[],sp:[],a:0,g:5,tag:'',spell:true,label:'墓地回収'};
@@ -3504,7 +3506,8 @@ function bdFilterH(){
  const gb=([v,l])=>`<button type="button" class="mini ${bd.grade===v?'pri':''}" data-bd="grade" data-v="${v}">${l}</button>`;
  const g=[[0,'すべて'],[1,'小1'],[2,'小2'],[3,'小3'],[4,'小4'],[5,'小5'],[6,'小6']].map(gb).join('');
  const g2=[...(DEV?[[7,'中学']]:[]),['s','特殊']].map(gb).join('');
- const c=[0,1,2,3,4,5,6,7,8,9].map(v=>`<button type="button" class="mini ${bd.cost===v?'pri':''}" data-bd="cost" data-v="${v}">${v?v:'全コスト'}</button>`).join('');
+ const cb=v=>`<button type="button" class="mini ${bd.cost===v?'pri':''}" data-bd="cost" data-v="${v}">${v?v:'全コスト'}</button>`;
+ const c=[0,1,2,3,4].map(cb).join('')+'</div><div class="bdf" role="group" aria-label="コスト(5以上)" style="margin-top:6px">'+[5,6,7,8,9,...(DEV?[10]:[])].map(cb).join('');
  const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select><select class="mini boxed" id="bdDir" aria-label="昇順・降順" ${bd.sort?'':'disabled'}><option value="+"${bd.dir==='+'?' selected':''}>昇順</option><option value="-"${bd.dir==='-'?' selected':''}>降順</option></select>`;
  return `<div class="bdf" role="group" aria-label="学年">${g}</div><div class="bdf" role="group" aria-label="学年(中学以降・特殊)" style="margin-top:6px">${g2}</div><div class="bdf gap" role="group" aria-label="コスト">${c}</div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
 }
@@ -3723,7 +3726,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.40';
+const APP_VER='v2.41';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
