@@ -2697,10 +2697,12 @@ function attackSplit(s,uid,tids){
   else if(!st.alive.some(t=>t.id===tids[i]))return false;
  }
  log(`${NAME[s]}の「${u.ch}」が「${u.parts.join('')}」に分解して攻撃`);
- const blocked={},firedNow=[];
+ const blocked={},firedNow=[];let absorb=null;
  for(let i=0;i<tids.length&&!G.over;i++){
   if(isHealTid(tids[i])){healPart(s,u,i,tids[i]);continue;}
-  if(tids[i]==='face')dmgFace(OP(s),u.sp[i]);
+  if(tids[i]==='face'){
+   if(absorb){const lb=`${u.parts[i]}${u.sp[i]}`;absorb.tr.blocked.push(lb);(blocked[absorb.slot]=blocked[absorb.slot]||{unit:absorb.unit,labels:[]}).labels.push(lb);continue;}
+   dmgFace(OP(s),u.sp[i]);}
   else{
    const t=op.field.find(x=>x.id===tids[i]);
    if(t){
@@ -2710,7 +2712,7 @@ function attackSplit(s,uid,tids){
      if(tr.fired&&tr.turn===G.turn){
       const lb=`${u.parts[i]}${u.sp[i]}`;tr.blocked.push(lb);
       (blocked[t.slot]=blocked[t.slot]||{unit:t.ch,labels:[]}).labels.push(lb);
-      G.fx[t.id]={t:'guard'};continue;
+      G.fx[t.id]={t:'guard'};if(!absorb)absorb={tr,slot:t.slot,unit:t.ch};continue;
      }
     }
     dmgUnit(OP(s),t,u.sp[i]);
@@ -3135,7 +3137,7 @@ function unitWhy(u){
  return '';
 }
 const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
-const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
+const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。その分解攻撃で相手の本体へ向かうパーツも、すべて止まります。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
 function panelH(){
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
  if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
@@ -3798,7 +3800,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.46';
+const APP_VER='v2.47';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
