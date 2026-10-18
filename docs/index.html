@@ -2949,6 +2949,65 @@ function aiBreak(s){
  const tg=op.field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
  return tg.cost>=3?{c,tg}:null;
 }
+// 強いCPU: 通常の動きに加えて、罠の設置・花回復・力付与・切り離し・切り裂き・有料ドローを使う
+function hardBoost(s){
+ const me=S(s),op=S(OP(s));
+ if(!me.field.length)return false;
+ // 力付与
+ if(!me.ph&&me.mana>=CFG.powerCost){
+  const c=me.hand.find(x=>!x.salv&&isPower(x));
+  if(c){
+   const u=me.field.slice().sort((a,b)=>(b.atk+(b.sick?0:3))-(a.atk+(a.sick?0:3)))[0];
+   let part;if(u.parts.length>1){part=u.sp.indexOf(Math.max(...u.sp));}
+   if(crown(s,c.id,u.id,part))return true;
+  }
+ }
+ // 花回復
+ if(!me.fh&&me.mana>=CFG.crownCost){
+  const c=me.hand.find(x=>!x.salv&&isFlower(x));
+  if(c){
+   const dm=me.field.filter(u=>u.hp<u.max).sort((a,b)=>(b.max-b.hp)-(a.max-a.hp))[0];
+   const u=dm||me.field.slice().sort((a,b)=>uval(b)-uval(a))[0];
+   if(dm||me.mana>=CFG.crownCost+2){if(crown(s,c.id,u.id))return true;}
+  }
+ }
+ return false;
+}
+function hardTrap(s){
+ const me=S(s);
+ const c=me.hand.find(x=>x.trap&&!x.salv);if(!c)return false;
+ const best=me.field.slice().sort((a,b)=>uval(b)-uval(a))[0];
+ let slot=-1;if(best&&best.slot>=0&&best.slot<CFG.trap&&!me.traps[best.slot])slot=best.slot;else slot=me.traps.findIndex(t=>!t);
+ return slot>=0&&setTrap(s,c.id,slot);
+}
+function hardCut(s){
+ const me=S(s),op=S(OP(s));
+ if(!me.ct&&me.mana>=CFG.cutCost){
+  const c=me.hand.find(x=>!x.salv&&x.ch==='刀');
+  if(c){let best=null,bg=3;for(const u of op.field)for(const [part,y] of Object.entries(cutsOf(u))){const g=uval(u)-uval(mk(y));if(g>bg){bg=g;best={u,part};}}
+   if(best&&cut(s,c.id,best.u.id,best.part))return true;}
+ }
+ if(!me.rp&&me.mana>=CFG.ripCost){
+  const c=me.hand.find(x=>!x.salv&&x.ch==='裂');
+  if(c){let best=null,bg=5;for(const u of op.field)ripsOf(u).forEach((r,i)=>{const g=uval(u)-uval(mk(r.to));if(g>bg){bg=g;best={u,i};}});
+   if(best&&rip(s,c.id,best.u.id,best.i))return true;}
+ }
+ return false;
+}
+function aiStepHard(s){
+ if(G.over)return false;
+ if(G.pending)return false;
+ if(hardTrap(s))return true;
+ const c=aiSummon(s);if(c){summon(s,c.id);return true;}
+ if(hardBoost(s))return true;
+ if(hardCut(s))return true;
+ const a=aiAction(s);
+ if(a){if(a.k==='whole')attackWhole(s,a.u,a.t);else attackSplit(s,a.u,a.t);return true;}
+ const bk=aiBreak(s);if(bk){breakUnit(s,bk.c.id,bk.tg.id);return true;}
+ const d=aiDiscard(s);if(d){discard(s,d.id);return true;}
+ if(!paidDrawWhy(s)&&S(s).mana>=CFG.drawCost+1){paidDraw(s);return true;}
+ return false;
+}
 function aiStep(s){
  if(G.over)return false;
  const a=aiAction(s);
@@ -3327,7 +3386,7 @@ async function runCpu(){
  await wait(750);
  let n=0;
  while(G.gid===gid&&!G.over&&n++<30){
-  const did=aiStep('c');render();
+  const did=(G.lv==='hard'?aiStepHard('c'):aiStep('c'));render();
   while(G.pending&&G.gid===gid&&!G.over)await wait(300);
   if(!did)break;
   await wait(900);
@@ -3407,13 +3466,13 @@ let cpuWins=0;try{cpuWins=Math.max(0,parseInt(localStorage.getItem(WIN_KEY)||'0'
 const gradeOpen=g=>g!==7||DEV||UNLOCKS.some(u=>u.g===g&&cpuWins>=u.wins);
 function addCpuWin(){cpuWins++;try{localStorage.setItem(WIN_KEY,String(cpuWins));}catch(e){}return UNLOCKS.filter(u=>u.wins===cpuWins);}
 const unlockTxt=()=>DEV?'開発者モード: 中学校の漢字を使えます。':`CPUに${UNLOCKS[0].wins}勝で${UNLOCKS[0].name}が解放されます(いまCPUに${cpuWins}勝)。`;
-let cpu={step:0,mine:null,first:true};
+let cpu={step:0,mine:null,first:true,lv:'normal'};
 function showCpuSelect(){
  const st=cpu.step;
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
  const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-cpudeck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
  const head=st===0?'あなたのデッキを選ぶ':`CPUのデッキを選ぶ(あなた: ${esc(DECKS[cpu.mine].name)})`;
- showOverlay(`<h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
+ showOverlay(`<h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><div class="swrow"><span>CPUの強さ</span><span class="bdf"><button type="button" class="mini ${cpu.lv==='hard'?'':'pri'}" data-cpu="lv" data-v="normal" aria-pressed="${cpu.lv!=='hard'}">ふつう</button><button type="button" class="mini ${cpu.lv==='hard'?'pri':''}" data-cpu="lv" data-v="hard" aria-pressed="${cpu.lv==='hard'}">つよい</button></span></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
 }
 
 // ---- デッキ構築 ----
@@ -3628,11 +3687,11 @@ function showEnd(){
  let unl=[];if(!ONLINE&&!G.two&&won&&!G.cnt){G.cnt=1;unl=addCpuWin();}
  showOverlay(`<h2>${ONLINE?(G.over===ONLINE.side?'勝利':'敗北'):G.two?NAME[G.over]+'の勝利':won?'勝利':'敗北'}</h2><p>${esc(G.why)}。${G.side.p.tn}ターンで決着。</p>${unl.map(u=>`<p style="font-weight:700;color:var(--accent)">CPUに${u.wins}勝!${u.name}が解放されました(字は順次追加されます)。</p>`).join('')}${ONLINE&&ONLINE.peerRematch?'<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>':''}<div class="row${!ONLINE&&G.two?' endr':''}">${ONLINE?'<button type="button" class="btn pri" data-act="rematch">再戦する</button><button type="button" class="btn" data-act="tomenu">メニューに戻る</button>':G.two?'<button type="button" class="btn pri" data-act="tworematch">再戦する</button><button type="button" class="btn" data-act="again">メニューに戻る</button>':'<button type="button" class="btn pri" data-act="again">メニューに戻る</button>'}<button type="button" class="btn" data-act="look">盤面を見る</button></div>`);
 }
-function startGame(pk,ck,first){
+function startGame(pk,ck,first,lv){
  netIdleEnd();
  if(!ck)ck=pk==='nature'?'force':pk==='force'?'nature':pk==='test'?'cpubreak':'random';
  NAME.p='あなた';NAME.c='CPU';
- newGame(pk,ck,first!==false);resetUi();$('ov').hidden=true;
+ newGame(pk,ck,first!==false);G.lv=lv==='hard'?'hard':'normal';resetUi();$('ov').hidden=true;
  if(first===false){startTurn('c');render();if(G.over){showEnd();return;}runCpu();return;}
  startTurn('p');render();
 }
@@ -3673,7 +3732,7 @@ $('ov').addEventListener('click',e=>{
  if(rd){seenSide=rd.dataset.ready;$('ov').hidden=true;render();return;}
  const cd=e.target.closest('[data-cpudeck]');
  if(cd){const k=cd.dataset.cpudeck;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
-  if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first);return;}
+  if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first,cpu.lv);return;}
  const twb=e.target.closest('[data-two]');
  if(twb){twoClick(twb);return;}
  const dvb=e.target.closest('[data-dev]');
@@ -3682,6 +3741,7 @@ $('ov').addEventListener('click',e=>{
  if(cb){const a=cb.dataset.cpu;
   if(a==='open'){cpu.step=0;cpu.mine=null;showCpuSelect();}
   else if(a==='flip'){cpu.first=!cpu.first;showCpuSelect();}
+  else if(a==='lv'){cpu.lv=cb.dataset.v==='hard'?'hard':'normal';showCpuSelect();}
   else if(a==='back'){if(cpu.step===1){cpu.step=0;showCpuSelect();}else showStart();}
   return;}
  const bdb=e.target.closest('[data-bd]');
@@ -3737,7 +3797,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.44';
+const APP_VER='v2.45';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
