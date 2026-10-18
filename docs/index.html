@@ -2953,9 +2953,11 @@ function aiBreak(s){
 function hardBoost(s){
  const me=S(s),op=S(OP(s));
  if(!me.field.length)return false;
+ // 場が埋まっているか、弱い字のときだけ、手札の字を力付与・花回復に使う(強い字は召喚に回す)
+ const spare=c=>me.field.length>=CFG.field||uval(c)<=7;
  // 力付与
  if(!me.ph&&me.mana>=CFG.powerCost){
-  const c=me.hand.find(x=>!x.salv&&isPower(x));
+  const c=me.hand.find(x=>!x.salv&&isPower(x)&&spare(x));
   if(c){
    const u=me.field.slice().sort((a,b)=>(b.atk+(b.sick?0:3))-(a.atk+(a.sick?0:3)))[0];
    let part;if(u.parts.length>1){part=u.sp.indexOf(Math.max(...u.sp));}
@@ -2964,7 +2966,7 @@ function hardBoost(s){
  }
  // 花回復
  if(!me.fh&&me.mana>=CFG.crownCost){
-  const c=me.hand.find(x=>!x.salv&&isFlower(x));
+  const c=me.hand.find(x=>!x.salv&&isFlower(x)&&spare(x));
   if(c){
    const dm=me.field.filter(u=>u.hp<u.max).sort((a,b)=>(b.max-b.hp)-(a.max-a.hp))[0];
    const u=dm||me.field.slice().sort((a,b)=>uval(b)-uval(a))[0];
@@ -3005,7 +3007,6 @@ function aiStepHard(s){
  if(a){if(a.k==='whole')attackWhole(s,a.u,a.t);else attackSplit(s,a.u,a.t);return true;}
  const bk=aiBreak(s);if(bk){breakUnit(s,bk.c.id,bk.tg.id);return true;}
  const d=aiDiscard(s);if(d){discard(s,d.id);return true;}
- if(!paidDrawWhy(s)&&S(s).mana>=CFG.drawCost+1){paidDraw(s);return true;}
  return false;
 }
 function aiStep(s){
