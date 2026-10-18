@@ -2618,7 +2618,7 @@ const isBoost=c=>isPower(c)||isFlower(c);
 const boostCost=c=>isPower(c)?CFG.powerCost:CFG.crownCost;
 function canSplit(s,u){return u.parts.length>1;}
 const hintWrap=(b,h)=>'<span class="hintw" data-hint="'+h+'">'+b+'</span>';
-function summonWhy(s,c){const me=S(s);if(c.salv)return '墓地から戻したので、次のターンから使えます';if(c.spell)return 'この字は召喚できません(手札から使う効果だけです)';if(c.cost>me.mana)return `マナが足りません(必要 ${c.cost})`;if(me.field.length>=CFG.field)return '場が埋まっています';return '';}
+function summonWhy(s,c){const me=S(s);if(c.spell)return 'この字は召喚できません(手札から使う効果だけです)';if(c.cost>me.mana)return `マナが足りません(必要 ${c.cost})`;if(me.field.length>=CFG.field)return '場が埋まっています';return '';}
 
 function dmgUnit(s,u,n){
  if(n<=0)return false;
@@ -2630,7 +2630,7 @@ function dmgUnit(s,u,n){
 function dmgFace(s,n){const me=S(s);if(n<=0)return;const hp0=me.hp;me.hp=Math.max(0,me.hp-n);const pf=G.fx['face'+s];G.fx['face'+s]={t:'hit',n:n+(pf?pf.n:0),pv:pf&&pf.pv!==undefined?pf.pv:hp0};if(me.hp<=0){G.faceKO=true;win(OP(s),`${NAME[s]}のHPが0になった`);}}
 
 function summon(s,id,slot){
- const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||me.hand[i].salv||G.over||G.cur!==s)return false;
+ const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||G.over||G.cur!==s)return false;
  const c=me.hand[i];if(summonWhy(s,c))return false;
  me.mana-=c.cost;me.hand.splice(i,1);c.sick=true;c.done=false;
  const used=me.field.map(x=>x.slot);let sl=0;while(used.includes(sl))sl++;if(Number.isInteger(slot)&&slot>=0&&slot<CFG.field&&!used.includes(slot))sl=slot;c.slot=sl;me.field.push(c);G.fx[c.id]={t:'spawn'};
@@ -3150,7 +3150,7 @@ function panelH(){
  }
  if(ui.sel&&ui.sel.kind==='hand'){
   const c=P.hand.find(x=>x.id===ui.sel.id);
-  if(c&&c.salv&&!ui.mode)return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost}</p><p class="why">墓地から戻したので、次のターンから使えます</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+  if(c&&c.salv&&!ui.mode){const why=summonWhy(ME(),c);return `<div class="panel"><p class="ttl">「${c.ch}」 ${CARDS[c.ch].s}画 / コスト ${c.cost}</p><p class="sm">墓地から戻したので、このターンは召喚だけできます。花回復・力付与・切り離しなどは次のターンからです。</p>${why?`<p class="why">${why}</p>`:''}<div class="row">${c.spell?'':`<button type="button" class="btn pri" data-act="summon" ${why?'disabled':''}>召喚する</button>`}<button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;}
   if(c&&ui.mode==='salv'&&ui.salv){
    const sv=ui.salv,el=salvElig(ME()),need=Math.min(CFG.salvTake,el.length);
    if(sv.dis.length<CFG.salvDiscard){
@@ -3246,7 +3246,7 @@ function handH(){
   let cls='';
   if(ui.sel&&ui.sel.kind==='hand'&&ui.sel.id===c.id)cls+=' sel';
   if(ui.mode==='salv'&&ui.salv&&ui.salv.dis.includes(c.id))cls+=' sel';
-  if(mineTurn()&&(c.salv||(!c.spell&&summonWhy(ME(),c))))cls+=' dim';
+  if(mineTurn()&&(c.salv?(c.spell||summonWhy(ME(),c)):(!c.spell&&summonWhy(ME(),c))))cls+=' dim';
   return cardH(c,'hand',cls);
  }).join('');
  return `<p class="lbl2">手札 ${P.hand.length}/${CFG.hand}</p><div class="hand">${cards||'<span class="empty">手札がありません</span>'}</div>`;
@@ -3798,7 +3798,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.45';
+const APP_VER='v2.46';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
