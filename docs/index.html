@@ -158,6 +158,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
 
 .mid{display:flex;flex-direction:column;gap:6px;padding:2px}
+.hrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.hrow .ttl{margin:0}
+.hrow .plan{margin:0;white-space:nowrap}
 .turnno{font-size:.78rem;color:var(--ink2);font-weight:700;line-height:1}
 .turnrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .chip{font-weight:700;padding:.12em .75em;border-radius:999px;font-size:.85rem;background:var(--accent);color:var(--accent-ink)}
@@ -3299,7 +3302,7 @@ function panelH(){
     else if(partHeals(u.parts[k]))msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」は、相手を攻撃する(${u.sp[k]}ダメージ)かわりに、自分の字か自分の本体を選んで${healAmt(u.parts[k])}回復できます。${cx&&cx.pr.face?'相手を攻撃するなら、相手本体の枠を押してください。':''}`;
     else if(cx&&cx.pr.face)msg=`相手の場が空になる見込みです。「${u.parts[k]}」(${u.sp[k]}ダメージ)は、相手本体の枠を押して狙ってください。`;
     else msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」(${u.sp[k]}ダメージ)の標的を、相手の字から選んでください。`;
-    return `<div class="panel">${head}${msg?`<p>${msg}</p>`:''}${assigned?`<p class="plan">${esc(assigned)}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.some(x=>x!=='face')?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+    return `<div class="panel"><div class="hrow">${head}${assigned?`<span class="plan">${esc(assigned)}</span>`:''}</div>${msg?`<p>${msg}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.some(x=>x!=='face')?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
    }
    const why=unitWhy(u);
    const multi=u.parts.length>1;
@@ -4017,7 +4020,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.60';
+const APP_VER='v2.61';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
