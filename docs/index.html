@@ -158,6 +158,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @keyframes rise{0%{opacity:0;margin-top:8px}15%{opacity:1}100%{opacity:0;margin-top:-22px}}
 
 .mid{display:flex;flex-direction:column;gap:6px;padding:2px}
+.turnno{font-size:.78rem;color:var(--ink2);font-weight:700;line-height:1}
 .turnrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .chip{font-weight:700;padding:.12em .75em;border-radius:999px;font-size:.85rem;background:var(--accent);color:var(--accent-ink)}
 .chip.c{background:var(--ink2);color:var(--bg)}
@@ -3196,7 +3197,8 @@ function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
  const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
- return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div></div>`;
+ const tno=G.cur?S(G.cur).tn:0;
+ return `<div class="mid">${tno?`<div class="turnno">${tno}ターン目</div>`:''}<div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div></div>`;
 }
 function unitWhy(u){
  const P=S(ME());
@@ -3293,15 +3295,15 @@ function panelH(){
     const n=u.parts.length,k=ui.split.tids.length,done=k>=n;
     const assigned=ui.split.tids.map((t,i)=>u.parts[i]+(isHealTid(t)?'→回復'+healAmt(u.parts[i])+(t==='hf'?'(本体)':''):u.sp[i]+(t==='face'?'→本体':''))).join(' ');
     let msg;
-    if(done)msg='標的が決まりました。この内容で攻撃しますか。';
+    if(done)msg='';
     else if(partHeals(u.parts[k]))msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」は、相手を攻撃する(${u.sp[k]}ダメージ)かわりに、自分の字か自分の本体を選んで${healAmt(u.parts[k])}回復できます。${cx&&cx.pr.face?'相手を攻撃するなら、相手本体の枠を押してください。':''}`;
     else if(cx&&cx.pr.face)msg=`相手の場が空になる見込みです。「${u.parts[k]}」(${u.sp[k]}ダメージ)は、相手本体の枠を押して狙ってください。`;
     else msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」(${u.sp[k]}ダメージ)の標的を、相手の字から選んでください。`;
-    return `<div class="panel">${head}<p>${msg}</p>${assigned?`<p class="plan">${esc(assigned)}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.some(x=>x!=='face')?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+    return `<div class="panel">${head}${msg?`<p>${msg}</p>`:''}${assigned?`<p class="plan">${esc(assigned)}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.some(x=>x!=='face')?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
    }
    const why=unitWhy(u);
    const multi=u.parts.length>1;
-   const info=multi?`<p class="sm">分解攻撃のみ: ${esc(planTxt(u))}(合計 ${sumSp(u)})をパーツごとに別の相手へ(相手の場を空にできれば、残りは本体へ。最初から空なら全部本体へ)。</p>`:(healerOnly(u.ch)?`<p class="sm">攻撃はできません。自分の字か自分の本体を選んで${healAmt(u.ch)}回復する行動だけができます。</p>`:`<p class="sm">部品のない字です。単体攻撃だけできます。${partHeals(u.ch)?`攻撃のかわりに、自分の字か自分の本体を選んで${healAmt(u.ch)}回復することもできます。`:''}</p>`);
+   const info=multi?'':(healerOnly(u.ch)?`<p class="sm">攻撃はできません。自分の字か自分の本体を選んで${healAmt(u.ch)}回復する行動だけができます。</p>`:(partHeals(u.ch)?`<p class="sm">攻撃のかわりに、自分の字か自分の本体を選んで${healAmt(u.ch)}回復することもできます。</p>`:''));
    return `<div class="panel">${head}${info}${why?`<p class="why">${why}</p>`:''}<div class="row">${multi?`<button type="button" class="btn pri" data-act="split" ${why?'disabled':''}>分解攻撃</button>`:`<button type="button" class="btn pri" data-act="whole" ${why?'disabled':''}>${healerOnly(u.ch)?'回復':'単体攻撃'}</button>`}<button type="button" class="btn" data-act="discard" ${P.mana<CFG.discardCost?'disabled':''}>破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
@@ -3309,7 +3311,7 @@ function panelH(){
   const u=E.field.find(x=>x.id===ui.sel.id);
   if(u)return `<div class="panel"><p class="ttl">相手の「${u.ch}」 ${healerOnly(u.ch)?'回復 '+healAmt(u.ch):'攻 '+u.atk} 体 ${u.hp}/${u.max}</p><p class="sm">${u.parts.length>1?`分解攻撃のみ: ${esc(planTxt(u))}`:healerOnly(u.ch)?'回復のみ':'単体攻撃のみ'}</p></div>`;
  }
- const lg=G.log.slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
+ const lg=G.log.filter(l=>!/ターン目$/.test(l)).slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
  return `<div class="panel muted"><ol class="log" aria-live="polite">${lg}</ol><p>手札の字を選んで召喚する。または、自分の場の字を選んで攻撃する。</p><p class="sm">相手の字が場にいる間は、本体を狙えません。分解攻撃で場を空にできれば、残りのパーツは本体に届きます。</p></div>`;
 }
 function handH(){
@@ -3588,7 +3590,7 @@ const TUTS={
    {t:'<b>部首ボーナス</b><br>同じ部首をもつ字を、<b>指定されている枚数、1デッキに</b>入れて、その字を<b>場にそろえる</b>と、ボーナスが出ます。'},
    {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:hlSummon(null),cond:()=>S('p').field.length>=3},
    {t:'3枚が<b>黄色の枠</b>で光り、体力が2ずつ増えました(黄色の数字)。体力バーの下には、効いている部首の印(木)も出ます。字が減ってそろわなくなると、ボーナスは消えます。'},
-   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>!x.done&&!x.sick);if(!u)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
+   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>x.id===p.lastSum)||p.field.find(x=>!x.done&&!x.sick);if(!u||u.done)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
    {t:'召喚したばかりの字で攻撃できました。ほかにも、<b>水</b>(受けるダメージ-1)、<b>人</b>(1ターンに3回行動)、<b>刀</b>(場全体の攻撃力+1)、<b>肉</b>(体力+1と攻撃力+1)があります。デッキ編成画面で、字を組み合わせてみてください。',end:true}
   ]}
 };
@@ -3596,17 +3598,23 @@ const TUT_ORDER=['rules','special','bonus'];
 function tutStart(k){
  const L=TUTS[k];if(!L)return;
  netIdleEnd();NAME.p='あなた';NAME.c='練習相手';
- TUT={k,i:0,cpuN:0,adv:false};
+ TUT={k,i:0,cpuN:0,adv:false,snaps:[]};
  newGame('nature','force',true);G.lv='normal';G.cnt=1;resetUi();$('ov').hidden=true;
  L.start();startTurn('p');
- tutEnter();render();
+ tutEnter();tutSnap();render();
+}
+function tutSnap(){try{TUT.snaps[TUT.i]={g:structuredClone(G),uid:UID,cpuN:TUT.cpuN};}catch(e){}}
+function tutBack(){
+ if(!TUT||TUT.i<=0)return;
+ const j=TUT.i-1,sn=TUT.snaps[j];if(!sn)return;
+ G=structuredClone(sn.g);G.gid=++GID;UID=sn.uid;TUT.cpuN=sn.cpuN;TUT.i=j;TUT.adv=false;resetUi();render();try{window.scrollTo(0,0);}catch(e){}
 }
 function tutStep(){return TUT&&TUTS[TUT.k].steps[TUT.i];}
 function tutEnter(){const st=tutStep();if(st&&st.enter){st.enter();}}
 function tutGo(i){
  if(!TUT)return;const L=TUTS[TUT.k];
  if(i>=L.steps.length)return;
- TUT.i=i;TUT.adv=false;tutEnter();resetUi();render();try{window.scrollTo(0,0);}catch(e){}
+ TUT.i=i;TUT.adv=false;tutEnter();resetUi();tutSnap();render();try{window.scrollTo(0,0);}catch(e){}
 }
 function tutQuit(){
  TUT=null;const c=$('coach');if(c)c.remove();const dm0=$('tutdim');if(dm0)dm0.remove();$('board').classList.remove('tutinfo');
@@ -3620,7 +3628,7 @@ function tutAfter(){
  const L=TUTS[TUT.k],n=L.steps.length;
  const info=st.kind!=='do';
  $('board').classList.toggle('tutinfo',info);
- c.innerHTML=`<div class="cmsg"><div class="chd"><span>${esc(L.title)} ${TUT.i+1}/${n}</span><span><button type="button" class="mini" data-tutc="retry">やり直す</button><button type="button" class="mini" data-tutc="quit">やめる</button></span></div><div class="ctx">${st.t}</div>${info?(st.end?`<div class="row"><button type="button" class="btn" data-tutc="quit">チュートリアルに戻る</button>${TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]?`<button type="button" class="btn pri" data-tutc="nextlesson">${esc(TUTS[TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]].title)}にすすむ</button>`:''}</div>`:`<div class="row"><button type="button" class="btn pri" data-tutc="next">次へ</button></div>`):'<div class="cdo">↓ やってみましょう</div>'}</div>`;
+ c.innerHTML=`<div class="cmsg"><div class="chd"><span>${esc(L.title)} ${TUT.i+1}/${n}</span><span><button type="button" class="mini" data-tutc="back" ${TUT.i>0?'':'disabled'}>一つ戻る</button><button type="button" class="mini" data-tutc="quit">やめる</button></span></div><div class="ctx">${st.t}</div>${info?(st.end?`<div class="row"><button type="button" class="btn" data-tutc="quit">チュートリアルに戻る</button>${TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]?`<button type="button" class="btn pri" data-tutc="nextlesson">${esc(TUTS[TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]].title)}にすすむ</button>`:''}</div>`:`<div class="row"><button type="button" class="btn pri" data-tutc="next">次へ</button></div>`):'<div class="cdo">↓ やってみましょう</div>'}</div>`;
  document.querySelectorAll('.tuthl,.tuthlw').forEach(e=>e.classList.remove('tuthl','tuthlw'));
  let hls=[];try{if(!(!info&&st.cond&&st.cond()))hls=typeof st.hl==='function'?st.hl():st.hl?tq(st.hl):[];}catch(e){}
  hls.forEach(e=>{e.classList.add('tuthl');const w=e.closest('.cw');if(w)w.classList.add('tuthlw');});
@@ -3637,7 +3645,7 @@ async function tutCpu(){
 }
 document.addEventListener('click',e=>{
  const t=e.target.closest&&e.target.closest('[data-tutc]');
- if(t){e.stopPropagation();const a=t.dataset.tutc;if(!TUT)return;if(a==='next')tutGo(TUT.i+1);else if(a==='quit')tutQuit();else if(a==='nextlesson'){const nk=TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1];if(nk)tutStart(nk);}else if(a==='retry'){const k=TUT.k;tutStart(k);}return;}
+ if(t){e.stopPropagation();const a=t.dataset.tutc;if(!TUT)return;if(a==='next')tutGo(TUT.i+1);else if(a==='quit')tutQuit();else if(a==='nextlesson'){const nk=TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1];if(nk)tutStart(nk);}else if(a==='back')tutBack();return;}
  if(!TUT)return;
  const b=e.target.closest('[data-act="end"],[data-act="pdraw"],[data-act="endyes"]');
  if(b){const st=tutStep(),al=(st&&st.allow)||[];if(!al.includes(b.dataset.act==='endyes'?'end':b.dataset.act)){e.stopPropagation();e.preventDefault();const m=document.querySelector('#coach .cdo,#coach .row');if(m){m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake');}}}
@@ -4009,7 +4017,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.57';
+const APP_VER='v2.58';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
