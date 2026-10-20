@@ -3103,10 +3103,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 let ui={sel:null,mode:null,split:null};
 const resetUi=()=>{ui={sel:null,mode:null,split:null};};
 // 相手の場が空になる見込みなら、残りのパーツの標的は本体に決まるので自動で入れる
-function autoFace(){
- const cx=splitCtx();if(!cx)return;
- let g=0;while(g++<10){const c=splitCtx();if(!c||c.done||!c.pr.face)break;if(partHeals(c.su.parts[ui.split.tids.length]))break;ui.split.tids.push('face');}
-}
+// 相手の本体を狙えるときも、自動では決めず、本体の枠を押して選ぶ。
+function autoFace(){}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // いま回復を選べるときの回復量(0なら選べない)。分解攻撃で回復パーツの番か、回復できる単体の字(心・幸)が単体攻撃を選んだとき。
 const healNow=()=>{
@@ -3302,7 +3300,7 @@ function panelH(){
     else if(partHeals(u.parts[k]))msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」は、相手を攻撃する(${u.sp[k]}ダメージ)かわりに、自分の字か自分の本体を選んで${healAmt(u.parts[k])}回復できます。${cx&&cx.pr.face?'相手を攻撃するなら、相手本体の枠を押してください。':''}`;
     else if(cx&&cx.pr.face)msg=`相手の場が空になる見込みです。「${u.parts[k]}」(${u.sp[k]}ダメージ)は、相手本体の枠を押して狙ってください。`;
     else msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」(${u.sp[k]}ダメージ)の標的を、相手の字から選んでください。`;
-    return `<div class="panel"><div class="hrow">${head}${assigned?`<span class="plan">${esc(assigned)}</span>`:''}</div>${msg?`<p>${msg}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.some(x=>x!=='face')?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+    return `<div class="panel"><div class="hrow">${head}${assigned?`<span class="plan">${esc(assigned)}</span>`:''}</div>${msg?`<p>${msg}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.length?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
    }
    const why=unitWhy(u);
    const multi=u.parts.length>1;
@@ -3430,8 +3428,7 @@ function onAct(act,data){
  if(act==='discard'&&ui.sel&&ui.sel.kind==='field'){discard(ME(),ui.sel.id);resetUi();render();return;}
  if(act==='dodiscard'&&ui.sel&&ui.sel.kind==='field'){discard(ME(),ui.sel.id);resetUi();render();return;}
  if(act==='undo'&&ui.split){
-  const t=ui.split.tids;if(!t.some(x=>x!=='face'))return;
-  while(t.length&&t[t.length-1]==='face')t.pop();
+  const t=ui.split.tids;if(!t.length)return;
   t.pop();render();return;}
  if(act==='dosplit'&&ui.sel&&ui.split){attackSplit(ME(),ui.sel.id,ui.split.tids);resetUi();render();afterAction();return;}
  if(act==='healface'){
@@ -3442,7 +3439,7 @@ function onAct(act,data){
  if(act==='face'){
   if(ui.mode==='whole'&&!S(FOE()).field.length){const su=S(ME()).field.find(x=>x.id===ui.sel.id);if(!(su&&healerOnly(su.ch)))performWhole('face');return;}
   const cx=splitCtx();
-  if(cx&&!cx.done&&cx.pr.face&&partHeals(cx.su.parts[ui.split.tids.length])){ui.split.tids.push('face');autoFace();render();}
+  if(cx&&!cx.done&&cx.pr.face){ui.split.tids.push('face');render();}
   return;
  }
  if(act==='pdraw'){paidDraw(ME());resetUi();render();return;}
@@ -3570,7 +3567,7 @@ const TUTS={
    {kind:'do',allow:['end'],t:'「<b>ターン終了</b>」を押してください。',hl:hlBtn('end'),cond:()=>G.cur==='p'&&S('p').tn>=3},
    {kind:'do',allow:['pdraw'],t:'<b>ドロー</b><br>マナが3あります。「ドロー」を押すと、マナ2を使って追加で1枚引けます(1ターンに1回)。手札を増やしたいときに使います。',hl:hlBtn('pdraw'),cond:()=>S('p').dr},
    {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。相手のHPが5から3に減ります。',hl:hlAttack('日','whole','face'),cond:()=>S('c').hp<=3},
-   {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、パーツごとに標的を選びます。最後に「攻撃する」を押します。1+2=3ダメージで、相手のHPが0になります。',hl:hlAttack('切','split','face'),cond:()=>G.over==='p'},
+   {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、七と刀のそれぞれについて、相手の本体(上のHPバー)を押して標的にします。最後に「攻撃する」を押します。1+2=3ダメージで、相手のHPが0になります。',hl:hlAttack('切','split','face'),cond:()=>G.over==='p'},
    {t:'<b>勝利です!</b><br>相手のHPを0にしました。まとめ: ①毎ターン1枚引く ②マナで召喚 ③1ターンに2回攻撃(単体・分解) ④相手の場が空なら本体を攻撃 ⑤相手のHPを0にすれば勝ち。山札が尽きたターンの持ち主は負けです。',end:true}
   ]},
  special:{title:'特殊カード',
@@ -4020,7 +4017,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.61';
+const APP_VER='v2.62';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
