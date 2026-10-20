@@ -159,6 +159,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .turnrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .chip{font-weight:700;padding:.12em .75em;border-radius:999px;font-size:.85rem;background:var(--accent);color:var(--accent-ink)}
 .chip.c{background:var(--ink2);color:var(--bg)}
+.setg{display:block;font-size:.62rem;font-weight:700;line-height:1.1;color:var(--ink2);white-space:nowrap}
 .acts{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink2)}
 .apip{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);display:inline-block}
 .apip.on{background:var(--accent)}
@@ -2573,11 +2574,34 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1)
 function mk(ch){const d=CARDS[ch];return{id:++UID,ch,atk:d.a,hp:d.h,max:d.h,cost:d.c,parts:d.p.slice(),sp:d.sp.slice(),sick:true,done:false,slot:-1,spell:!!d.spell,trap:!!d.trap,label:d.label};}
 function toGy(me,c){(me.gy=me.gy||[]).push(c);me.grave=me.gy.length;}
 function mkDeck(key){const out=[];const list=DECKS[key].gen?DECKS[key].gen():DECKS[key].list;for(const [ch,n] of Object.entries(list))for(let i=0;i<n;i++)out.push(mk(ch));return shuffle(out);}
-// 水の守り: みず・さんずい・したみずの部首の字(WATER)を1デッキに6枚以上入れ、それらの字だけで場の3枠を埋めると、受ける攻撃のダメージ(分解攻撃は各パーツ)が1減る。
-const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢沖沈没沃泳沿河泣況治沼泉泰注泥波泊泌沸法泡油海活洪浄津浅洗洞派洋浦消浸浜浮浴流涙浪淫液涯渇渓混済渋淑渉深清淡添涼温渦減湖港滋湿測渡湯満湧湾滑漢源溝準滞滝溺漠滅溶演漁漆漸漬滴漂漫漏潰潟潔潤潜潮澄激濁濃濯濫瀬'));const WATER_MIN=6;
-const wardOn=sx=>!!sx.water&&sx.field.length>=CFG.field&&sx.field.every(u=>WATER.has(u.ch));
+// 部首ボーナス: 特定の部首の字を1デッキに規定枚数以上入れ、場にそれらの字が規定枚数そろうと効果が出る(SETDEF)。
+const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢沖沈没沃泳沿河泣況治沼泉泰注泥波泊泌沸法泡油海活洪浄津浅洗洞派洋浦消浸浜浮浴流涙浪淫液涯渇渓混済渋淑渉深清淡添涼温渦減湖港滋湿測渡湯満湧湾滑漢源溝準滞滝溺漠滅溶演漁漆漸漬滴漂漫漏潰潟潔潤潜潮澄激濁濃濯濫瀬'));const SETDEF=[
+ {k:'water',ch:WATER,min:6,need:3,lab:'水',txt:'受ける攻撃のダメージ-1(分解攻撃は各パーツ-1)'},
+ {k:'hito',ch:new Set(Array.from('人介今仁仏以仕仙他代付令仮会企伎休仰件全仲伝任伐伏位何佐作伺似住伸体但低伯伴余依価佳供使侍舎侮併例係侯俊信侵促俗便保侶俺倹個候借修倉値倒俳倍俵傲俸倫偽偶健側停偵偏偉傘備傍僅傾傑倣債催傷僧働像僕僚億儀舗儒償優')),min:6,need:3,lab:'人',txt:'1ターンに3回行動できる'},
+ {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:6,need:3,lab:'手',txt:'召喚したターンから攻撃できる'},
+ {k:'ki',ch:new Set(Array.from('木札本末未机朽朱朴材条杉束村来果枝松枢析東杯板枚枕林枠栄架柿枯査柵柔染柱栃柄某柳案桜格核株桁校根栽桟栓桑桃梅械梗巣梨椅棺棋極検植森棚椎棟棒楷楽棄業楼概構模様横権槽標機橋樹欄')),min:6,need:3,lab:'木',txt:'各カードの体力+2'},
+ {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'刀・刂の字の攻撃力+1(分解攻撃は各パーツ+1)'},
+ {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:10,need:3,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
+const SETD=Object.fromEntries(SETDEF.map(d=>[d.k,d]));
+const setOn=(sx,k)=>!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
+const wardOn=sx=>setOn(sx,'water');
 const ward=sx=>wardOn(sx)?1:0;
-function newSide(key,n){const deck=mkDeck(key);const wat=deck.filter(c=>WATER.has(c.ch)).length>=WATER_MIN;const hand=deck.splice(0,n);return{water:wat,hp:CFG.hp,deck,hand,field:[],grave:0,gy:[],mana:0,max:0,acts:0,tn:0,cw:0,traps:Array(CFG.trap).fill(null)};}
+// 部首ボーナス(SETDEF)を、場の状態に合わせて反映し直す。字の出入りがあるたびに呼ぶ。
+function syncSide(s){
+ const sx=S(s);if(!sx||!sx.field)return;
+ if(setOn(sx,'te'))sx.field.forEach(u=>{u.sick=false;});
+ if(G.cur===s){const on=setOn(sx,'hito');if(on&&!sx.actB){sx.acts++;sx.actB=true;}else if(!on&&sx.actB){sx.acts=Math.max(0,sx.acts-1);sx.actB=false;}}
+ const ki=setOn(sx,'ki'),kt=setOn(sx,'katana'),nk=setOn(sx,'niku');
+ for(const u of sx.field){
+  const ab=u.ab||(u.ab={hp:0,atk:0});
+  const wh=(ki?2:0)+(nk?1:0),wa=(kt&&SETD.katana.ch.has(u.ch)?1:0)+(nk?1:0);
+  const dh=wh-ab.hp,da=wa-ab.atk;
+  if(dh){u.max+=dh;if(dh>0)u.hp+=dh;else u.hp=Math.max(1,Math.min(u.hp,u.max));ab.hp=wh;}
+  if(da){if(u.parts.length>1){u.sp=u.sp.map(x=>x+da);u.atk+=da*u.parts.length;}else u.atk+=da;ab.atk=wa;}
+ }
+}
+function syncAll(){if(!G||!G.side)return;syncSide('p');syncSide('c');}
+function newSide(key,n){const deck=mkDeck(key);const sets={};for(const d of SETDEF)sets[d.k]=deck.filter(c=>d.ch.has(c.ch)).length>=d.min;const hand=deck.splice(0,n);return{sets,hp:CFG.hp,deck,hand,field:[],grave:0,gy:[],mana:0,max:0,acts:0,tn:0,cw:0,traps:Array(CFG.trap).fill(null)};}
 // 先攻(あなた)の最初の手札には、コスト1の字を最低1枚入れる。なければ、山札のコスト1の字と手札の1枚を入れ替える。
 function ensureCost1(me){
  if(me.hand.some(c=>c.cost===1))return;
@@ -2599,7 +2623,7 @@ function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
 function startTurn(s){
- G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.rp=false;me.hand.forEach(c=>{c.salv=false;});me.bk=false;me.acts=CFG.acts;me.cw=0;
+ G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.rp=false;me.hand.forEach(c=>{c.salv=false;});me.bk=false;me.acts=CFG.acts;me.actB=false;me.cw=0;
  me.field.forEach(u=>{u.sick=false;u.done=false;});
  for(const sd of ['p','c']){const sx=S(sd);(sx.traps||[]).forEach((tr,i)=>{if(tr&&tr.fired&&tr.turn<G.turn){toGy(sx,tr.card);sx.traps[i]=null;}});}
  log(`${NAME[s]}の ${me.tn} ターン目`);
@@ -3026,6 +3050,12 @@ function aiStep(s){
  const d=aiDiscard(s);if(d){discard(s,d.id);return true;}
  return false;
 }
+
+// 字の出入りがありうる操作の最後に、部首ボーナスを反映し直す。
+['startTurn','summon','attackWhole','attackSplit','breakUnit','resolveCounter','compose','cut','rip','crown','discard','setTrap'].forEach(n=>{
+ const f=globalThis[n];if(typeof f!=='function')return;
+ globalThis[n]=function(...a){const r=f.apply(this,a);syncAll();return r;};
+});
 </script>
 
 <script id="ui">
@@ -3125,13 +3155,13 @@ function barH(s){
  const healAim=s===ME()&&mineTurn()&&nextHeal();
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
  return `<div class="bar ${aiming||healAim?'target':''}${fx&&fx.t==='hit'?' hitflash':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
-  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
-  `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span>${wardOn(me)?'<span class="tag" style="background:#2a6f9e;color:#fff">水の守り</span>':''}<span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
+  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}${SETDEF.filter(d0=>setOn(me,d0.k)).map(d0=>`<span class="setg" title="${d0.lab}: ${d0.txt}">${d0.lab}</span>`).join('')}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
+  `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
 function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
- const pips=Array.from({length:CFG.acts},(_,i)=>`<i class="apip ${i<a?'on':''}"></i>`).join('');
+ const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}"></i>`).join('');
  const lines=G.log.slice(0,3).map(l=>`<li>${esc(l)}</li>`).join('');
  return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div><ol class="log" aria-live="polite">${lines}</ol></div>`;
 }
@@ -3594,7 +3624,7 @@ function bdRefresh(){
  }catch(e){}
 }
 function showBuilder(){
- showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。水・氵・氺の部首の字を${WATER_MIN}枚以上入れ、それらだけで場の${CFG.field}枠を埋めると「水の守り」(受ける攻撃のダメージ-1。分解攻撃は各パーツ-1)。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
+ showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。特定の部首の字をたくさん入れて場にそろえると、ボーナスが出ます:${SETDEF.map(d=>`「${d.lab}」${d.min}枚以上のデッキで場に${d.need}枚→${d.txt}`).join(' / ')}。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
   `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div>`+
   `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
   `<div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="best">最強デッキをマイデッキに登録</button>${DEV?'<button type="button" class="mini" data-bd="bestdev">最強デッキ(中学校の字入り)を登録</button>':''}</div>`+
@@ -3806,7 +3836,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.48';
+const APP_VER='v2.49';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
