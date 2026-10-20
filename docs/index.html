@@ -33,11 +33,11 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:14px 32px}
-#app{max-width:600px;margin-inline:auto;display:flex;flex-direction:column;gap:12px}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:8px 32px}
+#app{max-width:600px;margin-inline:auto;display:flex;flex-direction:column;gap:8px}
 .top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.top h1{margin:0;font-family:var(--kanji);font-weight:400;font-size:2rem;letter-spacing:.08em;line-height:1.1}
-.top .sub{margin:0;color:var(--ink2);font-size:.82rem}
+.top h1{margin:0;font-family:var(--kanji);font-weight:400;font-size:1.4rem;letter-spacing:.08em;line-height:1.1}
+.top .sub{display:none}
 #board{display:flex;flex-direction:column;gap:10px;min-width:0}
 
 .bar{position:relative;display:grid;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
@@ -49,7 +49,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .hp.warn>i{background:var(--warn)}
 .hp.bad>i{background:var(--bad)}
 .hpn{font-variant-numeric:tabular-nums;font-size:1.1rem;min-width:2ch;text-align:right;position:relative}
-.meta{display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.78rem;color:var(--ink2);align-items:center;font-variant-numeric:tabular-nums}
+.meta{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:.72rem;color:var(--ink2);align-items:center;font-variant-numeric:tabular-nums}
 .mana{display:inline-flex;align-items:center;gap:8px}
 .pips{display:inline-flex;gap:3px}
 .pip{width:9px;height:14px;border-radius:2px;background:var(--line);opacity:.4}
@@ -58,7 +58,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .pip.pv{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 4px);border:1px solid var(--accent);opacity:1}
 
 .traps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.tslot{height:30px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:.7rem;opacity:.8}
+.tslot{height:24px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:.7rem;opacity:.8}
 .tslot.on{border-style:solid;border-color:var(--accent);color:var(--card-ink);background:var(--card);font-family:var(--kanji);font-weight:700;opacity:1}
 .tslot.on[data-act]{cursor:pointer}
 .atkw{color:var(--accent);font-weight:700}
@@ -167,8 +167,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .cmsg{background:#fffbe0;border:2px solid #f2c200;border-radius:12px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:.9rem;line-height:1.55;color:#2b2b2b}
 .cmsg .chd{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:#7a6a00;margin-bottom:4px}
 .cmsg .cdo{margin-top:6px;font-weight:700;color:#8a6d00}
-.tuthl{outline:3px solid #f2c200;outline-offset:2px;animation:tutp 1.1s ease-in-out infinite}
-@keyframes tutp{50%{outline-color:#ffe98a}}
+#tutdim{position:fixed;inset:0;background:rgba(8,16,28,.58);z-index:20;pointer-events:none}
+.tuthl{outline:4px solid #ffd21f;outline-offset:2px;animation:tutp 1.1s ease-in-out infinite}
+.tuthl:not(.card){position:relative;z-index:25}
+.cw.tuthlw{z-index:25}
+.field{grid-template-columns:repeat(3,minmax(0,94px));justify-content:center}
+.field .cw,.field .slot{aspect-ratio:4/5}
+@keyframes tutp{50%{outline-color:#fff3a0}}
 .shake{animation:shk .3s}
 @keyframes shk{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .setg{display:inline-block;min-width:1.8em;height:1.8em;line-height:1.8em;margin-left:3px;border-radius:50%;background:#fcefa0;color:#5b4a00;font-size:.9rem;font-weight:700;text-align:center}
@@ -184,7 +189,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .log{list-style:none;margin:0;padding:0;font-size:.82rem;color:var(--ink2);display:grid;gap:1px}
 .log li:first-child{color:var(--ink);font-weight:700}
 
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:96px;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 12px;min-height:84px;display:flex;flex-direction:column;gap:8px;justify-content:center}
 .panel p{margin:0}
 .panel .ttl{font-weight:700}
 .panel .sm{font-size:.82rem;color:var(--ink2)}
@@ -3191,7 +3196,7 @@ function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
  const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
- const lines=G.log.slice(0,3).map(l=>`<li>${esc(l)}</li>`).join('');
+ const lines=G.log.slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
  return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div><ol class="log" aria-live="polite">${lines}</ol></div>`;
 }
 function unitWhy(u){
@@ -3523,6 +3528,22 @@ function tutSet(o){
  if(o.sets)p.sets=Object.fromEntries(SETDEF.map(d=>[d.k,true]));
  syncAll();resetUi();
 }
+const tq=s=>Array.from(document.querySelectorAll(s));
+const tfields=()=>document.querySelectorAll('#board .field');
+const tMine=ch=>Array.from((tfields()[1]||document).querySelectorAll(ch?`.card[aria-label^="${ch} "]`:'.card'));
+const tFoe=()=>Array.from((tfields()[0]||document).querySelectorAll('.card'));
+const tSelHand=()=>{if(!(ui.sel&&ui.sel.kind==='hand'))return null;const c=S('p').hand.find(x=>x.id===ui.sel.id);return c?c.ch:null;};
+const tSelField=()=>{if(!(ui.sel&&ui.sel.kind==='field'))return null;const u=S('p').field.find(x=>x.id===ui.sel.id);return u?u.ch:null;};
+// 手札の字を出す: 手札の字→「召喚する」
+const hlSummon=ch=>()=>{const sc=tSelHand();if(!sc||(ch&&sc!==ch))return tq(ch?`.hand .card[aria-label^="${ch} "]`:'.hand .card');return tq('[data-act="summon"]');};
+// 場の字で攻撃: 字→ボタン→標的
+const hlAttack=(ch,kind,target)=>()=>{
+ if(tSelField()!==ch)return tMine(ch);
+ if(ui.mode!==kind)return tq(`[data-act="${kind}"]`);
+ if(kind==='split'){const d=document.querySelector('[data-act="dosplit"]');if(d&&!d.disabled)return [d];}
+ return target==='face'?tq('.bar.target'):tFoe();
+};
+const hlBtn=a=>()=>tq(`[data-act="${a}"]`);
 const tutHas=(s,ch)=>S(s).field.some(u=>u.ch===ch);
 const tutPick=(k,n)=>[...SETD[k].ch].filter(c=>CARDS[c]&&!CARDS[c].spell&&CARDS[c].c<=2).slice(0,n);
 const TUTS={
@@ -3532,43 +3553,45 @@ const TUTS={
   steps:[
    {t:'<b>基本ルール</b><br>これは1対1のカードバトルです。画面の上が相手、下があなた。どちらもHPが20あり、<b>相手のHPを0にすれば勝ち</b>です。(練習なので、相手のHPは5にしてあります。)',hl:'.bar'},
    {t:'<b>手札とマナ</b><br>下に並んでいるのが<b>手札</b>(使えるカード)です。ターンの始めに、山札から<b>1枚が自動で手札に入ります</b>。カードを場に出すには<b>マナ</b>(体力バーの下の四角)を使います。マナは毎ターン1ずつ増え、使った分も次のターンに全回復します。',hl:'.hand,.pips'},
-   {kind:'do',t:'<b>召喚してみよう</b><br>手札の「日」を押して、出てきた「召喚する」を押してください。マナ1を使って、場に出ます。',hl:'.hand .card[aria-label^="日 "],[data-act="summon"],[data-act="slot"]',cond:()=>tutHas('p','日')},
+   {t:'<b>操作ボタン</b><br>手札の下に2つのボタンがあります。「<b>ドロー</b>」は、マナ2を使って追加で1枚引くボタン(1ターンに1回)。「<b>ターン終了</b>」は、自分の番を終えて相手に渡すボタンです。',hl:'.ctl'},
+   {kind:'do',t:'<b>召喚してみよう</b><br>手札の「日」を押して、出てきた「召喚する」を押してください。マナ1を使って、場に出ます。',hl:hlSummon('日'),cond:()=>tutHas('p','日')},
    {t:'場に出ました。ただし、<b>出したターンは攻撃できません</b>(暗く表示されます)。今はこれ以上できることがないので、ターンを終わらせましょう。'},
-   {kind:'do',allow:['end'],t:'右下の「<b>ターン終了</b>」を押すと、相手の番になります。',hl:'[data-act="end"]',cond:()=>G.cur==='p'&&S('p').tn>=2},
+   {kind:'do',allow:['end'],t:'右下の「<b>ターン終了</b>」を押すと、相手の番になります。',hl:hlBtn('end'),cond:()=>G.cur==='p'&&S('p').tn>=2},
    {t:'相手が「一」を出しました。あなたの番が戻ってきて、マナが2に増え、1枚引きました。「日」は、今回から攻撃できます。1ターンに<b>2回</b>まで攻撃できます。'},
-   {kind:'do',t:'<b>単体攻撃</b><br>場の「日」を押して「単体攻撃」を押し、相手の「一」を選んでください。日の攻撃力(2)が、一の体力(2)を削って倒します。',hl:'.field .card[aria-label^="日 "],[data-act="whole"],[data-kind="enemy"]',cond:()=>S('c').field.length===0},
+   {kind:'do',t:'<b>単体攻撃</b><br>場の「日」を押して「単体攻撃」を押し、相手の「一」を選んでください。日の攻撃力(2)が、一の体力(2)を削って倒します。',hl:hlAttack('日','whole','enemy'),cond:()=>S('c').field.length===0},
    {t:'相手の字がいなくなりました。<b>相手の場に字がないとき、攻撃は相手の本体(HP)に直接当たります。</b>字が場にいるうちは、その字しか狙えません。'},
-   {kind:'do',t:'<b>分解攻撃の字を出そう</b><br>手札の「切」を出してください(マナ1)。「切」は<b>2つのパーツ(七と刀)</b>を持つ字で、<b>分解攻撃</b>ができます。',hl:'.hand .card[aria-label^="切 "],[data-act="summon"],[data-act="slot"]',cond:()=>tutHas('p','切')},
+   {kind:'do',t:'<b>分解攻撃の字を出そう</b><br>手札の「切」を出してください(マナ1)。「切」は<b>2つのパーツ(七と刀)</b>を持つ字で、<b>分解攻撃</b>ができます。',hl:hlSummon('切'),cond:()=>tutHas('p','切')},
    {t:'<b>単体攻撃</b>は字ぜんたいで1回の攻撃、<b>分解攻撃</b>は字をパーツに分けて、パーツごとに別々の相手を攻撃します(七は1、刀は2)。次のターンに使います。ターンを終えましょう。'},
-   {kind:'do',allow:['end'],t:'「<b>ターン終了</b>」を押してください。',hl:'[data-act="end"]',cond:()=>G.cur==='p'&&S('p').tn>=3},
-   {kind:'do',allow:['pdraw'],t:'<b>ドロー</b><br>マナが3あります。「ドロー」を押すと、マナ2を使って追加で1枚引けます(1ターンに1回)。手札を増やしたいときに使います。',hl:'[data-act="pdraw"]',cond:()=>S('p').dr},
-   {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。相手のHPが5から3に減ります。',hl:'.field .card[aria-label^="日 "],[data-act="whole"],.bar.target',cond:()=>S('c').hp<=3},
-   {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、パーツごとに標的を選びます。七も刀も相手の本体(上のHPバー)を押して、最後に「攻撃する」を押します。1+2=3ダメージで、相手のHPが0になります。',hl:'.field .card[aria-label^="切 "],[data-act="split"],.bar.target,[data-act="dosplit"]',cond:()=>G.over==='p'},
+   {kind:'do',allow:['end'],t:'「<b>ターン終了</b>」を押してください。',hl:hlBtn('end'),cond:()=>G.cur==='p'&&S('p').tn>=3},
+   {kind:'do',allow:['pdraw'],t:'<b>ドロー</b><br>マナが3あります。「ドロー」を押すと、マナ2を使って追加で1枚引けます(1ターンに1回)。手札を増やしたいときに使います。',hl:hlBtn('pdraw'),cond:()=>S('p').dr},
+   {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。相手のHPが5から3に減ります。',hl:hlAttack('日','whole','face'),cond:()=>S('c').hp<=3},
+   {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、パーツごとに標的を選びます。最後に「攻撃する」を押します。1+2=3ダメージで、相手のHPが0になります。',hl:hlAttack('切','split','face'),cond:()=>G.over==='p'},
    {t:'<b>勝利です!</b><br>相手のHPを0にしました。まとめ: ①毎ターン1枚引く ②マナで召喚 ③1ターンに2回攻撃(単体・分解) ④相手の場が空なら本体を攻撃 ⑤相手のHPを0にすれば勝ち。山札が尽きたターンの持ち主は負けです。',end:true}
   ]},
  special:{title:'特殊カード',
   start(){tutSet({ph:[],mana:5});},
   steps:[
    {t:'<b>特殊カード</b><br>手札から使うだけで効果が出るカードや、特別な使い道のある字があります。ここでは、<b>花回復・切り離し・墓地回収・罠</b>を順に体験します。'},
-   {kind:'do',enter:()=>tutSet({pf:[['日',{hp:1}]],ph:['花','月'],mana:5}),t:'<b>花回復</b><br>「花」のように<b>くさかんむり(艹)を含む字</b>は、手札から使うと場の字を回復できます(マナ1・1ターンに1回)。いま「日」の体力が1に減っています。「花」を押して「花回復」を押し、「日」を選んでください。',hl:'.hand .card[aria-label^="花 "],[data-act="crown"],.field .card[aria-label^="日 "]',cond:()=>S('p').fh},
+   {kind:'do',enter:()=>tutSet({pf:[['日',{hp:1}]],ph:['花','月'],mana:5}),t:'<b>花回復</b><br>「花」のように<b>くさかんむり(艹)を含む字</b>は、手札から使うと場の字を回復できます(マナ1・1ターンに1回)。いま「日」の体力が1に減っています。「花」を押して「花回復」を押し、「日」を選んでください。',hl:()=>{const sc=tSelHand();if(sc!=='花')return tq('.hand .card[aria-label^="花 "]');if(ui.mode!=='crown')return tq('[data-act="crown"]');return tMine('日');},cond:()=>S('p').fh},
    {t:'体力が3回復しました。満タンを超えた分は、<b>最大体力が増えます</b>。(攻撃力を2上げる「力付与」も、力・勝・功などの字を手札から使って同じように行います。)'},
-   {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['刀'],mana:5}),t:'<b>切り離し</b><br>手札の「刀」は、マナ3で相手の字のパーツを1つ切り離し、別の字に変えます。「刀」を押して「切り離し」を押し、相手の「林」を選び、パーツを選んでください。',hl:'.hand .card[aria-label^="刀 "],[data-act="cutmode"],[data-kind="enemy"],[data-act="cutpart"]',cond:()=>S('p').ct},
+   {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['刀'],mana:5}),t:'<b>切り離し</b><br>手札の「刀」は、マナ3で相手の字のパーツを1つ切り離し、別の字に変えます。「刀」を押して「切り離し」を押し、相手の「林」を選び、パーツを選んでください。',hl:()=>{const sc=tSelHand();if(sc!=='刀')return tq('.hand .card[aria-label^="刀 "]');if(ui.mode!=='cut')return tq('[data-act="cutmode"]');if(!(ui.cut&&ui.cut.uid))return tFoe();return tq('[data-act="cutpart"]');},cond:()=>S('p').ct},
    {t:'「林」が「木」に変わり、攻撃力と体力が下がりました。強い相手の字を弱くできます。1ターンに1回です。'},
-   {kind:'do',enter:()=>tutSet({ph:['再','日','月'],gy:['切','木'],mana:5}),t:'<b>墓地回収</b><br>使い終わった字や倒された字は<b>墓地</b>に行きます。「再」を押して「回収」を押し、<b>捨てる手札を2枚</b>選んでから、墓地から<b>戻す字</b>を選んでください。マナも行動回数も使いません。',hl:'.hand .card[aria-label^="再 "],[data-act="salvmode"]',cond:()=>S('p').hand.some(c=>c.salv)},
-   {kind:'do',t:'墓地から字が手札に戻りました。戻した字は、<b>そのターンのうちに召喚できます</b>(花回復や切り離しなどは次のターンからです)。戻した字を1枚、召喚してみてください。',hl:'.hand .card,[data-act="summon"],[data-act="slot"]',cond:()=>S('p').field.length>=1},
-   {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['止'],mana:5}),t:'<b>罠</b><br>「止」は<b>罠</b>です。「止」を押して「罠設置」を押し、自分の字の下(上の四角)に伏せてください。相手に分解攻撃(林など)をされると発動して、その1回ぶんの攻撃を無効にします。発動には、前のターンの残りマナが1必要です。',hl:'.hand .card[aria-label^="止 "],[data-act="trapmode"],.field .card[aria-label^="日 "]',cond:()=>S('p').traps.some(Boolean)},
+   {kind:'do',enter:()=>tutSet({ph:['再','日','月'],gy:['切','木'],mana:5}),t:'<b>墓地回収</b><br>使い終わった字や倒された字は<b>墓地</b>に行きます。「再」を押して「回収」を押し、<b>捨てる手札を2枚</b>選んでから、墓地から<b>戻す字</b>を選んでください。マナも行動回数も使いません。',hl:()=>{const sc=tSelHand();if(ui.mode==='salv'&&ui.salv){const need=Math.min(CFG.salvTake,salvElig('p').length);if(ui.salv.dis.length<CFG.salvDiscard)return tq('.hand .card:not([aria-label^="再 "])');if(ui.salv.take.length<need)return tq('[data-act="salvtake"]');return tq('[data-act="dosalv"]');}if(sc!=='再')return tq('.hand .card[aria-label^="再 "]');return tq('[data-act="salvmode"]');},cond:()=>S('p').hand.some(c=>c.salv)},
+   {kind:'do',t:'墓地から字が手札に戻りました。戻した字は、<b>そのターンのうちに召喚できます</b>(花回復や切り離しなどは次のターンからです)。戻した字を1枚、召喚してみてください。',hl:hlSummon(null),cond:()=>S('p').field.length>=1},
+   {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['止'],mana:5}),t:'<b>罠</b><br>「止」は<b>罠</b>です。「止」を押して「罠設置」を押し、自分の字の下(上の四角)に伏せてください。相手に分解攻撃(林など)をされると発動して、その1回ぶんの攻撃を無効にします。発動には、前のターンの残りマナが1必要です。',hl:()=>{const sc=tSelHand();if(sc!=='止')return tq('.hand .card[aria-label^="止 "]');if(ui.mode!=='trapset')return tq('[data-act="trapmode"]');return tMine('日');},cond:()=>S('p').traps.some(Boolean)},
    {t:'罠が伏せられました。相手は、どれが罠か分かりません。ほかにも、単体攻撃を無効にして反撃する「返」、相手の字を壊す「壊」などがあります。以上が特殊カードです。',end:true}
   ]},
  bonus:{title:'部首ボーナス',
   start(){tutSet({ph:[],mana:10,sets:true});},
   steps:[
    {t:'<b>部首ボーナス</b><br>同じ部首をもつ字を<b>1デッキに6枚以上</b>(肉は10枚)入れて、その字を<b>場にそろえる</b>と、ボーナスが出ます。この練習では、デッキの条件はそろっていることにします。'},
-   {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:'.hand .card,[data-act="summon"],[data-act="slot"]',cond:()=>S('p').field.length>=3},
+   {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:hlSummon(null),cond:()=>S('p').field.length>=3},
    {t:'3枚が<b>黄色の枠</b>で光り、体力が2ずつ増えました(黄色の数字)。体力バーの下には、効いている部首の印(木)も出ます。字が減ってそろわなくなると、ボーナスは消えます。'},
-   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:'.hand .card,[data-act="summon"],[data-act="slot"],[data-act="whole"],[data-act="split"],[data-kind="enemy"],.bar.target',cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
+   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>!x.done&&!x.sick);if(!u)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
    {t:'召喚したばかりの字で攻撃できました。ほかにも、<b>水</b>(受けるダメージ-1)、<b>人</b>(1ターンに3回行動)、<b>刀</b>(場全体の攻撃力+1)、<b>肉</b>(体力+1と攻撃力+1)があります。デッキ編成画面で、字を組み合わせてみてください。',end:true}
   ]}
 };
+const TUT_ORDER=['rules','special','bonus'];
 function tutStart(k){
  const L=TUTS[k];if(!L)return;
  netIdleEnd();NAME.p='あなた';NAME.c='練習相手';
@@ -3585,7 +3608,7 @@ function tutGo(i){
  TUT.i=i;TUT.adv=false;tutEnter();resetUi();render();try{window.scrollTo(0,0);}catch(e){}
 }
 function tutQuit(){
- TUT=null;const c=$('coach');if(c)c.remove();$('board').classList.remove('tutinfo');
+ TUT=null;const c=$('coach');if(c)c.remove();const dm0=$('tutdim');if(dm0)dm0.remove();$('board').classList.remove('tutinfo');
  ui={sel:null,mode:null,split:null};
  $('board').innerHTML='';showTutorial();
 }
@@ -3596,9 +3619,11 @@ function tutAfter(){
  const L=TUTS[TUT.k],n=L.steps.length;
  const info=st.kind!=='do';
  $('board').classList.toggle('tutinfo',info);
- c.innerHTML=`<div class="cmsg"><div class="chd"><span>${esc(L.title)} ${TUT.i+1}/${n}</span><span><button type="button" class="mini" data-tutc="retry">やり直す</button><button type="button" class="mini" data-tutc="quit">やめる</button></span></div><div class="ctx">${st.t}</div>${info?`<div class="row"><button type="button" class="btn pri" data-tutc="${st.end?'quit':'next'}">${st.end?'チュートリアルに戻る':'次へ'}</button></div>`:'<div class="cdo">↓ やってみましょう</div>'}</div>`;
- document.querySelectorAll('.tuthl').forEach(e=>e.classList.remove('tuthl'));
- if(st.hl&&!info){try{document.querySelectorAll(st.hl).forEach(e=>e.classList.add('tuthl'));}catch(e){}}
+ c.innerHTML=`<div class="cmsg"><div class="chd"><span>${esc(L.title)} ${TUT.i+1}/${n}</span><span><button type="button" class="mini" data-tutc="retry">やり直す</button><button type="button" class="mini" data-tutc="quit">やめる</button></span></div><div class="ctx">${st.t}</div>${info?(st.end?`<div class="row"><button type="button" class="btn" data-tutc="quit">チュートリアルに戻る</button>${TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]?`<button type="button" class="btn pri" data-tutc="nextlesson">${esc(TUTS[TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]].title)}にすすむ</button>`:''}</div>`:`<div class="row"><button type="button" class="btn pri" data-tutc="next">次へ</button></div>`):'<div class="cdo">↓ やってみましょう</div>'}</div>`;
+ document.querySelectorAll('.tuthl,.tuthlw').forEach(e=>e.classList.remove('tuthl','tuthlw'));
+ let hls=[];try{hls=typeof st.hl==='function'?st.hl():st.hl?tq(st.hl):[];}catch(e){}
+ hls.forEach(e=>{e.classList.add('tuthl');const w=e.closest('.cw');if(w)w.classList.add('tuthlw');});
+ let dm=$('tutdim');if(hls.length){if(!dm){dm=document.createElement('div');dm.id='tutdim';document.body.appendChild(dm);}}else if(dm)dm.remove();
  if(!info&&!TUT.adv&&st.cond&&st.cond()){TUT.adv=true;const k=TUT.k,i=TUT.i;setTimeout(()=>{if(TUT&&TUT.k===k&&TUT.i===i)tutGo(i+1);},900);}
 }
 async function tutCpu(){
@@ -3611,7 +3636,7 @@ async function tutCpu(){
 }
 document.addEventListener('click',e=>{
  const t=e.target.closest&&e.target.closest('[data-tutc]');
- if(t){e.stopPropagation();const a=t.dataset.tutc;if(!TUT)return;if(a==='next')tutGo(TUT.i+1);else if(a==='quit')tutQuit();else if(a==='retry'){const k=TUT.k;tutStart(k);}return;}
+ if(t){e.stopPropagation();const a=t.dataset.tutc;if(!TUT)return;if(a==='next')tutGo(TUT.i+1);else if(a==='quit')tutQuit();else if(a==='nextlesson'){const nk=TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1];if(nk)tutStart(nk);}else if(a==='retry'){const k=TUT.k;tutStart(k);}return;}
  if(!TUT)return;
  const b=e.target.closest('[data-act="end"],[data-act="pdraw"],[data-act="endyes"]');
  if(b){const st=tutStep(),al=(st&&st.allow)||[];if(!al.includes(b.dataset.act==='endyes'?'end':b.dataset.act)){e.stopPropagation();e.preventDefault();const m=document.querySelector('#coach .cdo,#coach .row');if(m){m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake');}}}
@@ -3983,7 +4008,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.53';
+const APP_VER='v2.54';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
