@@ -3585,7 +3585,7 @@ const TUTS={
  bonus:{title:'部首ボーナス',
   start(){tutSet({ph:[],mana:10,sets:true});},
   steps:[
-   {t:'<b>部首ボーナス</b><br>同じ部首をもつ字を<b>1デッキに6枚以上</b>(肉は10枚)入れて、その字を<b>場にそろえる</b>と、ボーナスが出ます。この練習では、デッキの条件はそろっていることにします。'},
+   {t:'<b>部首ボーナス</b><br>同じ部首をもつ字を、<b>指定されている枚数、1デッキに</b>入れて、その字を<b>場にそろえる</b>と、ボーナスが出ます。'},
    {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:hlSummon(null),cond:()=>S('p').field.length>=3},
    {t:'3枚が<b>黄色の枠</b>で光り、体力が2ずつ増えました(黄色の数字)。体力バーの下には、効いている部首の印(木)も出ます。字が減ってそろわなくなると、ボーナスは消えます。'},
    {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>!x.done&&!x.sick);if(!u)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
@@ -4009,7 +4009,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.55';
+const APP_VER='v2.56';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
