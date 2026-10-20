@@ -2675,7 +2675,7 @@ function summon(s,id,slot){
  const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||G.over||G.cur!==s)return false;
  const c=me.hand[i];if(summonWhy(s,c))return false;
  me.mana-=c.cost;me.hand.splice(i,1);c.sick=true;c.done=false;
- const used=me.field.map(x=>x.slot);let sl=0;while(used.includes(sl))sl++;if(Number.isInteger(slot)&&slot>=0&&slot<CFG.field&&!used.includes(slot))sl=slot;c.slot=sl;me.field.push(c);G.fx[c.id]={t:'spawn'};
+ const used=me.field.map(x=>x.slot);let sl=0;while(used.includes(sl))sl++;if(Number.isInteger(slot)&&slot>=0&&slot<CFG.field&&!used.includes(slot))sl=slot;c.slot=sl;me.field.push(c);c.sumT=G.turn;me.lastSum=c.id;G.fx[c.id]={t:'spawn'};
  log(`${NAME[s]}は「${c.ch}」を召喚`);return true;
 }
 // 罠が発動するには、罠の持ち主のマナを1使う(持ち主の前のターンの残り。足りなければ発動しない)。
@@ -3114,7 +3114,7 @@ function cardH(u,kind,cls,tag,gtag){
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
  const owner=G.side.p.field.includes(u)?'p':G.side.c.field.includes(u)?'c':null;
- const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k))?' setfx':'';
+ const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k)&&(d.k!=='te'||(u.sumT===G.turn&&S(owner).lastSum===u.id)))?' setfx':'';
  const apx=G.fx['atk'+u.id]?' atkpop':'';
  const bh=u.ab&&u.ab.hp>0,ba=u.ab&&u.ab.atk>0;
  const hpv=u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp;
@@ -3496,9 +3496,12 @@ function refH(){
  const tabs=[0,1,2,3,4,5,...(DEV?[7]:[])].map(g=>`<button type="button" class="btn ${refGrade===g?'pri':''}" data-grade="${g}">${g===7?'中学':g?'小'+g:'すべて'}</button>`).join('');
  return `<div class="row gradetabs">${tabs}</div><div class="tbl"><table><thead><tr><th>字</th><th>学年</th><th>画数</th><th>コスト</th><th>攻</th><th>体</th><th>分解</th><th>特性</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
+function showTutorial(){
+ showOverlay(`<h2>チュートリアル</h2><p>知りたい項目を選んでください。</p><div class="decks"><button type="button" class="btn deck" data-tut="rules"><b>基本ルール</b></button><button type="button" class="btn deck" data-tut="special"><b>特殊カード</b></button><button type="button" class="btn deck" data-tut="bonus"><b>部首ボーナス</b></button></div><div class="row"><button type="button" class="btn" data-tut="back">戻る</button></div>`);
+}
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}`);
+ showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><div class="decks"><button type="button" class="btn deck" data-tut="open"><b>チュートリアル</b><span>基本ルール・特殊カード・部首ボーナスを知る。</span></button><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}`);
 }
 // ---- 解放 ----
 // 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
@@ -3793,6 +3796,8 @@ $('ov').addEventListener('click',e=>{
  const cd=e.target.closest('[data-cpudeck]');
  if(cd){const k=cd.dataset.cpudeck;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
   if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first,cpu.lv);return;}
+ const tub=e.target.closest('[data-tut]');
+ if(tub){const a=tub.dataset.tut;if(a==='open')showTutorial();else if(a==='back')showStart();return;}
  const twb=e.target.closest('[data-two]');
  if(twb){twoClick(twb);return;}
  const dvb=e.target.closest('[data-dev]');
@@ -3857,7 +3862,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.51';
+const APP_VER='v2.52';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
