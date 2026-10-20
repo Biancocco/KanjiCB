@@ -3312,7 +3312,7 @@ function panelH(){
   if(u)return `<div class="panel"><p class="ttl">相手の「${u.ch}」 ${healerOnly(u.ch)?'回復 '+healAmt(u.ch):'攻 '+u.atk} 体 ${u.hp}/${u.max}</p><p class="sm">${u.parts.length>1?`分解攻撃のみ: ${esc(planTxt(u))}`:healerOnly(u.ch)?'回復のみ':'単体攻撃のみ'}</p></div>`;
  }
  const lg=G.log.filter(l=>!/ターン目$/.test(l)).slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
- return `<div class="panel muted"><ol class="log" aria-live="polite">${lg}</ol><p>手札の字を選んで召喚する。または、自分の場の字を選んで攻撃する。</p><p class="sm">相手の字が場にいる間は、本体を狙えません。分解攻撃で場を空にできれば、残りのパーツは本体に届きます。</p></div>`;
+ return `<div class="panel muted"><ol class="log" aria-live="polite">${lg}</ol></div>`;
 }
 function handH(){
  const P=S(ME());
@@ -4017,7 +4017,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.59';
+const APP_VER='v2.60';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
