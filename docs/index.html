@@ -109,6 +109,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .dmg.face{left:auto;right:-4px;top:-14px;transform:none;font-size:1.2rem}
 .fx-hit{animation:shake .35s}
 .fx-spawn{animation:pop .4s}
+.fx-spawn.fxy{animation:pop .4s,yglow .9s ease-out}
+@keyframes yglow{0%{box-shadow:0 0 0 4px #f6e07a,0 0 22px 8px #fcf0a8}100%{box-shadow:0 0 0 3px #f6e07a,0 0 12px 3px #fcf0a8}}
 @keyframes ringx{0%{opacity:.95;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
 .rays{position:absolute;inset:0;pointer-events:none;z-index:6}
 .rays i{position:absolute;inset:0;border:3px solid #34c26a;border-radius:10px;box-shadow:0 0 8px #34c26a;opacity:0;animation:ringx .8s ease-out both}
@@ -2587,7 +2589,7 @@ const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢
  {k:'hito',ch:new Set(Array.from('人介今仁仏以仕仙他代付令仮会企伎休仰件全仲伝任伐伏位何佐作伺似住伸体但低伯伴余依価佳供使侍舎侮併例係侯俊信侵促俗便保侶俺倹個候借修倉値倒俳倍俵傲俸倫偽偶健側停偵偏偉傘備傍僅傾傑倣債催傷僧働像僕僚億儀舗儒償優')),min:6,need:3,lab:'人',txt:'1ターンに3回行動できる'},
  {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:6,need:3,lab:'手',txt:'召喚したターンから攻撃できる'},
  {k:'ki',ch:new Set(Array.from('木札本末未机朽朱朴材条杉束村来果枝松枢析東杯板枚枕林枠栄架柿枯査柵柔染柱栃柄某柳案桜格核株桁校根栽桟栓桑桃梅械梗巣梨椅棺棋極検植森棚椎棟棒楷楽棄業楼概構模様横権槽標機橋樹欄')),min:6,need:3,lab:'木',txt:'各カードの体力+2'},
- {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'刀・刂の字の攻撃力+1(分解攻撃は各パーツ+1)'},
+ {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'場のカード全体の攻撃力+1(分解攻撃は各パーツ+1)'},
  {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:10,need:3,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
 const SETD=Object.fromEntries(SETDEF.map(d=>[d.k,d]));
 const setOn=(sx,k)=>!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
@@ -2599,9 +2601,14 @@ function syncSide(s){
  if(setOn(sx,'te'))sx.field.forEach(u=>{u.sick=false;});
  if(G.cur===s){const on=setOn(sx,'hito');if(on&&!sx.actB){sx.acts++;sx.actB=true;}else if(!on&&sx.actB){sx.acts=Math.max(0,sx.acts-1);sx.actB=false;}}
  const ki=setOn(sx,'ki'),kt=setOn(sx,'katana'),nk=setOn(sx,'niku');
+ const keys=SETDEF.filter(d=>setOn(sx,d.k)).map(d=>d.k);
  for(const u of sx.field){
+  const sk=u.sk||[];const gain=keys.filter(k=>!sk.includes(k));u.sk=keys.slice();
+  if(gain.length){const fx0=G.fx[u.id];const fresh=!!(fx0&&fx0.t==='spawn');
+   const show=gain.some(k=>k!=='te')||(gain.includes('te')&&fresh);
+   if(show&&(!fx0||fresh))G.fx[u.id]={t:'spawn',y:1};}
   const ab=u.ab||(u.ab={hp:0,atk:0});
-  const wh=(ki?2:0)+(nk?1:0),wa=(kt&&SETD.katana.ch.has(u.ch)?1:0)+(nk?1:0);
+  const wh=(ki?2:0)+(nk?1:0),wa=(kt?1:0)+(nk?1:0);
   const dh=wh-ab.hp,da=wa-ab.atk;
   if(dh){u.max+=dh;if(dh>0)u.hp+=dh;else u.hp=Math.max(1,Math.min(u.hp,u.max));ab.hp=wh;}
   if(da){if(u.parts.length>1){u.sp=u.sp.map(x=>x+da);u.atk+=da*u.parts.length;}else u.atk+=da;ab.atk=wa;}
@@ -3102,12 +3109,12 @@ function splitCtx(){
 const RAYS='<span class="rays" aria-hidden="true"><i></i><i></i></span>';
 function cardH(u,kind,cls,tag,gtag){
  const fx=G.fx[u.id];
- const fxc=fx?' fx-'+fx.t:'';
+ const fxc=fx?' fx-'+fx.t+(fx.y?' fxy':''):'';
  const dmg=fx&&fx.t==='hit'&&fx.n?`<span class="dmg">-${fx.n}</span>`:fx&&fx.t==='crown'&&fx.n?`<span class="dmg up">+${fx.n}</span>`:'';
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
  const owner=G.side.p.field.includes(u)?'p':G.side.c.field.includes(u)?'c':null;
- const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k)&&(d.k!=='katana'||d.ch.has(u.ch)))?' setfx':'';
+ const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k))?' setfx':'';
  const apx=G.fx['atk'+u.id]?' atkpop':'';
  const bh=u.ab&&u.ab.hp>0,ba=u.ab&&u.ab.atk>0;
  const hpv=u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp;
@@ -3571,7 +3578,7 @@ function bdInfoH(){
  const t=bdTotal(),c1=bdCost1();
  const msgs=[];
  if(t<BD_SIZE)msgs.push(`あと${BD_SIZE-t}枚`);
- if(!c1)msgs.push('コスト1の字が1枚も入っていません');
+ if(!c1)msgs.push('コスト1の字が1枚も入っていないので、保存できません');
  return `<div class="bdinfo"><div><span class="cnt ${t===BD_SIZE?'ok':''}">${t}/${BD_SIZE}</span> 枚 ／ コスト1の字 ${c1}枚</div><div class="${msgs.length?'ng':'ok'}">${msgs.length?esc(msgs.join(' ／ ')):'このデッキで始められます'}</div></div>`;
 }
 function bdChipsH(){
@@ -3624,6 +3631,7 @@ function bdFilterH(){
  return `<div class="bdf" role="group" aria-label="学年">${g}</div><div class="bdf" role="group" aria-label="学年(中学以降・特殊)" style="margin-top:6px">${g2}</div><div class="bdf gap" role="group" aria-label="コスト">${c}</div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
 }
 function bdRefresh(){
+ try{const sv=$('bdSv');if(sv)sv.disabled=!bdCost1();}catch(e){}
  try{
   $('bdSlots').innerHTML=bdSlotsH();$('bdInfo').innerHTML=bdInfoH();$('bdChips').innerHTML=bdChipsH();$('bdPeek').innerHTML=bdPeekH();
   const full=bdTotal()>=BD_SIZE;
@@ -3633,7 +3641,7 @@ function bdRefresh(){
    r.querySelector('[data-bd="sub"]').disabled=!n;
    r.querySelector('[data-bd="add"]').disabled=n>=BD_MAX||full;
   });
-  const sv=$('bdSv');if(sv&&sv.textContent==='保存する')sv.disabled=!bdDirty()||false;
+  const sv=$('bdSv');if(sv&&sv.textContent==='保存する')sv.disabled=!bdDirty()||!bdCost1();
  }catch(e){}
 }
 function showBuilder(){
@@ -3642,7 +3650,7 @@ function showBuilder(){
   `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
   `<div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="best">最強デッキをマイデッキに登録</button>${DEV?'<button type="button" class="mini" data-bd="bestdev">最強デッキ(中学校の字入り)を登録</button>':''}</div>`+
   `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
-  `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save">保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
+  `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save" ${bdCost1()?'':'disabled'}>保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
  bdRefresh();
 }
 // AI同士の模擬戦で選んだ最強デッキ(CPUのような動きの相手に強い)
@@ -3664,7 +3672,7 @@ function bdClick(b){
  const a=b.dataset.bd,ch=b.dataset.ch;
  if(a==='open'){showBuilder();return;}
  if(a==='back'){if(bdDirty())bdConfirmBack();else showStart();return;}
- if(a==='save'){bdSave();bdRefresh();const t=$('bdSv');if(t){t.textContent='保存しました';setTimeout(()=>{const u=$('bdSv');if(u)u.textContent='保存する';},1200);}return;}
+ if(a==='save'){if(!bdCost1())return;bdSave();bdRefresh();const t=$('bdSv');if(t){t.textContent='保存しました';setTimeout(()=>{const u=$('bdSv');if(u)u.textContent='保存する';},1200);}return;}
  if(a==='peek'){bd.peek=bd.peek===ch?'':ch;bdRefresh();return;}
  if(a==='slot'){bd.slot=Number(b.dataset.v)||0;bd.peek='';showBuilder();return;}
  if(a==='add'){if(CARDS[ch]&&(bd.deck[ch]||0)<BD_MAX&&bdTotal()<BD_SIZE){bd.deck[ch]=(bd.deck[ch]||0)+1;bdRefresh();}return;}
@@ -3849,7 +3857,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.50';
+const APP_VER='v2.51';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
