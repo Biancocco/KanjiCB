@@ -57,7 +57,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .pip.on{background:var(--accent);opacity:1}
 .pip.pv{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 4px);border:1px solid var(--accent);opacity:1}
 
-.traps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.traps{display:grid;grid-template-columns:repeat(3,minmax(0,94px));justify-content:center;gap:8px}
 .tslot{height:24px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;color:var(--ink2);font-size:.7rem;opacity:.8}
 .tslot.on{border-style:solid;border-color:var(--accent);color:var(--card-ink);background:var(--card);font-family:var(--kanji);font-weight:700;opacity:1}
 .tslot.on[data-act]{cursor:pointer}
@@ -3196,8 +3196,7 @@ function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
  const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
- const lines=G.log.slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
- return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div><ol class="log" aria-live="polite">${lines}</ol></div>`;
+ return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div></div>`;
 }
 function unitWhy(u){
  const P=S(ME());
@@ -3310,7 +3309,8 @@ function panelH(){
   const u=E.field.find(x=>x.id===ui.sel.id);
   if(u)return `<div class="panel"><p class="ttl">相手の「${u.ch}」 ${healerOnly(u.ch)?'回復 '+healAmt(u.ch):'攻 '+u.atk} 体 ${u.hp}/${u.max}</p><p class="sm">${u.parts.length>1?`分解攻撃のみ: ${esc(planTxt(u))}`:healerOnly(u.ch)?'回復のみ':'単体攻撃のみ'}</p></div>`;
  }
- return '<div class="panel muted"><p>手札の字を選んで召喚する。または、自分の場の字を選んで攻撃する。</p><p class="sm">相手の字が場にいる間は、本体を狙えません。分解攻撃で場を空にできれば、残りのパーツは本体に届きます。</p></div>';
+ const lg=G.log.slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
+ return `<div class="panel muted"><ol class="log" aria-live="polite">${lg}</ol><p>手札の字を選んで召喚する。または、自分の場の字を選んで攻撃する。</p><p class="sm">相手の字が場にいる間は、本体を狙えません。分解攻撃で場を空にできれば、残りのパーツは本体に届きます。</p></div>`;
 }
 function handH(){
  const P=S(ME());
@@ -3535,7 +3535,7 @@ const tFoe=()=>Array.from((tfields()[0]||document).querySelectorAll('.card'));
 const tSelHand=()=>{if(!(ui.sel&&ui.sel.kind==='hand'))return null;const c=S('p').hand.find(x=>x.id===ui.sel.id);return c?c.ch:null;};
 const tSelField=()=>{if(!(ui.sel&&ui.sel.kind==='field'))return null;const u=S('p').field.find(x=>x.id===ui.sel.id);return u?u.ch:null;};
 // 手札の字を出す: 手札の字→「召喚する」
-const hlSummon=ch=>()=>{const sc=tSelHand();if(!sc||(ch&&sc!==ch))return tq(ch?`.hand .card[aria-label^="${ch} "]`:'.hand .card');return tq('[data-act="summon"]');};
+const hlSummon=ch=>()=>{const sc=tSelHand();if(!sc||(ch&&sc!==ch))return tq(ch?`.hand .card[aria-label^="${ch} "]`:'.hand .card');return tq('[data-act="summon"],[data-act="slot"]');};
 // 場の字で攻撃: 字→ボタン→標的
 const hlAttack=(ch,kind,target)=>()=>{
  if(tSelField()!==ch)return tMine(ch);
@@ -3622,7 +3622,7 @@ function tutAfter(){
  $('board').classList.toggle('tutinfo',info);
  c.innerHTML=`<div class="cmsg"><div class="chd"><span>${esc(L.title)} ${TUT.i+1}/${n}</span><span><button type="button" class="mini" data-tutc="retry">やり直す</button><button type="button" class="mini" data-tutc="quit">やめる</button></span></div><div class="ctx">${st.t}</div>${info?(st.end?`<div class="row"><button type="button" class="btn" data-tutc="quit">チュートリアルに戻る</button>${TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]?`<button type="button" class="btn pri" data-tutc="nextlesson">${esc(TUTS[TUT_ORDER[TUT_ORDER.indexOf(TUT.k)+1]].title)}にすすむ</button>`:''}</div>`:`<div class="row"><button type="button" class="btn pri" data-tutc="next">次へ</button></div>`):'<div class="cdo">↓ やってみましょう</div>'}</div>`;
  document.querySelectorAll('.tuthl,.tuthlw').forEach(e=>e.classList.remove('tuthl','tuthlw'));
- let hls=[];try{hls=typeof st.hl==='function'?st.hl():st.hl?tq(st.hl):[];}catch(e){}
+ let hls=[];try{if(!(!info&&st.cond&&st.cond()))hls=typeof st.hl==='function'?st.hl():st.hl?tq(st.hl):[];}catch(e){}
  hls.forEach(e=>{e.classList.add('tuthl');const w=e.closest('.cw');if(w)w.classList.add('tuthlw');});
  let dm=$('tutdim');if(hls.length){if(!dm){dm=document.createElement('div');dm.id='tutdim';document.body.appendChild(dm);}}else if(dm)dm.remove();
  if(!info&&!TUT.adv&&st.cond&&st.cond()){TUT.adv=true;const k=TUT.k,i=TUT.i;setTimeout(()=>{if(TUT&&TUT.k===k&&TUT.i===i)tutGo(i+1);},900);}
@@ -4009,7 +4009,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.56';
+const APP_VER='v2.57';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
