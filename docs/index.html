@@ -159,7 +159,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .turnrow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .chip{font-weight:700;padding:.12em .75em;border-radius:999px;font-size:.85rem;background:var(--accent);color:var(--accent-ink)}
 .chip.c{background:var(--ink2);color:var(--bg)}
-.setg{display:block;font-size:.62rem;font-weight:700;line-height:1.1;color:var(--ink2);white-space:nowrap}
+.sgw{display:block;margin-top:3px;white-space:nowrap}
+.setg{display:inline-block;min-width:1.8em;height:1.8em;line-height:1.8em;margin-left:3px;border-radius:50%;background:#fcefa0;color:#5b4a00;font-size:.9rem;font-weight:700;text-align:center}
+.card.setfx{box-shadow:0 0 0 3px #f6e07a,0 0 12px 3px #fcf0a8}
+.bon{background:#fcefa0;color:#5b4a00;border-radius:5px;padding:0 4px}
+.apip.bon{background:#fcefa0;border-color:#e3c94f}
+.apip.bon.on{background:#f3d94e}
+@keyframes atkpop{0%{transform:scale(1)}35%{transform:scale(1.18)}100%{transform:scale(1)}}
+.card.atkpop{animation:atkpop .5s ease-out;position:relative;z-index:4}
 .acts{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink2)}
 .apip{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);display:inline-block}
 .apip.on{background:var(--accent)}
@@ -2677,7 +2684,7 @@ function attackWhole(s,uid,tid){
  if(healerOnly(u.ch))return false;
  if(op.field.length){
   const t=op.field.find(x=>x.id===tid);if(!t)return false;
-  const red=ward(op),dm=Math.max(0,u.atk-red);
+  const red=ward(op),dm=Math.max(0,u.atk-red);G.fx['atk'+u.id]={t:'atk'};
   log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);
   const tr=(op.traps||[])[t.slot];
   if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
@@ -2687,7 +2694,7 @@ function attackWhole(s,uid,tid){
   }else dmgUnit(OP(s),t,dm);
  }else{
   if(tid!=='face')return false;
-  const red=ward(op);
+  const red=ward(op);G.fx['atk'+u.id]={t:'atk'};
   log(`${NAME[s]}の「${u.ch}」が直接攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);dmgFace(OP(s),Math.max(0,u.atk-red));
  }
  u.done=true;me.acts--;return true;
@@ -2727,6 +2734,7 @@ function attackSplit(s,uid,tids){
   else if(!st.alive.some(t=>t.id===tids[i]))return false;
  }
  log(`${NAME[s]}の「${u.ch}」が「${u.parts.join('')}」に分解して攻撃`);
+ G.fx['atk'+u.id]={t:'atk'};
  const blocked={},firedNow=[];let absorb=null;const red=ward(op);if(red)log(`${NAME[OP(s)]}の水の守りで、各パーツのダメージが${red}減る`);
  for(let i=0;i<tids.length&&!G.over;i++){
   if(isHealTid(tids[i])){healPart(s,u,i,tids[i]);continue;}
@@ -3098,11 +3106,16 @@ function cardH(u,kind,cls,tag,gtag){
  const dmg=fx&&fx.t==='hit'&&fx.n?`<span class="dmg">-${fx.n}</span>`:fx&&fx.t==='crown'&&fx.n?`<span class="dmg up">+${fx.n}</span>`:'';
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
- const hpTxt=kind==='hand'?u.hp:(u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp);
- return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
+ const owner=G.side.p.field.includes(u)?'p':G.side.c.field.includes(u)?'c':null;
+ const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k)&&(d.k!=='katana'||d.ch.has(u.ch)))?' setfx':'';
+ const apx=G.fx['atk'+u.id]?' atkpop':'';
+ const bh=u.ab&&u.ab.hp>0,ba=u.ab&&u.ab.atk>0;
+ const hpv=u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp;
+ const hpTxt=kind==='hand'?u.hp:(bh?`<b class="bon">${hpv}</b>`:hpv);
+ return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}${sfx}${apx}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.pow||u.fmax)?`<span class="tr">${(u.pow||multi)?`<span class="row1">${u.pow?`<span class="crwn pwb" title="力付与で攻撃力+${u.pow}">力+${u.pow}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
-  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
+  (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${ba?`<b class="bon">${u.atk}</b>`:u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
 }
 function fieldH(s){
  const f=S(s).field;let h='';
@@ -3155,13 +3168,13 @@ function barH(s){
  const healAim=s===ME()&&mineTurn()&&nextHeal();
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
  return `<div class="bar ${aiming||healAim?'target':''}${fx&&fx.t==='hit'?' hitflash':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
-  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}${SETDEF.filter(d0=>setOn(me,d0.k)).map(d0=>`<span class="setg" title="${d0.lab}: ${d0.txt}">${d0.lab}</span>`).join('')}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
+  `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}${SETDEF.some(d0=>setOn(me,d0.k))?`<span class="sgw">${SETDEF.filter(d0=>setOn(me,d0.k)).map(d0=>`<span class="setg" title="${d0.lab}: ${d0.txt}">${d0.lab}</span>`).join('')}</span>`:''}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
   `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
 function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
- const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}"></i>`).join('');
+ const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
  const lines=G.log.slice(0,3).map(l=>`<li>${esc(l)}</li>`).join('');
  return `<div class="mid"><div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div><ol class="log" aria-live="polite">${lines}</ol></div>`;
 }
@@ -3478,7 +3491,7 @@ function refH(){
 }
 function showStart(){
  if(ONLINE)netLeave();
- showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}<div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div>`);
+ showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><div class="decks"><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}`);
 }
 // ---- 解放 ----
 // 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
@@ -3836,7 +3849,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.49';
+const APP_VER='v2.50';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
