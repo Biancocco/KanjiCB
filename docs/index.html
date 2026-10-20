@@ -2573,7 +2573,11 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1)
 function mk(ch){const d=CARDS[ch];return{id:++UID,ch,atk:d.a,hp:d.h,max:d.h,cost:d.c,parts:d.p.slice(),sp:d.sp.slice(),sick:true,done:false,slot:-1,spell:!!d.spell,trap:!!d.trap,label:d.label};}
 function toGy(me,c){(me.gy=me.gy||[]).push(c);me.grave=me.gy.length;}
 function mkDeck(key){const out=[];const list=DECKS[key].gen?DECKS[key].gen():DECKS[key].list;for(const [ch,n] of Object.entries(list))for(let i=0;i<n;i++)out.push(mk(ch));return shuffle(out);}
-function newSide(key,n){const deck=mkDeck(key);const hand=deck.splice(0,n);return{hp:CFG.hp,deck,hand,field:[],grave:0,gy:[],mana:0,max:0,acts:0,tn:0,cw:0,traps:Array(CFG.trap).fill(null)};}
+// 水の守り: みず・さんずい・したみずの部首の字(WATER)を1デッキに6枚以上入れ、それらの字だけで場の3枠を埋めると、受ける攻撃のダメージ(分解攻撃は各パーツ)が1減る。
+const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢沖沈没沃泳沿河泣況治沼泉泰注泥波泊泌沸法泡油海活洪浄津浅洗洞派洋浦消浸浜浮浴流涙浪淫液涯渇渓混済渋淑渉深清淡添涼温渦減湖港滋湿測渡湯満湧湾滑漢源溝準滞滝溺漠滅溶演漁漆漸漬滴漂漫漏潰潟潔潤潜潮澄激濁濃濯濫瀬'));const WATER_MIN=6;
+const wardOn=sx=>!!sx.water&&sx.field.length>=CFG.field&&sx.field.every(u=>WATER.has(u.ch));
+const ward=sx=>wardOn(sx)?1:0;
+function newSide(key,n){const deck=mkDeck(key);const wat=deck.filter(c=>WATER.has(c.ch)).length>=WATER_MIN;const hand=deck.splice(0,n);return{water:wat,hp:CFG.hp,deck,hand,field:[],grave:0,gy:[],mana:0,max:0,acts:0,tn:0,cw:0,traps:Array(CFG.trap).fill(null)};}
 // 先攻(あなた)の最初の手札には、コスト1の字を最低1枚入れる。なければ、山札のコスト1の字と手札の1枚を入れ替える。
 function ensureCost1(me){
  if(me.hand.some(c=>c.cost===1))return;
@@ -2649,16 +2653,18 @@ function attackWhole(s,uid,tid){
  if(healerOnly(u.ch))return false;
  if(op.field.length){
   const t=op.field.find(x=>x.id===tid);if(!t)return false;
-  log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);
+  const red=ward(op),dm=Math.max(0,u.atk-red);
+  log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);
   const tr=(op.traps||[])[t.slot];
   if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
    // 返: 真上の字への単体攻撃を一度だけ無効にして、墓地へ行く
    op.traps[t.slot]=null;toGy(op,tr.card);G.fx[t.id]={t:'guard'};addCut('返');
    log(`${NAME[OP(s)]}の罠「返」が発動し、「${t.ch}」への${u.atk}ダメージを無効にした`);
-  }else dmgUnit(OP(s),t,u.atk);
+  }else dmgUnit(OP(s),t,dm);
  }else{
   if(tid!=='face')return false;
-  log(`${NAME[s]}の「${u.ch}」が直接攻撃(${u.atk})`);dmgFace(OP(s),u.atk);
+  const red=ward(op);
+  log(`${NAME[s]}の「${u.ch}」が直接攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);dmgFace(OP(s),Math.max(0,u.atk-red));
  }
  u.done=true;me.acts--;return true;
 }
@@ -2666,7 +2672,7 @@ function attackWhole(s,uid,tid){
 // ここまでの攻撃で相手の場が空になる見込みなら、次のパーツの標的は本体('face')になる。
 function splitNext(op,u,tids){
  const rem={};op.field.forEach(t=>{rem[t.id]=t.hp;});
- tids.forEach((id,i)=>{if(id!=='face'&&rem[id]!==undefined)rem[id]-=u.sp[i];});
+ const rd=ward(op);tids.forEach((id,i)=>{if(id!=='face'&&rem[id]!==undefined)rem[id]-=Math.max(0,u.sp[i]-rd);});
  const alive=op.field.filter(t=>rem[t.id]>0);
  return{rem,alive,face:alive.length===0};
 }
@@ -2697,12 +2703,12 @@ function attackSplit(s,uid,tids){
   else if(!st.alive.some(t=>t.id===tids[i]))return false;
  }
  log(`${NAME[s]}の「${u.ch}」が「${u.parts.join('')}」に分解して攻撃`);
- const blocked={},firedNow=[];let absorb=null;
+ const blocked={},firedNow=[];let absorb=null;const red=ward(op);if(red)log(`${NAME[OP(s)]}の水の守りで、各パーツのダメージが${red}減る`);
  for(let i=0;i<tids.length&&!G.over;i++){
   if(isHealTid(tids[i])){healPart(s,u,i,tids[i]);continue;}
   if(tids[i]==='face'){
    if(absorb){const lb=`${u.parts[i]}${u.sp[i]}`;absorb.tr.blocked.push(lb);(blocked[absorb.slot]=blocked[absorb.slot]||{unit:absorb.unit,labels:[]}).labels.push(lb);continue;}
-   dmgFace(OP(s),u.sp[i]);}
+   dmgFace(OP(s),Math.max(0,u.sp[i]-red));}
   else{
    const t=op.field.find(x=>x.id===tids[i]);
    if(t){
@@ -2715,7 +2721,7 @@ function attackSplit(s,uid,tids){
       G.fx[t.id]={t:'guard'};if(!absorb)absorb={tr,slot:t.slot,unit:t.ch};continue;
      }
     }
-    dmgUnit(OP(s),t,u.sp[i]);
+    dmgUnit(OP(s),t,Math.max(0,u.sp[i]-red));
    }
   }
  }
@@ -3120,7 +3126,7 @@ function barH(s){
  const hft=(s===ME()&&cx)?cx.su.parts.filter((p,i)=>ui.split.tids[i]==='hf').map(p=>p+'回復').join(' '):'';
  return `<div class="bar ${aiming||healAim?'target':''}${fx&&fx.t==='hit'?' hitflash':''}" ${aiming?'data-act="face" role="button" tabindex="0" aria-label="相手本体を狙う"':healAim?'data-act="healface" role="button" tabindex="0" aria-label="自分の本体を回復"':''}>`+
   `${fx&&fx.heal?RAYS:''}${hft?`<span class="tag btag">${esc(hft)}</span>`:''}<div class="top1"${s===FOE()?' style="grid-template-columns:auto 1fr auto auto"':''}><span class="who">${NAME[s]}</span><div class="hp ${cls}" role="progressbar" aria-valuemin="0" aria-valuemax="${CFG.hp}" aria-valuenow="${me.hp}"><i${me.hp<=0&&fx&&fx.t==='hit'?' class="crush"':''} style="width:${me.hp<=0&&fx&&fx.t==='hit'?Math.min(100,(fx.pv||0)/CFG.hp*100):pct}%"></i></div><b class="hpn">${me.hp}${d}</b>${s===FOE()?'<button type="button" class="surr" data-act="surrender" aria-label="降参する">降参</button>':''}</div>`+
-  `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span><span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
+  `<div class="meta"><span class="mana"><span>マナ ${me.mana}/${me.max}</span><span class="pips">${pips}</span></span>${wardOn(me)?'<span class="tag" style="background:#2a6f9e;color:#fff">水の守り</span>':''}<span>山札 ${me.deck.length}</span><span>手札 ${me.hand.length}</span><span>墓地 ${me.grave}</span></div></div>`;
 }
 function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
@@ -3588,7 +3594,7 @@ function bdRefresh(){
  }catch(e){}
 }
 function showBuilder(){
- showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
+ showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。水・氵・氺の部首の字を${WATER_MIN}枚以上入れ、それらだけで場の${CFG.field}枠を埋めると「水の守り」(受ける攻撃のダメージ-1。分解攻撃は各パーツ-1)。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
   `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div>`+
   `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
   `<div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="best">最強デッキをマイデッキに登録</button>${DEV?'<button type="button" class="mini" data-bd="bestdev">最強デッキ(中学校の字入り)を登録</button>':''}</div>`+
@@ -3800,7 +3806,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.47';
+const APP_VER='v2.48';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
