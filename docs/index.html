@@ -3578,6 +3578,7 @@ const TUTS={
    {t:'「林」が「木」に変わり、攻撃力と体力が下がりました。強い相手の字を弱くできます。1ターンに1回です。'},
    {kind:'do',enter:()=>tutSet({ph:['再','日','月'],gy:['切','木'],mana:5}),t:'<b>墓地回収</b><br>使い終わった字や倒された字は<b>墓地</b>に行きます。「再」を押して「回収」を押し、<b>捨てる手札を2枚</b>選んでから、墓地から<b>戻す字</b>を選んでください。マナも行動回数も使いません。',hl:()=>{const sc=tSelHand();if(ui.mode==='salv'&&ui.salv){const need=Math.min(CFG.salvTake,salvElig('p').length);if(ui.salv.dis.length<CFG.salvDiscard)return tq('.hand .card:not([aria-label^="再 "])');if(ui.salv.take.length<need)return tq('[data-act="salvtake"]');return tq('[data-act="dosalv"]');}if(sc!=='再')return tq('.hand .card[aria-label^="再 "]');return tq('[data-act="salvmode"]');},cond:()=>S('p').hand.some(c=>c.salv)},
    {kind:'do',t:'墓地から字が手札に戻りました。戻した字は、<b>そのターンのうちに召喚できます</b>(花回復や切り離しなどは次のターンからです)。戻した字を1枚、召喚してみてください。',hl:hlSummon(null),cond:()=>S('p').field.length>=1},
+   {t:'墓地から戻した字を、そのターンのうちに召喚できました。以上が<b>墓地回収</b>の説明です。次は、相手の攻撃を防ぐ<b>罠</b>です。'},
    {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['止'],mana:5}),t:'<b>罠</b><br>「止」は<b>罠</b>です。「止」を押して「罠設置」を押し、自分の字の下(上の四角)に伏せてください。相手に分解攻撃(林など)をされると発動して、その1回ぶんの攻撃を無効にします。発動には、前のターンの残りマナが1必要です。',hl:()=>{const sc=tSelHand();if(sc!=='止')return tq('.hand .card[aria-label^="止 "]');if(ui.mode!=='trapset')return tq('[data-act="trapmode"]');return tMine('日');},cond:()=>S('p').traps.some(Boolean)},
    {t:'罠が伏せられました。相手は、どれが罠か分かりません。ほかにも、単体攻撃を無効にして反撃する「返」、相手の字を壊す「壊」などがあります。以上が特殊カードです。',end:true}
   ]},
@@ -4008,7 +4009,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.54';
+const APP_VER='v2.55';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
