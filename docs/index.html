@@ -249,6 +249,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 
 .bd{display:flex;flex-direction:column;gap:10px}
 .bdinfo{display:grid;gap:4px;font-size:.88rem}
+.bdtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bdtop .bdf{flex-wrap:nowrap}
+.bdsets{display:grid;gap:6px;margin-top:6px}
+.setrow{border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:grid;gap:2px;font-size:.85rem}
+.setrow small{color:var(--ink2);font-size:.75rem}
+.setrow.ok{border-color:#e3c94f;background:#fff6c2;color:#3b3000}
+.setrow.ok small{color:#6b5a00}
 .bdinfo .cnt{font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums}
 .bdinfo .ok{color:var(--good)}.bdinfo .ng{color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;min-height:36px}
@@ -3740,7 +3747,16 @@ function bdInfoH(){
  const msgs=[];
  if(t<BD_SIZE)msgs.push(`あと${BD_SIZE-t}枚`);
  if(!c1)msgs.push('コスト1の字が1枚も入っていないので、保存できません');
- return `<div class="bdinfo"><div><span class="cnt ${t===BD_SIZE?'ok':''}">${t}/${BD_SIZE}</span> 枚 ／ コスト1の字 ${c1}枚</div><div class="${msgs.length?'ng':'ok'}">${msgs.length?esc(msgs.join(' ／ ')):'このデッキで始められます'}</div></div>`;
+ return `<div class="bdinfo"><div class="bdtop"><div><span class="cnt ${t===BD_SIZE?'ok':''}">${t}/${BD_SIZE}</span> 枚</div><div class="bdf"><button type="button" class="mini" data-bd="auto">残りを埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div></div><div class="${msgs.length?'ng':'ok'}">コスト1の字 ${c1}枚 ／ ${msgs.length?esc(msgs.join(' ／ ')):'このデッキで始められます'}</div></div>`;
+}
+function bdSetsH(){
+ if(!bd.showSets)return '';
+ const rows=SETDEF.map(d=>{
+  const items=Object.entries(bd.deck).filter(([k,v])=>v>0&&d.ch.has(k));
+  const n=items.reduce((a,[k,v])=>a+v,0),ok=n>=d.min;
+  return `<div class="setrow${ok?' ok':''}"><div><b>${d.lab}</b> <span class="setn">${n}/${d.min}枚${ok?' ✓ 条件OK':''}</span></div><small>${esc(d.txt)}(場に${d.need}枚)</small>${items.length?`<small>入っている字: ${items.map(([k,v])=>esc(k)+(v>1?'×'+v:'')).join(' ')}</small>`:''}</div>`;
+ }).join('');
+ return `<div class="bdsets">${rows}</div>`;
 }
 function bdChipsH(){
  const items=Object.entries(bd.deck).filter(([k,v])=>v>0).sort((x,y)=>(CARDS[x[0]].spell?1:0)-(CARDS[y[0]].spell?1:0)||CARDS[x[0]].c-CARDS[y[0]].c||CARDS[x[0]].s-CARDS[y[0]].s);
@@ -3794,7 +3810,7 @@ function bdFilterH(){
 function bdRefresh(){
  try{const sv=$('bdSv');if(sv)sv.disabled=!bdCost1();}catch(e){}
  try{
-  $('bdSlots').innerHTML=bdSlotsH();$('bdInfo').innerHTML=bdInfoH();$('bdChips').innerHTML=bdChipsH();$('bdPeek').innerHTML=bdPeekH();
+  $('bdSlots').innerHTML=bdSlotsH();$('bdInfo').innerHTML=bdInfoH();$('bdChips').innerHTML=bdChipsH();$('bdPeek').innerHTML=bdPeekH();$('bdSets').innerHTML=bdSetsH();{const sb=$('bdSetsBtn');if(sb){sb.setAttribute('aria-expanded',bd.showSets?'true':'false');sb.classList.toggle('pri',!!bd.showSets);}}
   const full=bdTotal()>=BD_SIZE;
   document.querySelectorAll('#bdList [data-row]').forEach(r=>{
    const ch=r.dataset.row,n=bd.deck[ch]||0;
@@ -3807,9 +3823,7 @@ function bdRefresh(){
 }
 function showBuilder(){
  showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。特定の部首の字をたくさん入れて場にそろえると、ボーナスが出ます:${SETDEF.map(d=>`「${d.lab}」${d.min}枚以上のデッキで場に${d.need}枚→${d.txt}`).join(' / ')}。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
-  `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div>`+
-  `<div class="bdf"><button type="button" class="mini" data-bd="auto">残りを自動で埋める</button><button type="button" class="mini" data-bd="clear">全部はずす</button></div>`+
-  `<div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="best">最強デッキをマイデッキに登録</button>${DEV?'<button type="button" class="mini" data-bd="bestdev">最強デッキ(中学校の字入り)を登録</button>':''}</div>`+
+  `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div><div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="sets" id="bdSetsBtn" aria-expanded="false">部首ボーナス</button></div><div id="bdSets"></div>`+
   `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
   `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save" ${bdCost1()?'':'disabled'}>保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
  bdRefresh();
@@ -3841,6 +3855,7 @@ function bdClick(b){
  if(a==='clear'){bdAsk('いまのデッキの字を、全部はずしますか?',()=>{bd.deck={};bd.peek='';bdRefresh();});return;}
  if(a==='best'){bdBest(BEST_DECK,'最強デッキ');return;}
  if(a==='bestdev'){bdBest(BEST_DECK_DEV,'最強デッキ(中学校の字入り)');return;}
+ if(a==='sets'){bd.showSets=!bd.showSets;bdRefresh();return;}
  if(a==='auto'){bdAsk('残りの枚数を、自動で埋めますか?',()=>{bdAuto();bdRefresh();});return;}
  if(a==='grade'||a==='cost'||a==='split'){
   const v=b.dataset.v;
@@ -4021,7 +4036,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.64';
+const APP_VER='v2.65';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
