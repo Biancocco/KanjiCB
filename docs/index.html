@@ -248,6 +248,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .deck span{font-size:.82rem;font-weight:400;color:var(--ink2)}
 
 .bd{display:flex;flex-direction:column;gap:10px}
+.bdcols{display:flex;flex-direction:column;gap:10px}
+.bdc1,.bdc2{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media(min-width:1000px){.sheet.wide{max-width:1180px}.bdcols{display:grid;grid-template-columns:minmax(380px,5fr) 6fr;gap:24px;align-items:start}.bdc1{max-height:calc(100vh - 250px);overflow:auto;padding-right:8px}.bdc2 .bdl{max-height:calc(100vh - 400px);min-height:220px}.sheet.wide .bd>.row{position:sticky;bottom:-20px;background:var(--panel);padding:8px 0}}
 .bdinfo{display:grid;gap:4px;font-size:.88rem}
 .bdtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .bdtop .bdf{flex-wrap:nowrap}
@@ -3489,7 +3492,7 @@ async function runCpu(){
  if(G.over)showEnd();
 }
 
-function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').innerHTML=html;$('ov').hidden=false;try{$('sheet').scrollTop=0;$('ov').scrollTop=0;window.scrollTo(0,0);}catch(e){}}
+function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').classList.remove('wide');$('sheet').innerHTML=html;$('ov').hidden=false;try{$('sheet').scrollTop=0;$('ov').scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function rulesH(){
   return `<ol>
  <li>相手のHP(${CFG.hp})を0にすれば勝ち。山札が尽きたターンの持ち主は負け。</li>
@@ -3754,8 +3757,12 @@ function bdInfoH(){
 function bdSetsH(){
  if(!bd.showSets)return '';
  const rows=SETDEF.map(d=>({d,n:Object.entries(bd.deck).reduce((a,[k,v])=>a+(v>0&&d.ch.has(k)?v:0),0)})).filter(x=>x.n>0);
- if(!rows.length)return '<div class="bdsets"><span class="sm" style="color:var(--ink2);font-size:.82rem">部首ボーナスの対象の字が、まだ入っていません</span></div>';
- const chips=rows.map(({d,n})=>{const ok=n>=d.min;return ok?`<button type="button" class="chip2 bonus${bd.setSel===d.k?' sel':''}" data-bd="setpick" data-k="${d.k}" aria-label="${d.lab} ${n}枚 ボーナスの効果を見る">${d.lab}<small>×${n}</small></button>`:`<span class="chip2 off" aria-label="${d.lab} ${n}枚(あと${d.min-n}枚)">${d.lab}<small>×${n}</small></span>`;}).join('');
+ const BP=new Set(Array.from('水氵氺人亻𠆢手扌木刀刂肉'));const pc={};
+ for(const [k,v] of Object.entries(bd.deck)){if(!(v>0)||!CARDS[k])continue;new Set(CARDS[k].p).forEach(q=>{if(!BP.has(q))pc[q]=(pc[q]||0)+v;});}
+ const others=Object.entries(pc).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+ if(!rows.length&&!others.length)return '<div class="bdsets"><span class="sm" style="color:var(--ink2);font-size:.82rem">部首が、まだありません(字を選ぶと表示されます)</span></div>';
+ const chips0=rows.map(({d,n})=>{const ok=n>=d.min;return ok?`<button type="button" class="chip2 bonus${bd.setSel===d.k?' sel':''}" data-bd="setpick" data-k="${d.k}" aria-label="${d.lab} ${n}枚 ボーナスの効果を見る">${d.lab}<small>×${n}</small></button>`:`<span class="chip2 off" aria-label="${d.lab} ${n}枚(あと${d.min-n}枚)">${d.lab}<small>×${n}</small></span>`;}).join('')+others.map(([q,n])=>`<span class="chip2 off" aria-label="${esc(q)} ${n}枚(ボーナスなし)">${esc(q)}<small>×${n}</small></span>`).join('');
+ const chips=chips0;
  const sd=bd.setSel&&SETD[bd.setSel],sn=sd?rows.find(x=>x.d===sd):null;
  const det=sd&&sn&&sn.n>=sd.min?`<div class="setrow ok"><div><b>${sd.lab}</b> <span class="setn">${sn.n}/${sd.min}枚 ✓ 条件OK</span></div><small>効果: ${esc(sd.txt)}(場に${sd.need}枚そろうと発動)</small></div>`:'';
  return `<div class="bdsets"><div class="chips">${chips}</div>${det}</div>`;
@@ -3824,10 +3831,11 @@ function bdRefresh(){
  }catch(e){}
 }
 function showBuilder(){
- showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。特定の部首の字をたくさん入れて場にそろえると、ボーナスが出ます:${SETDEF.map(d=>`「${d.lab}」${d.min}枚以上のデッキで場に${d.need}枚→${d.txt}`).join(' / ')}。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
+ showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。特定の部首の字をたくさん入れて場にそろえると、ボーナスが出ます:${SETDEF.map(d=>`「${d.lab}」${d.min}枚以上のデッキで場に${d.need}枚→${d.txt}`).join(' / ')}。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdcols"><div class="bdc1"><div class="bdf" id="bdSlots"></div>`+
   `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div><div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="sets" id="bdSetsBtn" aria-expanded="false">部首確認</button></div><div id="bdSets"></div>`+
-  `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
+  `</div><div class="bdc2"><h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div></div></div>`+
   `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save" ${bdCost1()?'':'disabled'}>保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
+ $('sheet').classList.add('wide');
  bdRefresh();
 }
 // AI同士の模擬戦で選んだ最強デッキ(CPUのような動きの相手に強い)
@@ -4039,7 +4047,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.66';
+const APP_VER='v2.67';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
