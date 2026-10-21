@@ -236,7 +236,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .sheet{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;margin-block:auto}
 .sheet{position:relative}
 .devdot{position:absolute;top:12px;right:12px;width:18px;height:18px;padding:0;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer}
-.gear{position:absolute;top:8px;right:10px;width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--ink2);font-size:1.4rem;line-height:1;cursor:pointer;border-radius:8px}.gear:hover{color:var(--ink);background:var(--card)}
+.gear{position:absolute;top:8px;right:10px;width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--ink2);font-size:1.4rem;line-height:1;cursor:pointer;border-radius:8px}.rlgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}.rlrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.92rem;padding:4px 0}.rlrow select{font:inherit;padding:4px 8px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--card-ink)}.rlrow input[type=checkbox]{width:20px;height:20px}
+.gear:hover{color:var(--ink);background:var(--card)}
 .devdot.on{background:var(--accent);border-color:var(--accent)}
 .sheet h2{margin:0;font-family:var(--kanji);font-weight:400;font-size:2.2rem;letter-spacing:.1em;line-height:1.1}
 .sheet h3{margin:0;font-size:1rem}
@@ -2616,19 +2617,20 @@ const sumSp=u=>u.sp.reduce((a,b)=>a+b,0);
 let RNG=null;const rnd=()=>RNG?RNG():Math.random();
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function mk(ch){const d=CARDS[ch];return{id:++UID,ch,atk:d.a,hp:d.h,max:d.h,cost:d.c,parts:d.p.slice(),sp:d.sp.slice(),sick:true,done:false,slot:-1,spell:!!d.spell,trap:!!d.trap,label:d.label};}
+function mk(ch){const d=CARDS[ch];return{id:++UID,ch,atk:d.a,hp:d.h,max:d.h,cost:Math.min(d.c,CFG.manaCap),parts:d.p.slice(),sp:d.sp.slice(),sick:true,done:false,slot:-1,spell:!!d.spell,trap:!!d.trap,label:d.label};}
 function toGy(me,c){(me.gy=me.gy||[]).push(c);me.grave=me.gy.length;}
 function mkDeck(key){const out=[];const list=DECKS[key].gen?DECKS[key].gen():DECKS[key].list;for(const [ch,n] of Object.entries(list))for(let i=0;i<n;i++)out.push(mk(ch));return shuffle(out);}
 // 部首ボーナス: 特定の部首の字を1デッキに規定枚数以上入れ、場にそれらの字が規定枚数そろうと効果が出る(SETDEF)。
 const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢沖沈没沃泳沿河泣況治沼泉泰注泥波泊泌沸法泡油海活洪浄津浅洗洞派洋浦消浸浜浮浴流涙浪淫液涯渇渓混済渋淑渉深清淡添涼温渦減湖港滋湿測渡湯満湧湾滑漢源溝準滞滝溺漠滅溶演漁漆漸漬滴漂漫漏潰潟潔潤潜潮澄激濁濃濯濫瀬'));const SETDEF=[
  {k:'water',ch:WATER,min:6,need:3,lab:'水',txt:'受ける攻撃のダメージ-1(分解攻撃は各パーツ-1)'},
  {k:'hito',ch:new Set(Array.from('人介今仁仏以仕仙他代付令仮会企伎休仰件全仲伝任伐伏位何佐作伺似住伸体但低伯伴余依価佳供使侍舎侮併例係侯俊信侵促俗便保侶俺倹個候借修倉値倒俳倍俵傲俸倫偽偶健側停偵偏偉傘備傍僅傾傑倣債催傷僧働像僕僚億儀舗儒償優')),min:6,need:3,lab:'人',txt:'1ターンに3回行動できる'},
- {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:6,need:3,lab:'手',txt:'召喚したターンから攻撃できる'},
+ {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:6,need:2,lab:'手',txt:'召喚したターンから攻撃できる'},
  {k:'ki',ch:new Set(Array.from('木札本末未机朽朱朴材条杉束村来果枝松枢析東杯板枚枕林枠栄架柿枯査柵柔染柱栃柄某柳案桜格核株桁校根栽桟栓桑桃梅械梗巣梨椅棺棋極検植森棚椎棟棒楷楽棄業楼概構模様横権槽標機橋樹欄')),min:6,need:3,lab:'木',txt:'各カードの体力+2'},
  {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'場のカード全体の攻撃力+1(分解攻撃は各パーツ+1)'},
  {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:10,need:3,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
 const SETD=Object.fromEntries(SETDEF.map(d=>[d.k,d]));
-const setOn=(sx,k)=>!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
+const RL={flower:1,power:1,cut:1,rip:1,salv:1,brk:1,comp:1,trap:1,sets:1};
+const setOn=(sx,k)=>!!RL.sets&&!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
 const wardOn=sx=>setOn(sx,'water');
 const ward=sx=>wardOn(sx)?1:0;
 // 部首ボーナス(SETDEF)を、場の状態に合わせて反映し直す。字の出入りがあるたびに呼ぶ。
@@ -2724,8 +2726,8 @@ function reflect(s,u,tr,slot,dm){
  op.traps[slot]=null;toGy(op,tr.card);addCut('返');
  log(`${NAME[OP(s)]}の罠「返」が発動し、「${u.ch}」に${dm}ダメージを返して壊れた`);
  dmgUnit(s,u,dm);
- // 返のカットインのあと0.4秒おいてから、ダメージの演出が出る
- if(G.fx[u.id])G.fx[u.id].dl=.4;{const bk=G.fx['brk'+s+u.slot];if(bk)bk.dl=.4;}
+ // カットイン(1.1秒)が終わる0.4秒前に、ダメージの演出が出る
+ if(G.fx[u.id])G.fx[u.id].dl=.7;{const bk=G.fx['brk'+s+u.slot];if(bk)bk.dl=.7;}
 }
 // 単体攻撃: 1つの標的に atk ダメージ。相手の場が空なら本体('face')のみ。
 const addCut=ch=>{(G.fx.cutin=G.fx.cutin||[]).push(ch);};
@@ -2832,7 +2834,7 @@ function drawExtra(s,n){
 function crown(s,cid,uid,part){
  const me=S(s);if(G.over||G.cur!==s)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||!isBoost(me.hand[i]))return false;
- const c0=me.hand[i],pw=isPower(c0);
+ const c0=me.hand[i],pw=isPower(c0);if(pw?!RL.power:!RL.flower)return false;
  if(me.mana<boostCost(c0)||(pw?me.ph:me.fh))return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
  if(pw&&u.parts.length>1&&!(Number.isInteger(part)&&part>=0&&part<u.parts.length))return false;
@@ -2863,7 +2865,7 @@ function paidDraw(s){
 // 受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ(ZはYと同じ枠に入る)。
 function composeTo(ch,y){return COMPOSE[ch+'+'+y];}
 function compose(s,cid,uid){
- const me=S(s);if(G.over||G.cur!==s||me.mana<CFG.composeCost)return false;
+ const me=S(s);if(G.over||G.cur!==s||!RL.comp||me.mana<CFG.composeCost)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv)return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
  const c=me.hand[i],z=composeTo(c.ch,u.ch);if(!z)return false;
@@ -2878,7 +2880,7 @@ function compose(s,cid,uid){
 // マナ3・1ターン1回・行動回数は使わない。受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ。
 const cutsOf=u=>CUTS[u.ch]||{};
 function cut(s,cid,uid,part){
- const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||me.ct||me.mana<CFG.cutCost)return false;
+ const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||!RL.cut||me.ct||me.mana<CFG.cutCost)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||me.hand[i].ch!=='刀')return false;
  const u=op.field.find(x=>x.id===uid);if(!u)return false;
  const y=cutsOf(u)[part];if(!y)return false;
@@ -2893,7 +2895,7 @@ function cut(s,cid,uid,part){
 // マナ6・1ターン1回・行動回数は使わない。受けたダメージ・力付与・花回復の分・動けるかどうかは引き継ぐ。
 const ripsOf=u=>RIPS[u.ch]||[];
 function rip(s,cid,uid,idx){
- const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||me.rp||me.mana<CFG.ripCost)return false;
+ const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||!RL.rip||me.rp||me.mana<CFG.ripCost)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||me.hand[i].ch!=='裂')return false;
  const u=op.field.find(x=>x.id===uid);if(!u)return false;
  const r=ripsOf(u)[idx];if(!r)return false;
@@ -2908,7 +2910,7 @@ function rip(s,cid,uid,idx){
 // 罠設置(止): 手札の「止」を、自分の罠の枠の空いている所へ無償で置く(真上に字がなくてもよい)。マナも行動回数も使わない。
 // 置かれた止は、真上の字が分解攻撃を受けたとき発動し、そのターンの間、その字への分解攻撃のパーツをすべて無効にする。
 function setTrap(s,cid,slot){
- const me=S(s);if(G.over||G.cur!==s)return false;
+ const me=S(s);if(G.over||G.cur!==s||!RL.trap)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||!me.hand[i].trap)return false;
  me.traps=me.traps||Array(CFG.trap).fill(null);
  if(!Number.isInteger(slot)||slot<0||slot>=CFG.trap||me.traps[slot])return false;
@@ -2928,7 +2930,7 @@ function freeDiscard(s,cid){
 function killUnit(s,u){const me=S(s);G.fx['brk'+s+u.slot]={ch:u.ch};const i=me.field.indexOf(u);if(i>=0)me.field.splice(i,1);toGy(me,u);G.fx[u.id]={t:'hit',n:0};log(`${NAME[s]}の「${u.ch}」が壊された`);}
 const counterTarget=s=>S(s).field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
 function breakUnit(s,cid,uid){
- const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||G.pending||me.bk||me.mana<CFG.breakCost)return false;
+ const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||G.pending||!RL.brk||me.bk||me.mana<CFG.breakCost)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||me.hand[i].ch!=='壊')return false;
  const u=op.field.find(x=>x.id===uid);if(!u)return false;
  const c=me.hand.splice(i,1)[0];me.mana-=CFG.breakCost;me.bk=true;toGy(me,c);
@@ -2954,7 +2956,7 @@ function resolveCounter(uid){
 // 回収した字は新しい札として戻る(受けたダメージなどは引き継がない)。マナと行動回数は使わない。
 const salvElig=s=>(S(s).gy||[]).filter(c=>c.ch!=='再'&&CARDS[c.ch].c<=CFG.salvMax);
 function salvage(s,cid,disIds,takeIds){
- const me=S(s);if(G.over||G.cur!==s)return false;
+ const me=S(s);if(G.over||G.cur!==s||!RL.salv)return false;
  const rc=me.hand.find(c=>c.id===cid);if(!rc||rc.salv||rc.ch!=='再')return false;
  if(!Array.isArray(disIds)||new Set(disIds).size!==CFG.salvDiscard||disIds.includes(cid))return false;
  const dis=disIds.map(id=>me.hand.find(c=>c.id===id));if(dis.some(x=>!x))return false;
@@ -3383,6 +3385,8 @@ function trapH(s){
 function render(){
  if(G&&G.two&&!ONLINE&&!G.over){const need=G.pending?G.pending.by:G.cur;if(need!==seenSide){showHandover(need);return;}}
  $('board').innerHTML='<div class="bl">'+barH(FOE())+trapH(FOE())+`<div class="field">${fieldH(FOE())}</div>`+midH()+`<div class="field">${fieldH(ME())}</div>`+trapH(ME())+barH(ME())+'</div><div class="br">'+panelH()+handH()+ctlH()+'</div>';
+ {const dm={cutmode:'cut',ripmode:'rip',salvmode:'salv',breakmode:'brk',compose:'comp',trapmode:'trap'};const hc=ui.sel&&ui.sel.kind==='hand'?S(ME()).hand.find(x=>x.id===ui.sel.id):null;
+  document.querySelectorAll('#board [data-act]').forEach(b=>{const a=b.dataset.act;const off=a==='crown'?(hc&&!(isPower(hc)?RL.power:RL.flower)):(dm[a]&&!RL[dm[a]]);if(off){b.disabled=true;b.title='この対戦設定では使えません';}});}
  const ci=G.fx.cutin;G.fx={};if(ci&&ci.length)showCutin(ci);
  if(ui.confirmEnd){try{document.querySelector('.panel').scrollIntoView({block:'nearest'});}catch(e){}}
  if(TUT)tutAfter();
@@ -3625,7 +3629,7 @@ const TUTS={
    {t:'<b>部首ボーナス</b><br>同じ部首をもつ字を、<b>指定されている枚数、1デッキに</b>入れて、その字を<b>場にそろえる</b>と、ボーナスが出ます。'},
    {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:hlSummon(null),cond:()=>S('p').field.length>=3},
    {t:'3枚が<b>黄色の枠</b>で光り、体力が2ずつ増えました(黄色の数字)。体力バーの下には、効いている部首の印(木)も出ます。字が減ってそろわなくなると、ボーナスは消えます。'},
-   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に3枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>x.id===p.lastSum)||p.field.find(x=>!x.done&&!x.sick);if(!u||u.done)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
+   {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に2枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>x.id===p.lastSum)||p.field.find(x=>!x.done&&!x.sick);if(!u||u.done)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
    {t:'召喚したばかりの字で攻撃できました。ほかにも、<b>水</b>(受けるダメージ-1)、<b>人</b>(1ターンに3回行動)、<b>刀</b>(場全体の攻撃力+1)、<b>肉</b>(体力+1と攻撃力+1)があります。デッキ編成画面で、字を組み合わせてみてください。',end:true}
   ]}
 };
@@ -3634,7 +3638,7 @@ function tutStart(k){
  const L=TUTS[k];if(!L)return;
  netIdleEnd();NAME.p='あなた';NAME.c='練習相手';
  TUT={k,i:0,cpuN:0,adv:false,snaps:[]};
- newGame('nature','force',true);G.lv='normal';G.cnt=1;resetUi();$('ov').hidden=true;
+ applyRules(false);newGame('nature','force',true);G.lv='normal';G.cnt=1;resetUi();$('ov').hidden=true;
  L.start();startTurn('p');
  tutEnter();tutSnap();render();
 }
@@ -3717,9 +3721,20 @@ let cpuWins=0;try{cpuWins=Math.max(0,parseInt(localStorage.getItem(WIN_KEY)||'0'
 const gradeOpen=g=>g!==7||DEV||UNLOCKS.some(u=>u.g===g&&cpuWins>=u.wins);
 function addCpuWin(){cpuWins++;try{localStorage.setItem(WIN_KEY,String(cpuWins));}catch(e){}return UNLOCKS.filter(u=>u.wins===cpuWins);}
 const unlockTxt=()=>DEV?'開発者モード: 中学校の漢字を使えます。':`CPUに${UNLOCKS[0].wins}勝で${UNLOCKS[0].name}が解放されます(いまCPUに${cpuWins}勝)。`;
+// ---- 対戦設定(CPU対戦・二人対戦のみ。オンライン・チュートリアルは常に標準) ----
+const RULE_DEF={flower:1,power:1,cut:1,rip:1,salv:1,brk:1,comp:1,trap:1,sets:1,mana:10,acts:2};
+const RULE_KEY='jikuzushi_rules_v1';
+let ruleCfg=Object.assign({},RULE_DEF),ruleBack=null;
+try{const j=JSON.parse(localStorage.getItem(RULE_KEY)||'null');if(j&&typeof j==='object')for(const k of Object.keys(RULE_DEF))if(typeof j[k]==='number')ruleCfg[k]=j[k];}catch(e){}
+function applyRules(on){const r=on?ruleCfg:RULE_DEF;for(const k of Object.keys(RL))RL[k]=r[k]?1:0;CFG.manaCap=Math.min(15,Math.max(1,r.mana|0));CFG.acts=Math.min(3,Math.max(1,r.acts|0));}
+const RULE_ABIL=[['flower','花回復'],['power','力付与'],['cut','切り離し(刀)'],['rip','切り裂き(裂)'],['salv','墓地回収(再)'],['brk','壊す(壊)'],['comp','パーツ付与'],['trap','罠の設置'],['sets','部首ボーナス']];
+function showRules(){
+ const sel=(k,a,b,lab)=>`<label class="rlrow"><span>${lab}</span><select data-rl="${k}">${Array.from({length:b-a+1},(_,i)=>a+i).map(v=>`<option value="${v}"${ruleCfg[k]===v?' selected':''}>${v}</option>`).join('')}</select></label>`;
+ showOverlay(`<h2>対戦設定</h2><p>CPU対戦・二人対戦に使われます。オンライン対戦とチュートリアルは標準のルールです。</p><h3>使える効果</h3><div class="rlgrid">${RULE_ABIL.map(([k,l])=>`<label class="rlrow"><span>${l}</span><input type="checkbox" data-rl="${k}"${ruleCfg[k]?' checked':''}></label>`).join('')}</div><h3>数値</h3>${sel('mana',1,15,'マナの最大値')}${sel('acts',1,3,'場のカードの行動数(毎ターン)')}<div class="row"><button type="button" class="btn pri" data-set="back">決定</button><button type="button" class="btn" data-set="reset">標準に戻す</button></div>`);
+}
 let cpu={step:0,mine:null,first:true,lv:'normal'};
 function showCpuSelect(){
- const st=cpu.step;
+ ruleBack=showCpuSelect;const st=cpu.step;
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
  const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-cpudeck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
  const head=st===0?'あなたのデッキを選ぶ':`CPUのデッキを選ぶ(あなた: ${esc(DECKS[cpu.mine].name)})`;
@@ -3919,6 +3934,7 @@ function showHandover(side){
  showOverlay(`<h2>${esc(NAME[side])}の番</h2><p>${pend?'罠「受」が発動しました。壊す字を選ぶ'+esc(NAME[side])+'に画面を渡してください。':'画面を'+esc(NAME[side])+'に渡してください。'}</p><p style="font-size:.88rem;color:var(--ink2)">相手に手札が見えないようにしてから、「準備OK」を押してください。</p><div class="row"><button type="button" class="btn pri" data-ready="${side}">準備OK</button></div>`);
 }
 function showTwoSelect(){
+ ruleBack=showTwoSelect;
  const nm=k=>DECKS[k].name;
  const btns=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-two="pick" data-key="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-two="pick" data-key="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。「デッキを組む」で30枚を組むと選べます。`}</span></button>`).join('');
@@ -3927,7 +3943,7 @@ function showTwoSelect(){
 }
 function startTwo(pk,ck){
  netIdleEnd();
- NAME.p='プレイヤー1';NAME.c='プレイヤー2';
+ NAME.p='プレイヤー1';NAME.c='プレイヤー2';applyRules(true);
  newGame(pk,ck);G.two=true;G.pk=pk;G.ck=ck;resetUi();seenSide=null;$('ov').hidden=true;
  startTurn('p');render();
 }
@@ -3963,7 +3979,7 @@ function showEnd(){
 function startGame(pk,ck,first,lv){
  netIdleEnd();
  if(!ck)ck=pk==='nature'?'force':pk==='force'?'nature':pk==='test'?'cpubreak':'random';
- NAME.p='あなた';NAME.c='CPU';
+ NAME.p='あなた';NAME.c='CPU';applyRules(true);
  newGame(pk,ck,first!==false);G.lv=lv==='hard'?'hard':'normal';resetUi();$('ov').hidden=true;
  if(first===false){startTurn('c');render();if(G.over){showEnd();return;}runCpu();return;}
  startTurn('p');render();
@@ -4000,7 +4016,10 @@ $('board').addEventListener('keydown',e=>{
  else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-act="trapinfo"]')){e.preventDefault();onAct('trapinfo',e.target.dataset);}
  else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-act="slot"]')){e.preventDefault();onAct('slot',e.target.dataset);}
 });
+$('ov').addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.rl)return;const k=t.dataset.rl;ruleCfg[k]=t.type==='checkbox'?(t.checked?1:0):Number(t.value);try{localStorage.setItem(RULE_KEY,JSON.stringify(ruleCfg));}catch(e){}});
 $('ov').addEventListener('click',e=>{
+ const stb=e.target.closest('[data-set]');
+ if(stb){const a=stb.dataset.set;if(a==='open')showRules();else if(a==='back'){if(ruleBack)ruleBack();else showStart();}else if(a==='reset'){ruleCfg=Object.assign({},RULE_DEF);try{localStorage.setItem(RULE_KEY,JSON.stringify(ruleCfg));}catch(e){}showRules();}return;}
  const rd=e.target.closest('[data-ready]');
  if(rd){seenSide=rd.dataset.ready;$('ov').hidden=true;render();return;}
  const cd=e.target.closest('[data-cpudeck]');
@@ -4067,12 +4086,12 @@ function showNetMenu(err){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
- showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button><button type="button" class="btn" data-set="open">対戦設定</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
+ showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button><button type="button" class="btn" data-set="online">対戦設定</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
 }
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.75';
+const APP_VER='v2.76';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
@@ -4320,7 +4339,7 @@ function netBegin(seed,hostFirst,hostSpec,guestSpec){
  ONLINE.side=side;ONLINE.started=true;ONLINE.ep=seed;
  const pk=netDeckKey(hostFirst?hostSpec:guestSpec,'net_p'),ck=netDeckKey(hostFirst?guestSpec:hostSpec,'net_c');
  NAME[side]='あなた';NAME[OP(side)]='相手';
- RNG=mulberry32(seed);UID=0;
+ RNG=mulberry32(seed);UID=0;applyRules(false);
  newGame(pk,ck);G.two=true;resetUi();$('ov').hidden=true;
  startTurn('p');render();
 }
