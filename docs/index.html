@@ -236,6 +236,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .sheet{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;margin-block:auto}
 .sheet{position:relative}
 .devdot{position:absolute;top:12px;right:12px;width:18px;height:18px;padding:0;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer}
+.gear{position:absolute;top:8px;right:10px;width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--ink2);font-size:1.4rem;line-height:1;cursor:pointer;border-radius:8px}.gear:hover{color:var(--ink);background:var(--card)}
 .devdot.on{background:var(--accent);border-color:var(--accent)}
 .sheet h2{margin:0;font-family:var(--kanji);font-weight:400;font-size:2.2rem;letter-spacing:.1em;line-height:1.1}
 .sheet h3{margin:0;font-size:1rem}
@@ -2723,6 +2724,8 @@ function reflect(s,u,tr,slot,dm){
  op.traps[slot]=null;toGy(op,tr.card);addCut('返');
  log(`${NAME[OP(s)]}の罠「返」が発動し、「${u.ch}」に${dm}ダメージを返して壊れた`);
  dmgUnit(s,u,dm);
+ // 返のカットインのあと0.4秒おいてから、ダメージの演出が出る
+ if(G.fx[u.id])G.fx[u.id].dl=.4;{const bk=G.fx['brk'+s+u.slot];if(bk)bk.dl=.4;}
 }
 // 単体攻撃: 1つの標的に atk ダメージ。相手の場が空なら本体('face')のみ。
 const addCut=ch=>{(G.fx.cutin=G.fx.cutin||[]).push(ch);};
@@ -3156,7 +3159,8 @@ const RAYS='<span class="rays" aria-hidden="true"><i></i><i></i></span>';
 function cardH(u,kind,cls,tag,gtag){
  const fx=G.fx[u.id];
  const fxc=fx?' fx-'+fx.t+(fx.y?' fxy':''):'';
- const dmg=fx&&fx.t==='hit'&&fx.n?`<span class="dmg">-${fx.n}</span>`:fx&&fx.t==='crown'&&fx.n?`<span class="dmg up">+${fx.n}</span>`:'';
+ const dly=fx&&fx.dl?` style="animation-delay:${fx.dl}s"`:'';
+ const dmg=fx&&fx.t==='hit'&&fx.n?`<span class="dmg"${dly?` style="animation-delay:${fx.dl}s;animation-fill-mode:both"`:''}>-${fx.n}</span>`:fx&&fx.t==='crown'&&fx.n?`<span class="dmg up">+${fx.n}</span>`:'';
  const multi=u.parts.length>1;
  const hurt=u.hp<u.max?' hurt':'';
  const owner=G.side.p.field.includes(u)?'p':G.side.c.field.includes(u)?'c':null;
@@ -3165,7 +3169,7 @@ function cardH(u,kind,cls,tag,gtag){
  const bh=u.ab&&u.ab.hp>0,ba=u.ab&&u.ab.atk>0;
  const hpv=u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp;
  const hpTxt=kind==='hand'?u.hp:(bh?`<b class="bon">${hpv}</b>`:hpv);
- return `<div class="cw"><button type="button" class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}${sfx}${apx}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
+ return `<div class="cw"><button type="button"${dly} class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}${sfx}${apx}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.pow||u.fmax)?`<span class="tr">${(u.pow||multi)?`<span class="row1">${u.pow?`<span class="crwn pwb" title="力付与で攻撃力+${u.pow}">力+${u.pow}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
   `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
   (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${ba?`<b class="bon">${u.atk}</b>`:u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
@@ -3180,7 +3184,7 @@ function fieldH(s){
  for(let i=0;i<CFG.field;i++){
   const u=f.find(x=>x.slot===i);
   if(!u){
-   const bx=G.fx['brk'+s+i];if(bx){h+=`<div class="slot brk" aria-hidden="true">${esc(bx.ch)}</div>`;continue;}
+   const bx=G.fx['brk'+s+i];if(bx){h+=`<div class="slot brk" aria-hidden="true"${bx.dl?` style="animation-delay:${bx.dl}s"`:''}>${esc(bx.ch)}</div>`;continue;}
    if(s===ME()){
     const ok=mineTurn()&&ui.sel&&ui.sel.kind==='hand'&&(()=>{const c=S(ME()).hand.find(x=>x.id===ui.sel.id);return c&&!summonWhy(ME(),c);})();
     h+=ok?`<div class="slot drop" data-act="slot" data-slot="${i}" role="button" tabindex="0" aria-label="${i+1}番目の枠に召喚">ここに召喚</div>`:'<div class="slot">空き</div>';
@@ -3719,7 +3723,7 @@ function showCpuSelect(){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
  const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-cpudeck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
  const head=st===0?'あなたのデッキを選ぶ':`CPUのデッキを選ぶ(あなた: ${esc(DECKS[cpu.mine].name)})`;
- showOverlay(`<h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><div class="swrow"><span>CPUの強さ</span><span class="bdf"><button type="button" class="mini ${cpu.lv==='hard'?'':'pri'}" data-cpu="lv" data-v="normal" aria-pressed="${cpu.lv!=='hard'}">ふつう</button><button type="button" class="mini ${cpu.lv==='hard'?'pri':''}" data-cpu="lv" data-v="hard" aria-pressed="${cpu.lv==='hard'}">つよい</button></span></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
+ showOverlay(`<button type="button" class="gear" data-set="open" aria-label="対戦設定" title="対戦設定">⚙</button><h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><div class="swrow"><span>CPUの強さ</span><span class="bdf"><button type="button" class="mini ${cpu.lv==='hard'?'':'pri'}" data-cpu="lv" data-v="normal" aria-pressed="${cpu.lv!=='hard'}">ふつう</button><button type="button" class="mini ${cpu.lv==='hard'?'pri':''}" data-cpu="lv" data-v="hard" aria-pressed="${cpu.lv==='hard'}">つよい</button></span></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
 }
 
 // ---- デッキ構築 ----
@@ -3795,7 +3799,7 @@ function bdChipsH(){
 function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
- const body=d.spell?`${esc(d.trap?(k==='止'?`罠(分)(${d.s}画)`:k==='受'?`罠(単)(${d.s}画)`:`罠(${d.s}画)`):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
+ const body=d.spell?`${esc(d.trap?(k==='止'?`罠(分)(${d.s}画)`:k==='受'?`罠(単・壊カウンター)(${d.s}画)`:k==='返'?`罠(カウンター)(${d.s}画)`:`罠(${d.s}画)`):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
  return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
 }
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
@@ -3823,7 +3827,7 @@ function bdFiltered(){
 function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
- const info=d.spell?`<b>${esc(d.trap?(ch==='止'?'罠(分)':ch==='受'?'罠(単)':'罠'):(d.label||'特殊'))}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
+ const info=d.spell?`<b>${esc(d.trap?(ch==='止'?'罠(分)':ch==='受'?'罠(単・壊カウンター)':ch==='返'?'罠(カウンター)':'罠'):(d.label||'特殊'))}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
  return `<div class="bdr ${d.spell?'spc':bdPw(ch)?'hr':(ch==='裂'||ch==='刀')?'hv':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
 }
 function bdListH(){const rows=bdFiltered();return rows.length?rows.map(bdRowH).join(''):'<p style="padding:12px;color:var(--ink2)">該当する字がありません</p>';}
@@ -3919,7 +3923,7 @@ function showTwoSelect(){
  const btns=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-two="pick" data-key="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-two="pick" data-key="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。「デッキを組む」で30枚を組むと選べます。`}</span></button>`).join('');
  const head=two.step===0?'先攻のデッキを選ぶ':`後攻のデッキを選ぶ(先攻: ${esc(nm(two.first))})`;
- showOverlay(`<h2>二人対戦</h2><p>1台の画面を交代で使って、2人で対戦します。先攻と後攻のデッキを順に選びます。</p><h3>${head}</h3><div class="decks">${btns}</div><div class="row"><button type="button" class="btn" data-two="back">${two.step===0?'戻る':'先攻を選び直す'}</button></div>`);
+ showOverlay(`<button type="button" class="gear" data-set="open" aria-label="対戦設定" title="対戦設定">⚙</button><h2>二人対戦</h2><p>1台の画面を交代で使って、2人で対戦します。先攻と後攻のデッキを順に選びます。</p><h3>${head}</h3><div class="decks">${btns}</div><div class="row"><button type="button" class="btn" data-two="back">${two.step===0?'戻る':'先攻を選び直す'}</button></div>`);
 }
 function startTwo(pk,ck){
  netIdleEnd();
@@ -4063,12 +4067,12 @@ function showNetMenu(err){
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
- showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
+ showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button><button type="button" class="btn" data-set="open">対戦設定</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
 }
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.73';
+const APP_VER='v2.75';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
