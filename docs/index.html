@@ -3726,11 +3726,28 @@ const RULE_DEF={flower:1,power:1,cut:1,rip:1,salv:1,brk:1,comp:1,trap:1,sets:1,m
 const RULE_KEY='jikuzushi_rules_v1';
 let ruleCfg=Object.assign({},RULE_DEF),ruleBack=null;
 try{const j=JSON.parse(localStorage.getItem(RULE_KEY)||'null');if(j&&typeof j==='object')for(const k of Object.keys(RULE_DEF))if(typeof j[k]==='number')ruleCfg[k]=j[k];}catch(e){}
-function applyRules(on){const r=on?ruleCfg:RULE_DEF;for(const k of Object.keys(RL))RL[k]=r[k]?1:0;CFG.manaCap=Math.min(15,Math.max(1,r.mana|0));CFG.acts=Math.min(3,Math.max(1,r.acts|0));}
+function applyRulesObj(r0){const r=Object.assign({},RULE_DEF);if(r0&&typeof r0==='object')for(const k of Object.keys(RULE_DEF))if(typeof r0[k]==='number'&&isFinite(r0[k]))r[k]=r0[k];for(const k of Object.keys(RL))RL[k]=r[k]?1:0;CFG.manaCap=Math.min(15,Math.max(1,r.mana|0));CFG.acts=Math.min(3,Math.max(1,r.acts|0));}
+function applyRules(on){applyRulesObj(on?ruleCfg:RULE_DEF);}
+// 設定でOFFにした効果のカードがデッキに入っているか(パーツ付与は普通の字にもあるので数えない)
+function ruleBadChars(k){
+ if(k==='random')return [];
+ const d=DECKS[k];if(!d)return [];let list;try{list=d.gen?d.gen():d.list;}catch(e){return [];}
+ const bad=[];
+ for(const ch of Object.keys(list||{})){const c=CARDS[ch];if(!c)continue;const o={ch,parts:c.p};
+  const off=(!ruleCfg.cut&&ch==='刀')||(!ruleCfg.rip&&ch==='裂')||(!ruleCfg.salv&&ch==='再')||(!ruleCfg.brk&&ch==='壊')||(!ruleCfg.trap&&c.trap)||(!ruleCfg.power&&isPower(o))||(!ruleCfg.flower&&!isPower(o)&&isFlower(o)&&!c.spell?true:false);
+  if(off)bad.push(ch);}
+ return bad;
+}
+let dwCb=null;
+function deckWarn(k,go,back){
+ const bad=ruleBadChars(k);if(!bad.length){go();return;}
+ dwCb={go,back};
+ showOverlay(`<h2>確認</h2><p>効果を発動できないカードがデッキ内に含まれていますが、よろしいですか？</p><p style="font-size:.88rem;color:var(--ink2)">対象: ${bad.map(esc).join(' ')}</p><div class="row"><button type="button" class="btn pri" data-dw="yes">はい</button><button type="button" class="btn" data-dw="no">いいえ</button></div>`);
+}
 const RULE_ABIL=[['flower','花回復'],['power','力付与'],['cut','切り離し(刀)'],['rip','切り裂き(裂)'],['salv','墓地回収(再)'],['brk','壊す(壊)'],['comp','パーツ付与'],['trap','罠の設置'],['sets','部首ボーナス']];
-function showRules(){
+function showRules(online){
  const sel=(k,a,b,lab)=>`<label class="rlrow"><span>${lab}</span><select data-rl="${k}">${Array.from({length:b-a+1},(_,i)=>a+i).map(v=>`<option value="${v}"${ruleCfg[k]===v?' selected':''}>${v}</option>`).join('')}</select></label>`;
- showOverlay(`<h2>対戦設定</h2><p>CPU対戦・二人対戦に使われます。オンライン対戦とチュートリアルは標準のルールです。</p><h3>使える効果</h3><div class="rlgrid">${RULE_ABIL.map(([k,l])=>`<label class="rlrow"><span>${l}</span><input type="checkbox" data-rl="${k}"${ruleCfg[k]?' checked':''}></label>`).join('')}</div><h3>数値</h3>${sel('mana',1,15,'マナの最大値')}${sel('acts',1,3,'場のカードの行動数(毎ターン)')}<div class="row"><button type="button" class="btn pri" data-set="back">決定</button><button type="button" class="btn" data-set="reset">標準に戻す</button></div>`);
+ showOverlay(`<h2>対戦設定</h2><p>CPU対戦・二人対戦に使われます。オンライン対戦とチュートリアルは標準のルールです。</p>${online?'<p style="font-size:.88rem">オンラインでは、部屋を作った人の設定が両方の対戦に使われます。</p>':''}<h3>使える効果</h3><div class="rlgrid">${RULE_ABIL.map(([k,l])=>`<label class="rlrow"><span>${l}</span><input type="checkbox" data-rl="${k}"${ruleCfg[k]?' checked':''}></label>`).join('')}</div><h3>数値</h3>${sel('mana',1,15,'マナの最大値')}${sel('acts',1,3,'場のカードの行動数(毎ターン)')}<div class="row"><button type="button" class="btn pri" data-set="back">決定</button><button type="button" class="btn" data-set="reset">標準に戻す</button></div>`);
 }
 let cpu={step:0,mine:null,first:true,lv:'normal'};
 function showCpuSelect(){
@@ -3953,8 +3970,8 @@ function twoClick(b){
  if(a==='back'){if(two.step===0)showStart();else{two={step:0,first:null};showTwoSelect();}return;}
  if(a==='pick'){
   const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
-  if(two.step===0){two.first=k;two.step=1;showTwoSelect();}
-  else{startTwo(two.first,k);}
+  deckWarn(k,()=>{if(two.step===0){two.first=k;two.step=1;showTwoSelect();}
+  else{startTwo(two.first,k);}},showTwoSelect);
  }
 }
 function showSurrConfirm(){
@@ -4018,13 +4035,15 @@ $('board').addEventListener('keydown',e=>{
 });
 $('ov').addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset||!t.dataset.rl)return;const k=t.dataset.rl;ruleCfg[k]=t.type==='checkbox'?(t.checked?1:0):Number(t.value);try{localStorage.setItem(RULE_KEY,JSON.stringify(ruleCfg));}catch(e){}});
 $('ov').addEventListener('click',e=>{
+ const dwb=e.target.closest('[data-dw]');
+ if(dwb&&dwCb){const c=dwCb;dwCb=null;if(dwb.dataset.dw==='yes')c.go();else c.back();return;}
  const stb=e.target.closest('[data-set]');
- if(stb){const a=stb.dataset.set;if(a==='open')showRules();else if(a==='back'){if(ruleBack)ruleBack();else showStart();}else if(a==='reset'){ruleCfg=Object.assign({},RULE_DEF);try{localStorage.setItem(RULE_KEY,JSON.stringify(ruleCfg));}catch(e){}showRules();}return;}
+ if(stb){const a=stb.dataset.set;if(a==='open')showRules();else if(a==='online')showRules(true);else if(a==='back'){if(ruleBack)ruleBack();else showStart();}else if(a==='reset'){ruleCfg=Object.assign({},RULE_DEF);try{localStorage.setItem(RULE_KEY,JSON.stringify(ruleCfg));}catch(e){}showRules();}return;}
  const rd=e.target.closest('[data-ready]');
  if(rd){seenSide=rd.dataset.ready;$('ov').hidden=true;render();return;}
  const cd=e.target.closest('[data-cpudeck]');
  if(cd){const k=cd.dataset.cpudeck;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;
-  if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first,cpu.lv);return;}
+  deckWarn(k,()=>{if(cpu.step===0){cpu.mine=k;cpu.step=1;showCpuSelect();}else startGame(cpu.mine,k,cpu.first,cpu.lv);},showCpuSelect);return;}
  const tub=e.target.closest('[data-tut]');
  if(tub){const a=tub.dataset.tut;if(a==='open')showTutorial();else if(a==='back')showStart();else if(TUTS[a])tutStart(a);return;}
  const twb=e.target.closest('[data-two]');
@@ -4083,6 +4102,7 @@ function netDeckKey(sp,slot){
  return slot;
 }
 function showNetMenu(err){
+ ruleBack=()=>showNetMenu();
  const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
@@ -4091,7 +4111,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.76';
+const APP_VER='v2.77';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
@@ -4154,8 +4174,8 @@ function netResetCtr(){if(!ONLINE)return;if(ONLINE.rt){clearTimeout(ONLINE.rt);O
 function netRestart(){
  if(net.role!=='host'||!ONLINE||!net.specs)return;
  const seed=Math.floor(Math.random()*2147483647),hostFirst=Math.random()<.5;
- ONLINE.raw({t:'restart',seed,hostFirst,hostSpec:net.specs.hostSpec,guestSpec:net.specs.guestSpec});
- netResetCtr();netBegin(seed,hostFirst,net.specs.hostSpec,net.specs.guestSpec);
+ ONLINE.raw({t:'restart',seed,hostFirst,hostSpec:net.specs.hostSpec,guestSpec:net.specs.guestSpec,rules:net.rules});
+ netResetCtr();netBegin(seed,hostFirst,net.specs.hostSpec,net.specs.guestSpec,net.rules);
 }
 function netRematchNote(){
  try{if(G&&G.over&&!$('ov').hidden&&$('sheet')&&!$('sheet').querySelector('.rmnote')&&$('sheet').querySelector('[data-act="rematch"]'))$('sheet').querySelector('.row').insertAdjacentHTML('beforebegin','<p class="rmnote" style="font-weight:700;color:var(--accent)">相手が再戦を希望しています</p>');}catch(e){}
@@ -4278,10 +4298,10 @@ async function netHost(){
   if(m.t==='hello'){
    if(!ONLINE){
     const seed=Math.floor(Math.random()*2147483647),hostFirst=Math.random()<.5,hostSpec=netDeckSpec(net.deck);
-    net.startMsg={t:'start',seed,hostFirst,hostSpec,guestSpec:m.deck};
+    net.startMsg={t:'start',seed,hostFirst,hostSpec,guestSpec:m.deck,rules:Object.assign({},ruleCfg)};
     netMakeOnline(i);ONLINE.raw(net.startMsg);
     if(net.wait){clearTimeout(net.wait);net.wait=null;}
-    netBegin(seed,hostFirst,hostSpec,m.deck);
+    netBegin(seed,hostFirst,hostSpec,m.deck,net.startMsg.rules);
    }else if(ONLINE.brk===i&&net.startMsg){ONLINE.raw(net.startMsg);}
    return;
   }
@@ -4301,7 +4321,7 @@ async function netJoin(code){
   if(m.t==='start'&&!ONLINE){
    if(net.hi){clearInterval(net.hi);net.hi=null;}
    if(net.wait){clearTimeout(net.wait);net.wait=null;}
-   netMakeOnline(i);netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);
+   netMakeOnline(i);netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec,m.rules);
    return;
   }
   netIn(i,m);
@@ -4315,7 +4335,7 @@ function netRecv(m){
  if(!ONLINE)return;
  if(m.t==='rematch'){ONLINE.peerRematch=true;if(ONLINE.myRematch&&net.role==='host')netRestart();else if(G&&G.over&&$('ov').hidden)showRematchBanner(()=>netRematchPress(),()=>{if(ONLINE){ONLINE.peerRematch=false;ONLINE.raw({t:'decline'});}});else netRematchNote();return;}
  if(m.t==='decline'){if(ONLINE.rt){clearTimeout(ONLINE.rt);ONLINE.rt=null;}ONLINE.myRematch=false;showOverlay('<h2>再戦</h2><p>相手が再戦を断りました。</p><div class="row"><button type="button" class="btn pri" data-act="tomenu">メニューに戻る</button></div>');return;}
- if(m.t==='restart'&&net.role==='guest'){netResetCtr();netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec);return;}
+ if(m.t==='restart'&&net.role==='guest'){netResetCtr();netBegin(m.seed,m.hostFirst,m.hostSpec,m.guestSpec,m.rules);return;}
  if(!ONLINE.started||!G||!G.two||G.over)return;
  const peerSide=OP(ONLINE.side);
  if(m.t==='surrender'){G.over=ONLINE.side;G.why='相手が降参したので、あなたの勝ちです';resetUi();render();showEnd();return;}
@@ -4331,15 +4351,15 @@ function netRecv(m){
   const w=document.createElement('div');w.setAttribute('role','alert');w.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:99;background:#fee;color:#900;border:2px solid #c33;border-radius:8px;padding:8px;font-size:.85rem';w.textContent='盤面が相手とずれた可能性があります。対戦をやり直してください。';document.body.appendChild(w);setTimeout(()=>w.remove(),8000);
  }
 }
-function netBegin(seed,hostFirst,hostSpec,guestSpec){
- net.specs={hostSpec,guestSpec};
+function netBegin(seed,hostFirst,hostSpec,guestSpec,rules){
+ net.specs={hostSpec,guestSpec};net.rules=rules||null;
  {const br=document.getElementById('backres');if(br)br.remove();}
  const iHost=net.role==='host';
  const side=(iHost===hostFirst)?'p':'c';
  ONLINE.side=side;ONLINE.started=true;ONLINE.ep=seed;
  const pk=netDeckKey(hostFirst?hostSpec:guestSpec,'net_p'),ck=netDeckKey(hostFirst?guestSpec:hostSpec,'net_c');
  NAME[side]='あなた';NAME[OP(side)]='相手';
- RNG=mulberry32(seed);UID=0;applyRules(false);
+ RNG=mulberry32(seed);UID=0;applyRulesObj(net.rules);
  newGame(pk,ck);G.two=true;resetUi();$('ov').hidden=true;
  startTurn('p');render();
 }
@@ -4347,7 +4367,7 @@ function netClick(b){
  const a=b.dataset.net;
  if(a==='open'){net.deck='';showNetMenu();return;}
  if(a==='back'||a==='cancel'){netLeave();showStart();return;}
- if(a==='pick'){const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;net.deck=k;showNetMenu();return;}
+ if(a==='pick'){const k=b.dataset.key;if(!DECKS[k]||(isCustomKey(k)&&!customOk(k)))return;deckWarn(k,()=>{net.deck=k;showNetMenu();},()=>showNetMenu());return;}
  if(a==='test'){netTest();return;}
  if(!net.deck)return;
  if(a==='host'){netHost();return;}
