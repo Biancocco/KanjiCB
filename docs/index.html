@@ -2520,8 +2520,9 @@ if(CARDS['鑑'])CARDS['鑑'].h=15;
 CARDS['再']={s:6,c:0,h:1,p:[],sp:[],a:0,g:5,tag:'',spell:true,label:'墓地回収'};
 // 「止」: 罠用カード。攻撃も召喚もできず、手札から罠の枠に置く。
 Object.assign(CARDS['止'],{c:0,h:1,a:0,p:[],sp:[],tag:'',spell:true,trap:true,label:'罠'});
-// 「返」: 罠用カード(真上の字が「壊」に狙われたとき発動)。
-Object.assign(CARDS['返'],{c:0,h:1,a:0,p:[],sp:[],tag:'',spell:true,trap:true,label:'罠'});
+// 「受」: 罠用カード(真上の字が単体攻撃を受けたとき、または「壊」に狙われたとき発動)。
+// 「返」: 罠用カード(真上の字が攻撃を受けたとき、同じダメージを攻撃してきた字に与え、そのあと壊れる)。
+['受','返'].forEach(k=>Object.assign(CARDS[k],{c:0,h:1,a:0,p:[],sp:[],tag:'',spell:true,trap:true,label:'罠'}));
 // 「壊」: 敵の場の字を1枚壊す特殊カード。攻撃も召喚もできない。
 CARDS['壊']={s:16,c:0,h:1,p:[],sp:[],a:0,g:9,tag:'',spell:true,label:'破壊'};
 // パーツ付与(合成)の表: 手札の字X + 場の字Y → Z。Zの分解パーツからXを1つ除いた残りが、Y自身か、Yの分解パーツと一致するとき。
@@ -2594,13 +2595,13 @@ DECKS.random={name:'無作為',note:'小学1〜6年の字から、毎回ちが�
  }
  return list;
 }};
-DECKS.test={name:'試験',note:'「刀」「花」「止」「再」「壊」「返」を3枚ずつ入れ、残り12枚は小1〜6年の字から毎回ランダムに選ぶ(新しい効果の動作確認用)。',gen(){
- const list={'刀':3,'花':3,'止':3,'再':3,'壊':3,'返':3};
+DECKS.test={name:'試験',note:'「刀」「花」「止」「再」「壊」「受」「返」を3枚ずつ入れ、残り9枚は小1〜6年の字から毎回ランダムに選ぶ(新しい効果の動作確認用)。',gen(){
+ const list={'刀':3,'花':3,'止':3,'再':3,'壊':3,'受':3,'返':3};
  const pool=Object.keys(CARDS).filter(c=>!list[c]&&(CARDS[c].g||0)<=6);let got=0;
- while(got<12){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
+ while(got<9){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
  return list;
 }};
-// 試験デッキ用のCPUのデッキ(選択画面には出さない): 「壊」を3枚入れ、残りは無作為。罠「返」の確認に使う。
+// 試験デッキ用のCPUのデッキ(選択画面には出さない): 「壊」を3枚入れ、残りは無作為。罠「受」の確認に使う。
 DECKS.cpubreak={name:'CPU試験',note:'',hidden:true,gen(){
  const list={'壊':3};const pool=Object.keys(CARDS).filter(c=>!CARDS[c].spell&&(CARDS[c].g||0)<=6);let got=0;
  while(got<27){const c=pool[Math.floor(rnd()*pool.length)];if((list[c]||0)<3){list[c]=(list[c]||0)+1;got++;}}
@@ -2714,6 +2715,15 @@ function summon(s,id,slot){
 }
 // 罠が発動するには、罠の持ち主のマナを1使う(持ち主の前のターンの残り。足りなければ発動しない)。
 function trapPay(owner,ch){if(owner.mana<CFG.trapCost){log(`罠「${ch}」は、マナが足りず発動しなかった`);return false;}owner.mana-=CFG.trapCost;return true;}
+// 返: 真上の字が攻撃を受けたとき(ダメージが1以上)、そのダメージと同じ値を攻撃してきた字に与え、返は壊れる。発動にマナ1。
+function reflect(s,u,tr,slot,dm){
+ const op=S(OP(s));
+ if(!tr||tr.card.ch!=='返'||tr.fired||dm<=0||(op.traps||[])[slot]!==tr||!S(s).field.includes(u))return;
+ if(!trapPay(op,'返'))return;
+ op.traps[slot]=null;toGy(op,tr.card);addCut('返');
+ log(`${NAME[OP(s)]}の罠「返」が発動し、「${u.ch}」に${dm}ダメージを返して壊れた`);
+ dmgUnit(s,u,dm);
+}
 // 単体攻撃: 1つの標的に atk ダメージ。相手の場が空なら本体('face')のみ。
 const addCut=ch=>{(G.fx.cutin=G.fx.cutin||[]).push(ch);};
 function attackWhole(s,uid,tid){
@@ -2728,11 +2738,11 @@ function attackWhole(s,uid,tid){
   const red=ward(op),dm=Math.max(0,u.atk-red);G.fx['atk'+u.id]={t:'atk'};
   log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);
   const tr=(op.traps||[])[t.slot];
-  if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
-   // 返: 真上の字への単体攻撃を一度だけ無効にして、墓地へ行く
-   op.traps[t.slot]=null;toGy(op,tr.card);G.fx[t.id]={t:'guard'};addCut('返');
-   log(`${NAME[OP(s)]}の罠「返」が発動し、「${t.ch}」への${u.atk}ダメージを無効にした`);
-  }else dmgUnit(OP(s),t,dm);
+  if(tr&&tr.card.ch==='受'&&!tr.fired&&trapPay(op,'受')){
+   // 受: 真上の字への単体攻撃を一度だけ無効にして、墓地へ行く
+   op.traps[t.slot]=null;toGy(op,tr.card);G.fx[t.id]={t:'guard'};addCut('受');
+   log(`${NAME[OP(s)]}の罠「受」が発動し、「${t.ch}」への${u.atk}ダメージを無効にした`);
+  }else{dmgUnit(OP(s),t,dm);reflect(s,u,tr,t.slot,dm);}
  }else{
   if(tid!=='face')return false;
   const red=ward(op);G.fx['atk'+u.id]={t:'atk'};
@@ -2794,7 +2804,7 @@ function attackSplit(s,uid,tids){
       G.fx[t.id]={t:'guard'};if(!absorb)absorb={tr,slot:t.slot,unit:t.ch};continue;
      }
     }
-    dmgUnit(OP(s),t,Math.max(0,u.sp[i]-red));
+    {const dm=Math.max(0,u.sp[i]-red);dmgUnit(OP(s),t,dm);reflect(s,u,tr,t.slot,dm);}
    }
   }
  }
@@ -2910,8 +2920,8 @@ function freeDiscard(s,cid){
  const c=me.hand.splice(i,1)[0];toGy(me,c);log(`${NAME[s]}は「再」を破棄した`);return true;
 }
 // 壊す: 手札の「壊」とマナ5を使い、敵の場の字を1枚壊す。1ターンに1回、行動回数は使わない。
-// 壊された字の真上の罠が「返」なら発動する。その字と返が消える代わりに、壊した側の場の字を1枚壊す(壊す字が返を持っていても効かない)。
-// 壊した側の場に字がなければ、本体に5ダメージ。返を持つ側が人間なら、壊す字を自分で選ぶ。
+// 壊された字の真上の罠が「受」なら発動する。その字と返が消える代わりに、壊した側の場の字を1枚壊す(壊す字が返を持っていても効かない)。
+// 壊した側の場に字がなければ、本体に5ダメージ。受を持つ側が人間なら、壊す字を自分で選ぶ。
 function killUnit(s,u){const me=S(s);G.fx['brk'+s+u.slot]={ch:u.ch};const i=me.field.indexOf(u);if(i>=0)me.field.splice(i,1);toGy(me,u);G.fx[u.id]={t:'hit',n:0};log(`${NAME[s]}の「${u.ch}」が壊された`);}
 const counterTarget=s=>S(s).field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
 function breakUnit(s,cid,uid){
@@ -2922,9 +2932,9 @@ function breakUnit(s,cid,uid){
  log(`${NAME[s]}は「壊」で${NAME[OP(s)]}の「${u.ch}」を壊した`);
  const tr=(op.traps||[])[u.slot];
  killUnit(OP(s),u);
- if(tr&&tr.card.ch==='返'&&!tr.fired&&trapPay(op,'返')){
-  op.traps[u.slot]=null;toGy(op,tr.card);addCut('返');
-  log(`${NAME[OP(s)]}の罠「返」が発動した`);
+ if(tr&&tr.card.ch==='受'&&!tr.fired&&trapPay(op,'受')){
+  op.traps[u.slot]=null;toGy(op,tr.card);addCut('受');
+  log(`${NAME[OP(s)]}の罠「受」が発動した`);
   if(!me.field.length){log(`${NAME[s]}の場に字がないので、本体に${CFG.counterDmg}ダメージ`);dmgFace(s,CFG.counterDmg);}
   else if(OP(s)==='p'||G.two){G.pending={by:OP(s),tgt:s};log('壊す相手の字を選んでください');}
   else killUnit(s,counterTarget(s));
@@ -3229,9 +3239,9 @@ function unitWhy(u){
  return '';
 }
 const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
-const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。その分解攻撃で相手の本体へ向かうパーツも、すべて止まります。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「返」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
+const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。その分解攻撃で相手の本体へ向かうパーツも、すべて止まります。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','受':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「受」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が攻撃を受けたとき発動し、受けたダメージと同じダメージを、攻撃してきた字に与えます。ダメージを与えたあと「返」は壊れます(分解攻撃ならパーツ1つぶんが対象)。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
 function panelH(){
- if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「返」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
+ if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「受」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
  if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
  if(ui.confirmEnd)return '<div class="panel alert"><p class="ttl">まだ攻撃していません。</p><p>ターン終了しますか?</p><div class="row"><button type="button" class="btn yes" data-act="endyes">はい</button><button type="button" class="btn" data-act="endno">いいえ</button></div></div>';
  const P=S(ME()),E=S(FOE());
@@ -3511,7 +3521,8 @@ function rulesH(){
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
- <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「返」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
+ <li><b>受(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「受」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
+ <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が攻撃を受けたとき、受けたダメージと同じダメージを、攻撃してきた字に与える。ダメージを与えたあと「返」は壊れる。発動にはマナ${CFG.trapCost}が必要。</li>
  <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
  <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にして、そのあと止は壊れる。<b class="atkw">単体攻撃</b>は止められない。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
@@ -3602,7 +3613,7 @@ const TUTS={
    {kind:'do',t:'墓地から字が手札に戻りました。戻した字は、<b>そのターンのうちに召喚できます</b>(花回復や切り離しなどは次のターンからです)。戻した字を1枚、召喚してみてください。',hl:hlSummon(null),cond:()=>S('p').field.length>=1},
    {t:'墓地から戻した字を、そのターンのうちに召喚できました。以上が<b>墓地回収</b>の説明です。次は、相手の攻撃を防ぐ<b>罠</b>です。'},
    {kind:'do',enter:()=>tutSet({pf:[['日',{}]],cf:[['林',{}]],ph:['止'],mana:5}),t:'<b>罠</b><br>「止」は<b>罠</b>です。「止」を押して「罠設置」を押し、自分の字の下(上の四角)に伏せてください。相手に分解攻撃(林など)をされると発動して、その1回ぶんの攻撃を無効にします。発動には、前のターンの残りマナが1必要です。',hl:()=>{const sc=tSelHand();if(sc!=='止')return tq('.hand .card[aria-label^="止 "]');if(ui.mode!=='trapset')return tq('[data-act="trapmode"]');return tMine('日');},cond:()=>S('p').traps.some(Boolean)},
-   {t:'罠が伏せられました。相手は、どれが罠か分かりません。ほかにも、単体攻撃を無効にして反撃する「返」、相手の字を壊す「壊」などがあります。以上が特殊カードです。',end:true}
+   {t:'罠が伏せられました。相手は、どれが罠か分かりません。ほかにも、単体攻撃を無効にして反撃する「受」、攻撃をそのまま返す「返」、相手の字を壊す「壊」などがあります。以上が特殊カードです。',end:true}
   ]},
  bonus:{title:'部首ボーナス',
   start(){tutSet({ph:[],mana:10,sets:true});},
@@ -3784,7 +3795,7 @@ function bdChipsH(){
 function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
- const body=d.spell?`${esc(d.trap?(k==='止'?'罠(分)':k==='返'?'罠(単)':'罠'):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
+ const body=d.spell?`${esc(d.trap?(k==='止'?`罠(分)(${d.s}画)`:k==='受'?`罠(単)(${d.s}画)`:`罠(${d.s}画)`):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
  return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
 }
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
@@ -3812,7 +3823,7 @@ function bdFiltered(){
 function bdRowH([ch,d]){
  const n=bd.deck[ch]||0,full=bdTotal()>=BD_SIZE;
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
- const info=d.spell?`<b>${esc(d.label||'特殊')}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
+ const info=d.spell?`<b>${esc(d.trap?(ch==='止'?'罠(分)':ch==='受'?'罠(単)':'罠'):(d.label||'特殊'))}</b>(${d.s}画)`:`<b>コスト${d.c}</b> ${healerOnly(ch)?'回復'+healAmt(ch):'攻'+d.a} 体${d.h} ${d.s}画${parts?' 分解 '+esc(parts):healerOnly(ch)?' 回復のみ':' 単体'}`;
  return `<div class="bdr ${d.spell?'spc':bdPw(ch)?'hr':(ch==='裂'||ch==='刀')?'hv':bdFl(ch)?'hl hg':isHealCard({parts:d.p,ch})?'hl':''}" data-row="${ch}"><div class="k">${ch}</div><div class="t">${info}</div><div class="c"><button type="button" class="mini" data-bd="sub" data-ch="${ch}" ${n?'':'disabled'} aria-label="${ch}を1枚減らす">−</button><span>${n}</span><button type="button" class="mini pri" data-bd="add" data-ch="${ch}" ${n>=BD_MAX||full?'disabled':''} aria-label="${ch}を1枚増やす">＋</button></div></div>`;
 }
 function bdListH(){const rows=bdFiltered();return rows.length?rows.map(bdRowH).join(''):'<p style="padding:12px;color:var(--ink2)">該当する字がありません</p>';}
@@ -3901,7 +3912,7 @@ $('ov').addEventListener('input',e=>{
 let two={step:0,first:null};
 function showHandover(side){
  const pend=G.pending;
- showOverlay(`<h2>${esc(NAME[side])}の番</h2><p>${pend?'罠「返」が発動しました。壊す字を選ぶ'+esc(NAME[side])+'に画面を渡してください。':'画面を'+esc(NAME[side])+'に渡してください。'}</p><p style="font-size:.88rem;color:var(--ink2)">相手に手札が見えないようにしてから、「準備OK」を押してください。</p><div class="row"><button type="button" class="btn pri" data-ready="${side}">準備OK</button></div>`);
+ showOverlay(`<h2>${esc(NAME[side])}の番</h2><p>${pend?'罠「受」が発動しました。壊す字を選ぶ'+esc(NAME[side])+'に画面を渡してください。':'画面を'+esc(NAME[side])+'に渡してください。'}</p><p style="font-size:.88rem;color:var(--ink2)">相手に手札が見えないようにしてから、「準備OK」を押してください。</p><div class="row"><button type="button" class="btn pri" data-ready="${side}">準備OK</button></div>`);
 }
 function showTwoSelect(){
  const nm=k=>DECKS[k].name;
@@ -4057,7 +4068,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.72';
+const APP_VER='v2.73';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
