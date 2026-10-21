@@ -253,6 +253,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .bdtop .bdf{flex-wrap:nowrap}
 .bdsets{display:grid;gap:6px;margin-top:6px}
 .setrow{border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:grid;gap:2px;font-size:.85rem}
+.chip2.bonus{background:#fcefa0;border-color:#e3c94f;color:#3b3000}
+.chip2.off{cursor:default;opacity:.85}
 .setrow small{color:var(--ink2);font-size:.75rem}
 .setrow.ok{border-color:#e3c94f;background:#fff6c2;color:#3b3000}
 .setrow.ok small{color:#6b5a00}
@@ -3751,12 +3753,12 @@ function bdInfoH(){
 }
 function bdSetsH(){
  if(!bd.showSets)return '';
- const rows=SETDEF.map(d=>{
-  const items=Object.entries(bd.deck).filter(([k,v])=>v>0&&d.ch.has(k));
-  const n=items.reduce((a,[k,v])=>a+v,0),ok=n>=d.min;
-  return `<div class="setrow${ok?' ok':''}"><div><b>${d.lab}</b> <span class="setn">${n}/${d.min}枚${ok?' ✓ 条件OK':''}</span></div><small>${esc(d.txt)}(場に${d.need}枚)</small>${items.length?`<small>入っている字: ${items.map(([k,v])=>esc(k)+(v>1?'×'+v:'')).join(' ')}</small>`:''}</div>`;
- }).join('');
- return `<div class="bdsets">${rows}</div>`;
+ const rows=SETDEF.map(d=>({d,n:Object.entries(bd.deck).reduce((a,[k,v])=>a+(v>0&&d.ch.has(k)?v:0),0)})).filter(x=>x.n>0);
+ if(!rows.length)return '<div class="bdsets"><span class="sm" style="color:var(--ink2);font-size:.82rem">部首ボーナスの対象の字が、まだ入っていません</span></div>';
+ const chips=rows.map(({d,n})=>{const ok=n>=d.min;return ok?`<button type="button" class="chip2 bonus${bd.setSel===d.k?' sel':''}" data-bd="setpick" data-k="${d.k}" aria-label="${d.lab} ${n}枚 ボーナスの効果を見る">${d.lab}<small>×${n}</small></button>`:`<span class="chip2 off" aria-label="${d.lab} ${n}枚(あと${d.min-n}枚)">${d.lab}<small>×${n}</small></span>`;}).join('');
+ const sd=bd.setSel&&SETD[bd.setSel],sn=sd?rows.find(x=>x.d===sd):null;
+ const det=sd&&sn&&sn.n>=sd.min?`<div class="setrow ok"><div><b>${sd.lab}</b> <span class="setn">${sn.n}/${sd.min}枚 ✓ 条件OK</span></div><small>効果: ${esc(sd.txt)}(場に${sd.need}枚そろうと発動)</small></div>`:'';
+ return `<div class="bdsets"><div class="chips">${chips}</div>${det}</div>`;
 }
 function bdChipsH(){
  const items=Object.entries(bd.deck).filter(([k,v])=>v>0).sort((x,y)=>(CARDS[x[0]].spell?1:0)-(CARDS[y[0]].spell?1:0)||CARDS[x[0]].c-CARDS[y[0]].c||CARDS[x[0]].s-CARDS[y[0]].s);
@@ -3823,7 +3825,7 @@ function bdRefresh(){
 }
 function showBuilder(){
  showOverlay(`<div class="bd"><h2>デッキを組む</h2><p style="font-size:.88rem">全${BD_SIZE}枚。コスト1の字を1枚以上入れる。同じ字は${BD_MAX}枚まで。特定の部首の字をたくさん入れて場にそろえると、ボーナスが出ます:${SETDEF.map(d=>`「${d.lab}」${d.min}枚以上のデッキで場に${d.need}枚→${d.txt}`).join(' / ')}。マイデッキは${BD_SLOTS}つまで保存できます(変更は「保存する」を押すと保存されます)。</p><div class="bdf" id="bdSlots"></div>`+
-  `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div><div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="sets" id="bdSetsBtn" aria-expanded="false">部首ボーナス</button></div><div id="bdSets"></div>`+
+  `<div id="bdInfo"></div><h3>いまのデッキ</h3><div class="chips" id="bdChips"></div><div id="bdPeek"></div><div class="bdf" style="margin-top:6px"><button type="button" class="mini" data-bd="sets" id="bdSetsBtn" aria-expanded="false">部首確認</button></div><div id="bdSets"></div>`+
   `<h3>字を選ぶ</h3><input class="bdq" id="bdQ" type="text" placeholder="字を入力して探す(例: 森花)" value="${esc(bd.q)}" autocomplete="off"><div id="bdFilt">${bdFilterH()}</div><div class="bdl" id="bdList">${bdListH()}</div>`+
   `<div class="row"><button type="button" class="btn pri" id="bdSv" data-bd="save" ${bdCost1()?'':'disabled'}>保存する</button><button type="button" class="btn" data-bd="back">戻る</button></div></div>`);
  bdRefresh();
@@ -3855,7 +3857,8 @@ function bdClick(b){
  if(a==='clear'){bdAsk('いまのデッキの字を、全部はずしますか?',()=>{bd.deck={};bd.peek='';bdRefresh();});return;}
  if(a==='best'){bdBest(BEST_DECK,'最強デッキ');return;}
  if(a==='bestdev'){bdBest(BEST_DECK_DEV,'最強デッキ(中学校の字入り)');return;}
- if(a==='sets'){bd.showSets=!bd.showSets;bdRefresh();return;}
+ if(a==='sets'){bd.showSets=!bd.showSets;bd.setSel='';bdRefresh();return;}
+ if(a==='setpick'){bd.setSel=bd.setSel===b.dataset.k?'':b.dataset.k;bdRefresh();return;}
  if(a==='auto'){bdAsk('残りの枚数を、自動で埋めますか?',()=>{bdAuto();bdRefresh();});return;}
  if(a==='grade'||a==='cost'||a==='split'){
   const v=b.dataset.v;
@@ -4036,7 +4039,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.65';
+const APP_VER='v2.66';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
