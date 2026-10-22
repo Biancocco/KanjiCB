@@ -2624,10 +2624,10 @@ function mkDeck(key){const out=[];const list=DECKS[key].gen?DECKS[key].gen():DEC
 const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢沖沈没沃泳沿河泣況治沼泉泰注泥波泊泌沸法泡油海活洪浄津浅洗洞派洋浦消浸浜浮浴流涙浪淫液涯渇渓混済渋淑渉深清淡添涼温渦減湖港滋湿測渡湯満湧湾滑漢源溝準滞滝溺漠滅溶演漁漆漸漬滴漂漫漏潰潟潔潤潜潮澄激濁濃濯濫瀬'));const SETDEF=[
  {k:'water',ch:WATER,min:6,need:3,lab:'水',txt:'受ける攻撃のダメージ-1(分解攻撃は各パーツ-1)'},
  {k:'hito',ch:new Set(Array.from('人介今仁仏以仕仙他代付令仮会企伎休仰件全仲伝任伐伏位何佐作伺似住伸体但低伯伴余依価佳供使侍舎侮併例係侯俊信侵促俗便保侶俺倹個候借修倉値倒俳倍俵傲俸倫偽偶健側停偵偏偉傘備傍僅傾傑倣債催傷僧働像僕僚億儀舗儒償優')),min:6,need:3,lab:'人',txt:'1ターンに3回行動できる'},
- {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:6,need:2,lab:'手',txt:'召喚したターンから攻撃できる'},
+ {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:10,need:2,lab:'手',txt:'召喚したターンから攻撃できる'},
  {k:'ki',ch:new Set(Array.from('木札本末未机朽朱朴材条杉束村来果枝松枢析東杯板枚枕林枠栄架柿枯査柵柔染柱栃柄某柳案桜格核株桁校根栽桟栓桑桃梅械梗巣梨椅棺棋極検植森棚椎棟棒楷楽棄業楼概構模様横権槽標機橋樹欄')),min:6,need:3,lab:'木',txt:'各カードの体力+2'},
  {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'場のカード全体の攻撃力+1(分解攻撃は各パーツ+1)'},
- {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:10,need:3,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
+ {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:12,need:2,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
 const SETD=Object.fromEntries(SETDEF.map(d=>[d.k,d]));
 const RL={flower:1,power:1,cut:1,rip:1,salv:1,brk:1,comp:1,trap:1,sets:1};
 const setOn=(sx,k)=>!!RL.sets&&!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
@@ -4111,7 +4111,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.77';
+const APP_VER='v2.78';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
