@@ -2627,7 +2627,7 @@ const WATER=new Set(Array.from('水永氷求汁氾汚汗江池汎汽決沙汰沢
  {k:'te',ch:new Set(Array.from('手才打払扱技抗承抄折択投把抜批扶抑押拐拡拒拠拘招拙拓担抽抵拝拍披抱抹拉括挙挟拳拷拶指持拾拭挑挨挫振捜挿捉捗捕掛掘掲控採捨授掌推据接措掃探捻排描握援換揮提搭揚揺携搾摂損搬撃摯摘摩撮撤撲操擁擬擦')),min:10,need:2,lab:'手',txt:'召喚したターンから攻撃できる'},
  {k:'ki',ch:new Set(Array.from('木札本末未机朽朱朴材条杉束村来果枝松枢析東杯板枚枕林枠栄架柿枯査柵柔染柱栃柄某柳案桜格核株桁校根栽桟栓桑桃梅械梗巣梨椅棺棋極検植森棚椎棟棒楷楽棄業楼概構模様横権槽標機橋樹欄')),min:6,need:3,lab:'木',txt:'各カードの体力+2'},
  {k:'katana',ch:new Set(Array.from('刀刃刈切分刊刑列初判別利券刻刷刹刺制到削前則剣剛剤剝剖剰副割創劇')),min:6,need:2,lab:'刀',txt:'場のカード全体の攻撃力+1(分解攻撃は各パーツ+1)'},
- {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:12,need:2,lab:'肉',txt:'各カードの体力+1・攻撃力+1'}];
+ {k:'niku',ch:new Set(Array.from('肉肌肝肖肘育肩股肯肢肥肪胃胎胆背肺胞胸脅脂脊胴能脈脇脚脱脳腐腕腫腎腺腸腹腰膜膝膚膳膨臆臓')),min:12,need:2,lab:'肉',txt:'場のカード全体の体力+1。場に3枚そろうと、攻撃力も+1'}];
 const SETD=Object.fromEntries(SETDEF.map(d=>[d.k,d]));
 const RL={flower:1,power:1,cut:1,rip:1,salv:1,brk:1,comp:1,trap:1,sets:1};
 const setOn=(sx,k)=>!!RL.sets&&!!(sx.sets&&sx.sets[k])&&sx.field.filter(u=>SETD[k].ch.has(u.ch)).length>=SETD[k].need;
@@ -2638,7 +2638,7 @@ function syncSide(s){
  const sx=S(s);if(!sx||!sx.field)return;
  if(setOn(sx,'te'))sx.field.forEach(u=>{u.sick=false;});
  if(G.cur===s){const on=setOn(sx,'hito');if(on&&!sx.actB){sx.acts++;sx.actB=true;}else if(!on&&sx.actB){sx.acts=Math.max(0,sx.acts-1);sx.actB=false;}}
- const ki=setOn(sx,'ki'),kt=setOn(sx,'katana'),nk=setOn(sx,'niku');
+ const ki=setOn(sx,'ki'),kt=setOn(sx,'katana'),nk=setOn(sx,'niku'),nk3=nk&&sx.field.filter(x=>SETD.niku.ch.has(x.ch)).length>=3;
  const keys=SETDEF.filter(d=>setOn(sx,d.k)).map(d=>d.k);
  for(const u of sx.field){
   const sk=u.sk||[];const gain=keys.filter(k=>!sk.includes(k));u.sk=keys.slice();
@@ -2646,10 +2646,14 @@ function syncSide(s){
    const show=gain.some(k=>k!=='te')||(gain.includes('te')&&fresh);
    if(show&&(!fx0||fresh))G.fx[u.id]={t:'spawn',y:1};}
   const ab=u.ab||(u.ab={hp:0,atk:0});
-  const wh=(ki?2:0)+(nk?1:0),wa=(kt?1:0)+(nk?1:0);
+  const wh=(ki?2:0)+(nk?1:0),wa=(kt?1:0);
   const dh=wh-ab.hp,da=wa-ab.atk;
   if(dh){u.max+=dh;if(dh>0)u.hp+=dh;else u.hp=Math.max(1,Math.min(u.hp,u.max));ab.hp=wh;}
   if(da){if(u.parts.length>1){u.sp=u.sp.map(x=>x+da);u.atk+=da*u.parts.length;}else u.atk+=da;ab.atk=wa;}
+  // 肉(3枚そろったとき): 攻撃力+1。分解攻撃の字は、攻撃力がいちばん低いパーツだけ+1。
+  {const w3=nk3?1:0,d3=w3-(ab.nk||0);
+   if(d3){if(u.parts.length>1){if(d3>0){let mi=0;u.sp.forEach((x,i)=>{if(x<u.sp[mi])mi=i;});u.sp[mi]+=1;ab.nkp=mi;}else{const j=ab.nkp||0;u.sp[j]=Math.max(0,u.sp[j]-1);}}
+    u.atk+=d3;ab.nk=w3;}}
  }
 }
 function syncAll(){if(!G||!G.side)return;syncSide('p');syncSide('c');}
@@ -3168,7 +3172,7 @@ function cardH(u,kind,cls,tag,gtag){
  const owner=G.side.p.field.includes(u)?'p':G.side.c.field.includes(u)?'c':null;
  const sfx=owner&&SETDEF.some(d=>setOn(S(owner),d.k)&&(d.k!=='te'||u.sumT===G.turn))?' setfx':'';
  const apx=G.fx['atk'+u.id]?' atkpop':'';
- const bh=u.ab&&u.ab.hp>0,ba=u.ab&&u.ab.atk>0;
+ const bh=u.ab&&u.ab.hp>0,ba=u.ab&&(u.ab.atk>0||u.ab.nk>0);
  const hpv=u.hp<u.max?`${u.hp}<small>/${u.max}</small>`:u.hp;
  const hpTxt=kind==='hand'?u.hp:(bh?`<b class="bon">${hpv}</b>`:hpv);
  return `<div class="cw"><button type="button"${dly} class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}${sfx}${apx}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
@@ -3630,7 +3634,7 @@ const TUTS={
    {kind:'do',enter:()=>tutSet({ph:tutPick('ki',3),mana:10,sets:true}),t:'<b>例1: 木ボーナス</b><br>木・きへんを含む字が場に3枚そろうと、<b>体力が+2</b>されます。手札の木の字を3枚、場に出してください。',hl:hlSummon(null),cond:()=>S('p').field.length>=3},
    {t:'3枚が<b>黄色の枠</b>で光り、体力が2ずつ増えました(黄色の数字)。体力バーの下には、効いている部首の印(木)も出ます。字が減ってそろわなくなると、ボーナスは消えます。'},
    {kind:'do',enter:()=>tutSet({ph:tutPick('te',3),cf:[['木',{}]],mana:10,sets:true}),t:'<b>例2: 手ボーナス</b><br>手・てへんを含む字が場に2枚そろうと、<b>召喚した直後の字もすぐ攻撃できます</b>。手札の3枚を場に出し、最後に出した字で攻撃してみてください。',hl:()=>{const p=S('p');if(p.field.length<3)return hlSummon(null)();const u=p.field.find(x=>x.id===p.lastSum)||p.field.find(x=>!x.done&&!x.sick);if(!u||u.done)return [];const k=u.parts.length>1?'split':'whole';return hlAttack(u.ch,k,'enemy')();},cond:()=>S('p').field.length>=3&&S('p').field.some(u=>u.done)},
-   {t:'召喚したばかりの字で攻撃できました。ほかにも、<b>水</b>(受けるダメージ-1)、<b>人</b>(1ターンに3回行動)、<b>刀</b>(場全体の攻撃力+1)、<b>肉</b>(体力+1と攻撃力+1)があります。デッキ編成画面で、字を組み合わせてみてください。',end:true}
+   {t:'召喚したばかりの字で攻撃できました。ほかにも、<b>水</b>(受けるダメージ-1)、<b>人</b>(1ターンに3回行動)、<b>刀</b>(場全体の攻撃力+1)、<b>肉</b>(体力+1。3枚で攻撃力も+1)があります。デッキ編成画面で、字を組み合わせてみてください。',end:true}
   ]}
 };
 const TUT_ORDER=['rules','special','bonus'];
@@ -4111,7 +4115,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.78';
+const APP_VER='v2.79';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
