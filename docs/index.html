@@ -2650,10 +2650,9 @@ function syncSide(s){
   const dh=wh-ab.hp,da=wa-ab.atk;
   if(dh){u.max+=dh;if(dh>0)u.hp+=dh;else u.hp=Math.max(1,Math.min(u.hp,u.max));ab.hp=wh;}
   if(da){if(u.parts.length>1){u.sp=u.sp.map(x=>x+da);u.atk+=da*u.parts.length;}else u.atk+=da;ab.atk=wa;}
-  // 肉(3枚そろったとき): 攻撃力+1。分解攻撃の字は、攻撃力がいちばん低いパーツだけ+1。
+  // 肉(3枚そろったとき): 攻撃力+1。分解攻撃の字は、すべてのパーツが+1。
   {const w3=nk3?1:0,d3=w3-(ab.nk||0);
-   if(d3){if(u.parts.length>1){if(d3>0){let mi=0;u.sp.forEach((x,i)=>{if(x<u.sp[mi])mi=i;});u.sp[mi]+=1;ab.nkp=mi;}else{const j=ab.nkp||0;u.sp[j]=Math.max(0,u.sp[j]-1);}}
-    u.atk+=d3;ab.nk=w3;}}
+   if(d3){if(u.parts.length>1){u.sp=u.sp.map(x=>x+d3);u.atk+=d3*u.parts.length;}else u.atk+=d3;ab.nk=w3;}}
  }
 }
 function syncAll(){if(!G||!G.side)return;syncSide('p');syncSide('c');}
@@ -4115,7 +4114,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.79';
+const APP_VER='v2.80';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
