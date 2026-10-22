@@ -274,6 +274,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .chip2.spc{background:var(--spell)}
 .chip2 small{font-family:var(--sans);font-size:.7rem;color:var(--ink2);margin-left:3px}
 .bdf{display:flex;flex-wrap:wrap;gap:6px}
+@media(min-width:500px){.bdf.gr{flex-wrap:nowrap;gap:4px}.bdf.gr .mini{padding:0 8px;min-width:34px}}
 .bdf.gap{margin-top:14px}
 .peek{display:inline-grid;gap:2px;border:1.5px solid var(--ink2);border-radius:6px;padding:4px 8px;font-size:.74rem;line-height:1.35;background:var(--card);color:var(--card-ink);max-width:100%}
 .peek b{font-family:var(--kanji);font-size:1.1rem;font-weight:400}
@@ -3876,8 +3877,8 @@ function bdFilterH(){
  const g2=[...(DEV?[[7,'中学']]:[]),['s','特殊']].map(gb).join('');
  const cb=v=>`<button type="button" class="mini ${bd.cost===v?'pri':''}" data-bd="cost" data-v="${v}">${v?v:'全コスト'}</button>`;
  const c=[0,1,2,3,4].map(cb).join('')+'</div><div class="bdf" role="group" aria-label="コスト(5以上)" style="margin-top:6px">'+[5,6,7,8,9,...(DEV?[10]:[])].map(cb).join('');
- const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select><button type="button" class="mini ${bd.rs?'pri':''}" data-bd="rad" aria-pressed="${bd.rs}" title="ONにすると、字の検索欄に入れた字を部首にもつ字を一覧で表示します">部首検索</button><select class="mini boxed" id="bdDir" aria-label="昇順・降順" ${bd.sort?'':'disabled'}><option value="+"${bd.dir==='+'?' selected':''}>昇順</option><option value="-"${bd.dir==='-'?' selected':''}>降順</option></select>`;
- return `<div class="bdfl"><div class="bdf" role="group" aria-label="学年">${g}${g2}</div></div><div class="bdfl"><div class="bdf gap" role="group" aria-label="コスト">${c}</div></div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
+ const sp=`<span style="align-self:center;font-weight:700">分解:</span><button type="button" class="mini ${bd.sy?'pri':''}" data-bd="split" data-v="y" aria-pressed="${bd.sy}">有</button><button type="button" class="mini ${bd.sn?'pri':''}" data-bd="split" data-v="n" aria-pressed="${bd.sn}">無</button><button type="button" class="mini ${bd.rs?'pri':''}" data-bd="rad" aria-pressed="${bd.rs}" title="ONにすると、字の検索欄に入れた字を部首にもつ字を一覧で表示します">部首検索</button><select class="mini" id="bdSort" aria-label="並べ方">${BD_SORTS.map(([v,l])=>`<option value="${v}"${bd.sort===v?' selected':''}>並べ方: ${l}</option>`).join('')}</select><select class="mini boxed" id="bdDir" aria-label="昇順・降順" ${bd.sort?'':'disabled'}><option value="+"${bd.dir==='+'?' selected':''}>昇順</option><option value="-"${bd.dir==='-'?' selected':''}>降順</option></select>`;
+ return `<div class="bdfl"><div class="bdf gr" role="group" aria-label="学年">${g}${g2}</div></div><div class="bdfl"><div class="bdf gap" role="group" aria-label="コスト">${c}</div></div><div class="bdf gap" role="group" aria-label="分解の有無">${sp}</div>`;
 }
 function bdRefresh(){
  try{const sv=$('bdSv');if(sv)sv.disabled=!bdCost1();}catch(e){}
@@ -4119,7 +4120,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.81';
+const APP_VER='v2.82';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
