@@ -320,7 +320,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:0,breakLow:3,fieldCost:17,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:1,secondOpen:0,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:0,breakLow:3,fieldCost:17,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -3657,7 +3657,7 @@ function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').classL
 function rulesH(){
   return `<ol>
  <li>相手のHP(${CFG.hp})を0にすれば勝ち。負けるのは、本体のHPが0になったときと、自分のターンの始めに手札も山札もなくなっていたときです(山札だけがなくなっても、手札があれば負けません)。</li>
- <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、CPUの最初のターンはマナが1多い。</li>
+ <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
  <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
@@ -4259,7 +4259,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.101';
+const APP_VER='v2.102';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
