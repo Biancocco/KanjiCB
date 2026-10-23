@@ -256,7 +256,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .bdcols{display:flex;flex-direction:column;gap:10px}
 .bdc1,.bdc2{display:flex;flex-direction:column;gap:10px;min-width:0}
 .bdc1>*{flex-shrink:0}
-@media(min-width:1000px){.bdfl+.bdfl{margin-top:14px}.bdfl{display:flex;flex-wrap:nowrap;gap:6px;align-items:center}.bdfl>.bdf{margin-top:0!important;flex-wrap:nowrap}.bdc1>*{flex-shrink:0}.sheet.wide{max-width:1180px}.bdcols{display:grid;grid-template-columns:minmax(380px,5fr) 6fr;gap:24px;align-items:start}.bdc1{max-height:calc(100vh - 250px);overflow:auto;padding-right:8px}.bdc2 .bdl{max-height:calc(100vh - 400px);min-height:220px}.sheet.wide .bd>.row{position:sticky;bottom:-20px;background:var(--panel);padding:8px 0}}
+@media(min-width:1000px){.bdfl+.bdfl{margin-top:14px}.bdfl{display:flex;flex-wrap:nowrap;gap:6px;align-items:center}.bdfl>.bdf{margin-top:0!important;flex-wrap:nowrap}.bdc1>*{flex-shrink:0}.sheet.wide{max-width:1180px}.bdcols{display:grid;grid-template-columns:minmax(340px,400px) minmax(0,1fr);gap:16px;align-items:start}.bdc1{max-height:calc(100vh - 250px);overflow:auto;padding-right:8px}.bdc2 .bdl{max-height:calc(100vh - 400px);min-height:220px}.sheet.wide .bd>.row{position:sticky;bottom:-20px;background:var(--panel);padding:8px 0}}
 .bdinfo{display:grid;gap:4px;font-size:.88rem}
 .bdtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .bdtop .bdf{flex-wrap:nowrap}
@@ -3756,7 +3756,7 @@ function showRules(online){
 let cpu={step:0,mine:null,first:true,lv:'normal'};
 function showCpuSelect(){
  ruleBack=showCpuSelect;const st=cpu.step;
- const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
+ const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden&&(!d.dev||DEV)).map(([k,d])=>`<button type="button" class="btn deck" data-cpudeck="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('');
  const mine=Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-cpudeck="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。`}</span></button>`).join('');
  const head=st===0?'あなたのデッキを選ぶ':`CPUのデッキを選ぶ(あなた: ${esc(DECKS[cpu.mine].name)})`;
  showOverlay(`<button type="button" class="gear" data-set="open" aria-label="対戦設定" title="対戦設定">⚙</button><h2>CPU対戦</h2><p>あなたとCPUが使うデッキを選んで対戦します。</p><div class="swrow"><span>先攻にする</span><button type="button" class="sw${cpu.first?' on':''}" role="switch" aria-checked="${cpu.first}" aria-label="先攻にする" data-cpu="flip"><i></i></button></div><div class="swrow"><span>CPUの強さ</span><span class="bdf"><button type="button" class="mini ${cpu.lv==='hard'?'':'pri'}" data-cpu="lv" data-v="normal" aria-pressed="${cpu.lv!=='hard'}">ふつう</button><button type="button" class="mini ${cpu.lv==='hard'?'pri':''}" data-cpu="lv" data-v="hard" aria-pressed="${cpu.lv==='hard'}">つよい</button></span></div><h3>${head}</h3><div class="decks">${decks}${mine}</div><div class="row" style="margin-top:12px"><button type="button" class="btn" data-cpu="back">戻る</button></div>`);
@@ -3904,7 +3904,8 @@ function showBuilder(){
 }
 // AI同士の模擬戦で選んだ最強デッキ(CPUのような動きの相手に強い)
 const BEST_DECK={'分':1,'死':2,'矢':3,'虫':3,'石':1,'車':2,'国':1,'庫':3,'勇':1,'要':1,'税':1,'態':1,'新':1,'鋼':2,'敵':1,'優':1,'議':2,'臓':1,'警':2};
-const BEST_DECK_DEV={'返':1,'分':1,'矢':1,'虫':3,'死':1,'両':1,'車':1,'透':1,'途':1,'宮':1,'烈':1,'独':1,'堤':1,'惜':1,'設':1,'鉢':1,'構':1,'論':1,'鎖':1,'謝':1,'類':1,'臓':1,'藻':1,'鬱':2,'鑑':1,'露':1,'驚':1};
+const BEST_DECK_DEV={'受':1,'分':1,'矢':1,'虫':3,'死':1,'両':1,'車':1,'透':1,'途':1,'宮':1,'烈':1,'独':1,'堤':1,'惜':1,'設':1,'鉢':1,'構':1,'論':1,'鎖':1,'謝':1,'類':1,'臓':1,'藻':1,'鬱':2,'鑑':1,'露':1,'驚':1};
+DECKS.bestdev={name:'最強デッキ',note:'中学校の字を含む、いちばん強いデッキ(開発者モード専用。CPU対戦だけで選べる)。',dev:true,list:BEST_DECK_DEV};
 function bdBest(d,label){
  if(!Object.keys(d).every(k=>CARDS[k]&&gradeOpen(CARDS[k].g)))return;
  bdAsk(`マイデッキ${bd.slot+1}を、${label}に置き換えて保存しますか?`,()=>{bd.deck=Object.assign({},d);bd.peek='';bdSave();bdRefresh();});
@@ -3962,7 +3963,7 @@ function showHandover(side){
 function showTwoSelect(){
  ruleBack=showTwoSelect;
  const nm=k=>DECKS[k].name;
- const btns=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck" data-two="pick" data-key="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
+ const btns=Object.entries(DECKS).filter(([k,d])=>!d.hidden&&!d.dev).map(([k,d])=>`<button type="button" class="btn deck" data-two="pick" data-key="${k}"><b>${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>`<button type="button" class="btn deck" data-two="pick" data-key="custom${i+1}" ${slotValid(i)?'':'disabled'}><b>マイデッキ${i+1}</b><span>${slotValid(i)?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:`まだマイデッキ${i+1}を保存していないので選べません。「デッキを組む」で30枚を組むと選べます。`}</span></button>`).join('');
  const head=two.step===0?'先攻のデッキを選ぶ':`後攻のデッキを選ぶ(先攻: ${esc(nm(two.first))})`;
  showOverlay(`<button type="button" class="gear" data-set="open" aria-label="対戦設定" title="対戦設定">⚙</button><h2>二人対戦</h2><p>1台の画面を交代で使って、2人で対戦します。先攻と後攻のデッキを順に選びます。</p><h3>${head}</h3><div class="decks">${btns}</div><div class="row"><button type="button" class="btn" data-two="back">${two.step===0?'戻る':'先攻を選び直す'}</button></div>`);
@@ -4112,7 +4113,7 @@ function netDeckKey(sp,slot){
 }
 function showNetMenu(err){
  ruleBack=()=>showNetMenu();
- const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
+ const decks=Object.entries(DECKS).filter(([k,d])=>!d.hidden&&!d.dev).map(([k,d])=>`<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}"><b>${net.deck===k?'✓ ':''}${d.name}</b><span>${esc(d.note)}</span></button>`).join('')+
   Array.from({length:BD_SLOTS},(_,i)=>{const k='custom'+(i+1),ok=slotValid(i);return `<button type="button" class="btn deck${net.deck===k?' pri':''}" data-net="pick" data-key="${k}" aria-pressed="${net.deck===k}" ${ok?'':'disabled'}><b>${net.deck===k?'✓ ':''}マイデッキ${i+1}</b><span>${ok?`保存してあるマイデッキ${i+1}(${BD_SIZE}枚)を使う。`:'まだ保存していないので選べません。'}</span></button>`;}).join('');
  const can=!!net.deck;
  showOverlay(`<h2>オンライン対戦 <small style="font-size:.6rem;font-weight:400;color:var(--ink2)">${APP_VER}</small></h2><p>別々の端末で2人が対戦します。一人が「部屋を作る」で出た合言葉を相手に伝え、もう一人が「部屋に入る」でそれを入力します。先攻・後攻はランダムで決まります。</p>${err?`<p style="color:var(--bad,#c33)">${esc(err)}</p>`:''}<h3>使うデッキを選ぶ</h3><div class="decks">${decks}</div><div class="row"><button type="button" class="btn pri" data-net="host" ${can?'':'disabled'}>部屋を作る</button><button type="button" class="btn" data-set="online">対戦設定</button></div><div class="row" style="align-items:center;gap:6px"><input id="netcode" maxlength="5" placeholder="${can?'合言葉':'先にデッキを選択'}" ${can?'':'disabled'} autocomplete="off" autocapitalize="characters" style="width:7em;font-size:1.1rem;text-transform:uppercase;padding:6px"><button type="button" class="btn pri" data-net="join" ${can?'':'disabled'}>部屋に入る</button></div><p id="netwarn" hidden style="margin:2px 0 0;font-size:.74rem;color:var(--warn)">文字数が足りません</p><div class="row"><button type="button" class="btn" data-net="test">通信テスト</button><button type="button" class="btn" data-net="back">戻る</button></div>`);
@@ -4120,7 +4121,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.82';
+const APP_VER='v2.83';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
