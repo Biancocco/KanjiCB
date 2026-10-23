@@ -2692,7 +2692,7 @@ function startTurn(s){
   const c=me.deck.shift();
   if(me.hand.length>=CFG.hand){toGy(me,c);log(`${NAME[s]}は手札が満杯で1枚捨てた`);}
   else{me.hand.push(c);log(s==='p'&&!G.two?`あなたは「${c.ch}」を引いた`:`${NAME[s]}は1枚引いた`);}
- }
+ } if(!me.hand.length&&!me.deck.length)win(OP(s),`${NAME[s]}は手札も山札もなくなった`);
 }
 function canAct(s,u){return !G.over&&G.cur===s&&S(s).acts>0&&!u.sick&&!u.done;}
 const POWER_CHARS=new Set(Array.from('力勝功攻勢努勇'+(DEV_ON?'励':'')));
@@ -3528,7 +3528,7 @@ async function runCpu(){
 function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').classList.remove('wide');$('sheet').innerHTML=html;$('ov').hidden=false;try{$('sheet').scrollTop=0;$('ov').scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function rulesH(){
   return `<ol>
- <li>相手のHP(${CFG.hp})を0にすれば勝ち。負けるのは本体のHPが0になったときだけです(山札が尽きても負けません)。</li>
+ <li>相手のHP(${CFG.hp})を0にすれば勝ち。負けるのは、本体のHPが0になったときと、自分のターンの始めに手札も山札もなくなっていたときです(山札だけがなくなっても、手札があれば負けません)。</li>
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、CPUの最初のターンはマナが1多い。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
@@ -3619,7 +3619,7 @@ const TUTS={
    {kind:'do',allow:['pdraw'],t:'<b>ドロー</b><br>マナが3あります。「ドロー」を押すと、マナ2を使って追加で1枚引けます(1ターンに1回)。手札を増やしたいときに使います。',hl:hlBtn('pdraw'),cond:()=>S('p').dr},
    {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。相手のHPが5から3に減ります。',hl:hlAttack('日','whole','face'),cond:()=>S('c').hp<=3},
    {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、七と刀のそれぞれについて、相手の本体(上のHPバー)を押して標的にします。すべて選び終えると、自動で攻撃します。1+2=3ダメージで、相手のHPが0になります。',hl:hlAttack('切','split','face'),cond:()=>G.over==='p'},
-   {t:'<b>勝利です!</b><br>相手のHPを0にしました。まとめ: ①毎ターン1枚引く ②マナで召喚 ③1ターンに2回攻撃(単体・分解) ④相手の場が空なら本体を攻撃 ⑤相手のHPを0にすれば勝ち。山札が尽きても負けません(負けるのは本体のHPが0になったときだけ)。',end:true}
+   {t:'<b>勝利です!</b><br>相手のHPを0にしました。まとめ: ①毎ターン1枚引く ②マナで召喚 ③1ターンに2回攻撃(単体・分解) ④相手の場が空なら本体を攻撃 ⑤相手のHPを0にすれば勝ち。HPが0になるほか、手札も山札もなくなると負けです。',end:true}
   ]},
  special:{title:'特殊カード',
   start(){tutSet({ph:[],mana:5});},
@@ -4129,7 +4129,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.89';
+const APP_VER='v2.90';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
