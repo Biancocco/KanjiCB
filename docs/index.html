@@ -298,17 +298,19 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 .sheet,.sheet .btn,.sheet .chip,.sheet .chip2,.sheet .peek,.sheet .mini,.sheet .mini.boxed,.sheet .bdq,.sheet .bdl,.sheet .setrow,.sheet .ref,.sheet .panel,.sheet select,.sheet input[type=text],.sheet .bon,.sheet .bst{border-radius:0}
 .bar,.hp,.panel,.btn,.ref,.surr,.bar .rays i{border-radius:0}
-.fxs{position:absolute;left:50%;top:5px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:2px;width:max-content;max-width:calc(100cqw - 62px);z-index:4;pointer-events:none}
-.fxb{pointer-events:auto;position:relative;min-width:16px;height:16px;padding:0 2px;border-radius:50%;background:#7a3b9c;color:#fff;font-family:var(--kanji);font-size:.66rem;line-height:16px;text-align:center;cursor:help;box-shadow:0 0 0 1.5px var(--card)}
+.fxs{position:absolute;left:50%;top:5px;transform:translateX(-50%);display:flex;flex-wrap:nowrap;justify-content:center;gap:2px;max-width:calc(100cqw - 62px);z-index:4;pointer-events:none}
+.fxs.n3 .fxb{font-size:.5rem}
+.fxs.n3{gap:1px}
+.fxb{pointer-events:auto;position:relative;flex:0 1 16px;min-width:9px;height:16px;padding:0;overflow:visible;border-radius:50%;background:#7a3b9c;color:#fff;font-family:var(--kanji);font-size:.66rem;line-height:16px;text-align:center;cursor:help;box-shadow:0 0 0 1.5px var(--card)}
 .fxb::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:max-content;max-width:190px;padding:5px 8px;border-radius:0;background:#222;color:#fff;font-family:var(--sans);font-size:.72rem;line-height:1.4;text-align:left;white-space:normal;opacity:0;visibility:hidden;pointer-events:none;z-index:30}
 .fxb:hover::after,.fxb:focus::after{opacity:1;visibility:visible}
 .pfx{line-height:1.5}
 .fxb.pop{animation:fxpop 2.6s both}
 @keyframes fxpop{0%{opacity:0;transform:scale(.3)}8%{opacity:1;transform:scale(1.5)}18%,100%{opacity:1;transform:scale(1)}}
-.cutin.cutp{animation:cutfade 1s both;top:44%}
-.cutp .cband{padding:6px 0;gap:12px;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(20,24,40,.5) 25%,rgba(20,24,40,.5) 75%,rgba(0,0,0,0));animation:cutslide 1s cubic-bezier(.2,.8,.2,1) both}
+.cutin.cutp{animation:cutfade 1.2s both;top:44%}
+.cutp .cband{padding:6px 0;gap:12px;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(20,24,40,.5) 25%,rgba(20,24,40,.5) 75%,rgba(0,0,0,0));animation:cutslide 1.2s cubic-bezier(.2,.8,.2,1) both}
 .cutp .clab{font-size:12px;opacity:.85}
-.pcir{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:rgba(122,59,156,.75);color:#fff;font-family:var(--kanji);font-size:28px;line-height:1}
+.pcir{display:inline-grid;place-items:center;width:56px;height:56px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:rgba(122,59,156,.75);color:#fff;font-family:var(--kanji);font-size:32px;line-height:1}
 .ptx{color:#fff;font-weight:700;font-size:15px;letter-spacing:.1em}
 </style>
 
@@ -2727,17 +2729,17 @@ const PFX_ALIAS={'氵':'水','扌':'手','灬':'火'};
 const PFX_TXT={
  '水':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
  '木':'自分の場の字すべての体力を1回復',
- '口':'山札から1枚引く(1ターンに1回)',
+ '口':'山札から1枚引く',
  '言':'攻撃した字の罠を、発動させずに墓地へ送る',
- '手':'自分の墓地から好きな1枚を手札に戻す(1ターンに1回)',
+ '手':'自分の墓地から好きな1枚を手札に戻す',
  '日':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '火':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '土':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
  '貝':'今のターンと次のターンのマナ+1',
  '金':'相手の水の守り・罠・守りを無視して当たる。次の相手のターンまで、この字が受ける単体攻撃のダメージ-1',
- '辶':'この字は、次のターンから破棄にマナがかからない',
+ '辶':'この字は、次のターンから破棄にマナがかからない(倒されるか破棄されるまで続く)',
  '糸':'攻撃した字は、次の自分のターンに分解攻撃できない',
- '頁':'山札からランダムに出た3枚から、好きな1枚を引く(1ターンに1回)'};
+ '頁':'山札からランダムに出た3枚から、好きな1枚を引く'};
 const pfxOf=p=>{const k=PFX_ALIAS[p]||p;return PFX_TXT[k]?k:null;};
 const discardCostOf=(me,u)=>(u&&u.fd&&me.tn>u.fd)?0:CFG.discardCost;
 function canSplit(s,u){return u.parts.length>1&&!(u.ns&&u.ns===S(s).tn);}
@@ -2845,10 +2847,12 @@ function pfxPick(cid){
 }
 // パーツ効果が出たとき: カットイン(薄め)と、対象の字の上に出すパーツを記録する。
 const PFX_SHORT={'水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
+// 字が別の字に変わっても(合成・切り離し・切り裂き)、パーツ効果で受けた状態は引き継ぐ。
+function stKeep(n,u){for(const k of ['sh','bn','kn','fd','ns'])if(u[k]!==undefined)n[k]=u[k];}
 function pfxNote(lab,ids){
  const fx=G.fx,n=fx.pfn||0;fx.pfn=n+1;
  (fx.cutin=fx.cutin||[]).push({k:'pfx',part:lab,txt:PFX_SHORT[lab]||''});
- fx.pf=fx.pf||{};ids.forEach(id=>{(fx.pf[id]=fx.pf[id]||[]).push({p:lab,d:Math.round((n*1.0+0.35)*100)/100});});
+ fx.pf=fx.pf||{};ids.forEach(id=>{(fx.pf[id]=fx.pf[id]||[]).push({p:lab,d:Math.round((n*1.2+0.35)*100)/100});});
 }
 function pfxHit(s,u,i,t,fxd){
  const key=pfxOf(u.parts[i]);if(!key)return;
@@ -2858,10 +2862,10 @@ function pfxHit(s,u,i,t,fxd){
  switch(id){
   case '水':fxd.add(id);note=[u.id];u.sh='水';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
   case '木':{fxd.add(id);let n=0;note=[];me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;note.push(x.id);G.fx[x.id]={t:'crown',n:1,heal:1};}});if(!note.length)note=[u.id];log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
-  case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);note=[u.id];me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
+  case '口':if(me.deck.length){fxd.add(id);note=[u.id];log(`${by}で、1枚引く`);drawExtra(s,1);}break;
   case '言':break;
-  case '手':{if(me.pxt===G.turn||me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
-   fxd.add(id);note=[u.id];me.pxt=G.turn;
+  case '手':{if(me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
+   fxd.add(id);note=[u.id];
    if(human){pfxPend(s,{kind:'gy',ids:me.gy.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、墓地から手札に戻す字を選べる`);}
    else{const c=me.gy.slice().sort((a,b)=>(CARDS[b.ch].c-CARDS[a.ch].c)||(b.id-a.id))[0];
     me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地から1枚を手札に戻した`);}
@@ -2872,8 +2876,8 @@ function pfxHit(s,u,i,t,fxd){
   case '金':fxd.add(id);note=[u.id];u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンまで、受ける単体攻撃-1)`);break;
   case '辶':fxd.add(id);if(!u.fd){note=[u.id];u.fd=me.tn;log(`${by}で、「${u.ch}」は次のターンから破棄が無料になる`);}break;
   case '糸':if(alive){fxd.add(id);note=[t.id];t.ns=op.tn+1;log(`${by}で、「${t.ch}」は次のターンに分解攻撃できなくなった`);}break;
-  case '頁':{if(me.pxp===G.turn||!me.deck.length||me.hand.length>=CFG.hand)break;
-   fxd.add(id);note=[u.id];me.pxp=G.turn;
+  case '頁':{if(!me.deck.length||me.hand.length>=CFG.hand)break;
+   fxd.add(id);note=[u.id];
    const idx=shuffle(me.deck.map((c,k)=>k)).slice(0,3),top=idx.map(k=>me.deck[k]);
    if(human){pfxPend(s,{kind:'page',ids:top.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、山札からランダムに${top.length}枚が出た。1枚選べる`);}
    else{const sc=c=>c.cost*2+c.atk+c.hp*0.5;const best=top.slice().sort((a,b)=>sc(b)-sc(a))[0];me.deck.splice(me.deck.indexOf(best),1);me.hand.push(best);log(`${by}で、山札の${top.length}枚から1枚を引いた`);}
@@ -2976,7 +2980,7 @@ function compose(s,cid,uid){
  const c=me.hand[i],z=composeTo(c.ch,u.ch);if(!z)return false;
  me.mana-=CFG.composeCost;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
+ const n=mk(z);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;stKeep(n,u);
  n.max=CARDS[z].h+bonus;n.hp=Math.max(1,n.max-dmg);
  me.field[me.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
  log(`${NAME[s]}は「${c.ch}」を付与して「${u.ch}」を「${z}」にした`);return true;
@@ -2991,7 +2995,7 @@ function cut(s,cid,uid,part){
  const y=cutsOf(u)[part];if(!y)return false;
  const c=me.hand[i];me.mana-=CFG.cutCost;me.ct=true;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
+ const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;stKeep(n,u);
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
  op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};addCut({k:'cut',from:u.ch,part,to:y});
  log(`${NAME[s]}は「刀」で${NAME[OP(s)]}の「${u.ch}」から「${part}」を切り離し、「${y}」にした`);return true;
@@ -3006,7 +3010,7 @@ function rip(s,cid,uid,idx){
  const r=ripsOf(u)[idx];if(!r)return false;
  const y=r.to,c=me.hand[i];me.mana-=CFG.ripCost;me.rp=true;me.hand.splice(i,1);toGy(me,c);
  const bonus=u.max-CARDS[u.ch].h,dmg=u.max-u.hp;
- const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;
+ const n=mk(y);n.id=u.id;n.slot=u.slot;n.sick=u.sick;n.done=u.done;n.pow=u.pow;if(n.pow){n.atk+=n.pow;if(n.parts.length>1)n.sp[0]+=n.pow;}n.fmax=u.fmax;stKeep(n,u);
  n.max=CARDS[y].h+bonus;n.hp=Math.max(1,n.max-dmg);
  op.field[op.field.indexOf(u)]=n;G.fx[n.id]={t:'spawn'};
  addCut({k:'cut',lab:'切り裂き',from:u.ch,part:r.a,to:r.b+r.left});addCut({k:'cut',lab:'切り裂き',from:r.b+r.left,part:r.b,to:y});
@@ -3305,7 +3309,7 @@ function fxBadgesH(u,owner){
  if(u.ns&&u.ns>=tn)b.push(['糸','縛られている: 次の自分のターンは分解攻撃できない']);
  // いま発動したパーツ(回復・ドローなど、状態として残らないものも含む)
  for(const f of pf){if(!b.some(x=>x[0]===f.p))b.push([f.p,`${f.p}の効果が発動した: ${PFX_TXT[f.p]||''}`]);}
- return b.length?`<span class="fxs">${b.map(x=>{const f=pf.find(q=>q.p===x[0]);return `<span class="fxb${f?' pop':''}"${f?` style="animation-delay:${f.d}s"`:''} tabindex="0" data-tip="${esc(x[1])}" aria-label="${esc(x[1])}">${esc(x[0])}</span>`;}).join('')}</span>`:'';
+ return b.length?`<span class="fxs${b.length>=3?' n3':''}">${b.map(x=>{const f=pf.find(q=>q.p===x[0]);return `<span class="fxb${f?' pop':''}"${f?` style="animation-delay:${f.d}s"`:''} tabindex="0" data-tip="${esc(x[1])}" aria-label="${esc(x[1])}">${esc(x[0])}</span>`;}).join('')}</span>`:'';
 }
 // カードの説明に出す、パーツごとの追加効果
 function pfxInfoH(parts){
@@ -3662,7 +3666,7 @@ function rulesH(){
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
- <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
+ <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く、頁=山札からランダムに出た3枚から好きな1枚を引く、手=墓地の好きな1枚を手札へ(この3つは、字ごとに1回の分解攻撃で1回ずつ)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
  <li>行動は毎ターン${CFG.acts}回で、攻撃に使う。召喚と破棄は行動回数を使わない。1枚の字が動けるのは1ターンに1回で、出したばかりの字は動けない。</li>
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
@@ -4261,15 +4265,15 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.103';
+const APP_VER='v2.104';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
  const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
  if(typeof it==='object'&&it.k==='salv'){ms=2100;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s">${esc(c)}</span>`).join('')}</span></div>`;}
- else if(typeof it==='object'&&it.k==='pfx'){ms=1000;e.classList.add('cutp');
-  e.innerHTML=`<div class="cband"><span class="clab">パーツ効果</span><span class="pcir">${esc(it.part)}</span><span class="ptx">${esc(it.txt)}</span></div>`;}
+ else if(typeof it==='object'&&it.k==='pfx'){ms=1200;e.classList.add('cutp');
+  e.innerHTML=`<div class="cband"><span class="pcir">${esc(it.part)}</span></div>`;}
  else if(typeof it==='object'){ms=1900;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">${esc(it.lab||'切り離し')}</span><span class="cstage${it.from.length>1||it.to.length>1?' two':''}"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
  else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
