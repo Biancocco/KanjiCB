@@ -3603,10 +3603,10 @@ const tutHas=(s,ch)=>S(s).field.some(u=>u.ch===ch);
 const tutPick=(k,n)=>[...SETD[k].ch].filter(c=>CARDS[c]&&!CARDS[c].spell&&CARDS[c].c<=2).slice(0,n);
 const TUTS={
  rules:{title:'基本ルール',
-  start(){tutSet({ph:['日','切','木'],ch:[],chp:5});},
+  start(){tutSet({ph:['日','切','木'],ch:[],chp:2});},
   cpu:[()=>{const c=S('c');c.hand=[mk('一')];summon('c',c.hand[0].id);},()=>{tutPut('c','一',{hp:1});tutPut('c','二',{hp:1});log('相手は「一」と「二」を出した');}],
   steps:[
-   {t:'<b>基本ルール</b><br>これは1対1のカードバトルです。画面の上が相手、下があなた。どちらもHPが20あり、<b>相手のHPを0にすれば勝ち</b>です。(練習なので、相手のHPは5にしてあります。)',hl:'.bar'},
+   {t:'<b>基本ルール</b><br>これは1対1のカードバトルです。画面の上が相手、下があなた。どちらもHPが20あり、<b>相手のHPを0にすれば勝ち</b>です。(練習なので、相手のHPは2にしてあります。)',hl:'.bar'},
    {t:'<b>手札とマナ</b><br>下に並んでいるのが<b>手札</b>(使えるカード)です。ターンの始めに、山札から<b>1枚が自動で手札に入ります</b>。カードを場に出すには<b>マナ</b>(体力バーの下の四角)を使います。マナは毎ターン1ずつ増え、使った分も次のターンに全回復します。',hl:'.hand,.pips'},
    {t:'<b>操作ボタン</b><br>手札の下に2つのボタンがあります。「<b>ドロー</b>」は、マナ2を使って追加で1枚引くボタン(1ターンに1回)。「<b>ターン終了</b>」は、自分の番を終えて相手に渡すボタンです。',hl:'.ctl'},
    {kind:'do',t:'<b>召喚してみよう</b><br>手札の「日」を押して、出てきた「召喚する」を押してください。マナ1を使って、場に出ます。',hl:hlSummon('日'),cond:()=>tutHas('p','日')},
@@ -3621,9 +3621,7 @@ const TUTS={
    {kind:'do',allow:['pdraw'],t:'<b>ドロー</b><br>マナが3あります。「ドロー」を押すと、マナ2を使って追加で1枚引けます(1ターンに1回)。手札を増やしたいときに使います。',hl:hlBtn('pdraw'),cond:()=>S('p').dr},
    {kind:'do',t:'<b>分解攻撃で2枚倒す</b><br>相手が、体力1の「一」と「二」を出しました。「切」を押して「分解攻撃」を押し、<b>七</b>(1ダメージ)で「一」、<b>刀</b>(2ダメージ)で「二」を選んでください。1回の攻撃で、パーツごとに別々の相手を倒しきれます。',hl:hlAttack('切','split','enemy'),cond:()=>S('c').field.length===0},
    {t:'<b>2枚とも倒しました!</b><br>分解攻撃は、パーツの数だけ別々の標的を狙えるので、弱い相手が並んでいるときに強力です。これで相手の場が空になったので、残った「日」で本体を攻撃できます。'},
-   {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。相手のHPが5から3に減ります。',hl:hlAttack('日','whole','face'),cond:()=>S('c').hp<=3},
-   {kind:'do',allow:['end'],t:'「切」はもう動いたので、ターンを終えましょう。次のターンに、「切」でとどめを刺します。',hl:hlBtn('end'),cond:()=>G.cur==='p'&&S('p').tn>=4},
-   {kind:'do',t:'<b>とどめの分解攻撃</b><br>「切」を押して「分解攻撃」を押し、七と刀のそれぞれについて、相手の本体(上のHPバー)を押して標的にします。すべて選び終えると、自動で攻撃します。1+2=3ダメージで、相手のHPが0になります。',hl:hlAttack('切','split','face'),cond:()=>G.over==='p'},
+   {kind:'do',t:'<b>本体への攻撃</b><br>「日」を押して「単体攻撃」を押し、相手の本体(上のHPバー)を押してください。日の攻撃力(2)で、相手のHP(2)が0になります。',hl:hlAttack('日','whole','face'),cond:()=>G.over==='p'},
    {t:'<b>勝利です!</b><br>相手のHPを0にしました。まとめ: ①毎ターン1枚引く ②マナで召喚 ③1ターンに2回攻撃(単体・分解) ④相手の場が空なら本体を攻撃 ⑤相手のHPを0にすれば勝ち。HPが0になるほか、手札も山札もなくなると負けです。',end:true}
   ]},
  special:{title:'特殊カード',
@@ -4134,7 +4132,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.97';
+const APP_VER='v2.98';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
