@@ -253,9 +253,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .deck span{font-size:.82rem;font-weight:400;color:var(--ink2)}
 
 .bd{display:flex;flex-direction:column;gap:10px}
-.bdcols{display:flex;flex-direction:column;gap:10px}
+.bdcols{display:flex;flex-direction:column;gap:6px}
 .bdc1,.bdc2{display:flex;flex-direction:column;gap:10px;min-width:0}
 .bdc1>*{flex-shrink:0}
+#bdSets:empty,#bdSetList:empty,#bdPeek:empty{display:none}
 @media(min-width:1000px){.bdfl+.bdfl{margin-top:14px}.bdfl{display:flex;flex-wrap:nowrap;gap:6px;align-items:center}.bdfl>.bdf{margin-top:0!important;flex-wrap:nowrap}.bdc1>*{flex-shrink:0}.sheet.wide{max-width:1180px}.bdcols{display:grid;grid-template-columns:minmax(340px,400px) minmax(0,1fr);gap:16px;align-items:start}.bdc1{max-height:calc(100vh - 250px);overflow:auto;padding-right:8px}.bdc2 .bdl{max-height:calc(100vh - 400px);min-height:220px}.sheet.wide .bd>.row{position:sticky;bottom:-20px;background:var(--panel);padding:8px 0}}
 .bdinfo{display:grid;gap:4px;font-size:.88rem}
 .bdtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -2696,7 +2697,7 @@ function startTurn(s){
 function canAct(s,u){return !G.over&&G.cur===s&&S(s).acts>0&&!u.sick&&!u.done;}
 const POWER_CHARS=new Set(Array.from('力勝功攻勢努勇'+(DEV_ON?'励':'')));
 const isPower=c=>POWER_CHARS.has(c.ch);
-const FLOWER_EXTRA=new Set(['菜']);
+const FLOWER_EXTRA=new Set(['菜','藻']);
 const isFlower=c=>c.parts.includes('艹')||FLOWER_EXTRA.has(c.ch);
 const isBoost=c=>isPower(c)||isFlower(c);
 const boostCost=c=>isPower(c)?CFG.powerCost:CFG.crownCost;
@@ -4121,7 +4122,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.83';
+const APP_VER='v2.84';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
