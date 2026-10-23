@@ -302,6 +302,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .fxb::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);width:max-content;max-width:190px;padding:5px 8px;border-radius:0;background:#222;color:#fff;font-family:var(--sans);font-size:.72rem;line-height:1.4;text-align:left;white-space:normal;opacity:0;visibility:hidden;pointer-events:none;z-index:30}
 .fxb:hover::after,.fxb:focus::after{opacity:1;visibility:visible}
 .pfx{line-height:1.5}
+.fxb.pop{animation:fxpop 2.6s both}
+@keyframes fxpop{0%{opacity:0;transform:scale(.3)}8%{opacity:1;transform:scale(1.5)}18%,100%{opacity:1;transform:scale(1)}}
+.cutin.cutp{animation:cutfade 1s both;top:44%}
+.cutp .cband{padding:6px 0;gap:12px;background:linear-gradient(90deg,rgba(0,0,0,0),rgba(20,24,40,.5) 25%,rgba(20,24,40,.5) 75%,rgba(0,0,0,0));animation:cutslide 1s cubic-bezier(.2,.8,.2,1) both}
+.cutp .clab{font-size:12px;opacity:.85}
+.pcir{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,255,255,.85);background:rgba(122,59,156,.75);color:#fff;font-family:var(--kanji);font-size:28px;line-height:1}
+.ptx{color:#fff;font-weight:700;font-size:15px;letter-spacing:.1em}
 </style>
 
 <div id="app">
@@ -2835,35 +2842,43 @@ function pfxPick(cid){
  }
  G.pending=(G.pq&&G.pq.shift())||null;return true;
 }
+// パーツ効果が出たとき: カットイン(薄め)と、対象の字の上に出すパーツを記録する。
+const PFX_SHORT={'水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
+function pfxNote(lab,ids){
+ const fx=G.fx,n=fx.pfn||0;fx.pfn=n+1;
+ (fx.cutin=fx.cutin||[]).push({k:'pfx',part:lab,txt:PFX_SHORT[lab]||''});
+ fx.pf=fx.pf||{};ids.forEach(id=>{(fx.pf[id]=fx.pf[id]||[]).push({p:lab,d:Math.round((n*1.0+0.35)*100)/100});});
+}
 function pfxHit(s,u,i,t,fxd){
  const key=pfxOf(u.parts[i]);if(!key)return;
  const id=key==='日'?'火':key;if(fxd.has(id))return;
- const me=S(s),op=S(OP(s)),lab=u.parts[i],by=`${NAME[s]}の「${u.ch}」の「${lab}」`,alive=!!t&&op.field.includes(t);
+ let note=null;const me=S(s),op=S(OP(s)),lab=key,by=`${NAME[s]}の「${u.ch}」の「${lab}」`,alive=!!t&&op.field.includes(t);
  const mine=s==='p'&&!G.two,human=s==='p'||!!G.two;
  switch(id){
-  case '水':fxd.add(id);u.sh='水';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
-  case '木':{fxd.add(id);let n=0;me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;G.fx[x.id]={t:'crown',n:1,heal:1};}});log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
-  case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
-  case '言':fxd.add(id);break;
+  case '水':fxd.add(id);note=[u.id];u.sh='水';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
+  case '木':{fxd.add(id);let n=0;note=[];me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;note.push(x.id);G.fx[x.id]={t:'crown',n:1,heal:1};}});if(!note.length)note=[u.id];log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
+  case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);note=[u.id];me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
+  case '言':break;
   case '手':{if(me.pxt===G.turn||me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
-   fxd.add(id);me.pxt=G.turn;
+   fxd.add(id);note=[u.id];me.pxt=G.turn;
    if(human){pfxPend(s,{kind:'gy',ids:me.gy.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、墓地から手札に戻す字を選べる`);}
    else{const c=me.gy.slice().sort((a,b)=>(CARDS[b.ch].c-CARDS[a.ch].c)||(b.id-a.id))[0];
     me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地から1枚を手札に戻した`);}
    break;}
-  case '火':if(alive){fxd.add(id);t.bn={src:lab,left:3};log(`${by}で、「${t.ch}」が燃え始めた`);}break;
-  case '土':fxd.add(id);u.sh='土';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
-  case '貝':{fxd.add(id);me.mana=Math.min(CFG.manaCap,me.mana+1);if(me.mana>me.max)me.max=me.mana;me.nm=(me.nm||0)+1;log(`${by}で、マナが1増えた(次のターンも+1)`);break;}
-  case '金':fxd.add(id);u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンまで、受ける単体攻撃-1)`);break;
-  case '辶':fxd.add(id);if(!u.fd){u.fd=me.tn;log(`${by}で、「${u.ch}」は次のターンから破棄が無料になる`);}break;
-  case '糸':if(alive){fxd.add(id);t.ns=op.tn+1;log(`${by}で、「${t.ch}」は次のターンに分解攻撃できなくなった`);}break;
+  case '火':if(alive){fxd.add(id);note=[t.id];t.bn={src:lab,left:3};log(`${by}で、「${t.ch}」が燃え始めた`);}break;
+  case '土':fxd.add(id);note=[u.id];u.sh='土';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
+  case '貝':{fxd.add(id);note=[u.id];me.mana=Math.min(CFG.manaCap,me.mana+1);if(me.mana>me.max)me.max=me.mana;me.nm=(me.nm||0)+1;log(`${by}で、マナが1増えた(次のターンも+1)`);break;}
+  case '金':fxd.add(id);note=[u.id];u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンまで、受ける単体攻撃-1)`);break;
+  case '辶':fxd.add(id);if(!u.fd){note=[u.id];u.fd=me.tn;log(`${by}で、「${u.ch}」は次のターンから破棄が無料になる`);}break;
+  case '糸':if(alive){fxd.add(id);note=[t.id];t.ns=op.tn+1;log(`${by}で、「${t.ch}」は次のターンに分解攻撃できなくなった`);}break;
   case '頁':{if(me.pxp===G.turn||!me.deck.length||me.hand.length>=CFG.hand)break;
-   fxd.add(id);me.pxp=G.turn;
+   fxd.add(id);note=[u.id];me.pxp=G.turn;
    const idx=shuffle(me.deck.map((c,k)=>k)).slice(0,3),top=idx.map(k=>me.deck[k]);
    if(human){pfxPend(s,{kind:'page',ids:top.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、山札からランダムに${top.length}枚が出た。1枚選べる`);}
    else{const sc=c=>c.cost*2+c.atk+c.hp*0.5;const best=top.slice().sort((a,b)=>sc(b)-sc(a))[0];me.deck.splice(me.deck.indexOf(best),1);me.hand.push(best);log(`${by}で、山札の${top.length}枚から1枚を引いた`);}
    break;}
  }
+ if(note)pfxNote(lab,note);
 }
 function attackSplit(s,uid,tids){
  const me=S(s),op=S(OP(s)),u=me.field.find(x=>x.id===uid);
@@ -2888,7 +2903,7 @@ function attackSplit(s,uid,tids){
    const t=op.field.find(x=>x.id===tids[i]);
    if(t){
     let tr=(op.traps||[])[t.slot];
-    if(pfxOf(u.parts[i])==='言'&&tr&&!tr.fired){op.traps[t.slot]=null;toGy(op,tr.card);log(`${NAME[s]}の「${u.ch}」の「${u.parts[i]}」で、「${t.ch}」の罠「${tr.card.ch}」が発動せずに墓地へ送られた`);tr=null;}
+    if(pfxOf(u.parts[i])==='言'&&tr&&!tr.fired){op.traps[t.slot]=null;toGy(op,tr.card);log(`${NAME[s]}の「${u.ch}」の「${u.parts[i]}」で、「${t.ch}」の罠「${tr.card.ch}」が発動せずに墓地へ送られた`);tr=null;if(!fxd.has('言')){fxd.add('言');pfxNote('言',[t.id]);}}
     if(tr&&tr.card.ch==='止'&&!kin){
      if(!tr.fired&&tr.np!==G.turn){if(trapPay(op,'止')){tr.fired=true;tr.turn=G.turn;tr.blocked=[];firedNow.push(tr);log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}else tr.np=G.turn;}
      if(tr.fired&&tr.turn===G.turn){
@@ -3040,10 +3055,10 @@ function resolveCounter(uid){
  const t=S(pd.tgt).field.find(x=>x.id===uid);if(!t)return false;
  G.pending=null;killUnit(pd.tgt,t);return true;
 }
-// 墓地回収(再): 手札の「再」と、ほかの手札2枚を捨て、自分の墓地にあるコスト5以下の字2枚を手札に加える。
+// 墓地回収(再): 手札の「再」と、ほかの手札2枚を捨て、自分の墓地にある字(コストは問わない)2枚を手札に加える。
 // 墓地は持ち主ごとに別々で、回収できるのは自分の墓地だけ。「再」自身は回収できない。この使用で捨てた札は回収対象に含めない。
 // 回収した字は新しい札として戻る(受けたダメージなどは引き継がない)。マナと行動回数は使わない。
-const salvElig=s=>(S(s).gy||[]).filter(c=>c.ch!=='再'&&CARDS[c.ch].c<=CFG.salvMax);
+const salvElig=s=>(S(s).gy||[]).filter(c=>c.ch!=='再');
 function salvage(s,cid,disIds,takeIds){
  const me=S(s);if(G.over||G.cur!==s||!RL.salv)return false;
  const rc=me.hand.find(c=>c.id===cid);if(!rc||rc.salv||rc.ch!=='再')return false;
@@ -3269,14 +3284,27 @@ function cardH(u,kind,cls,tag,gtag){
   (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${ba?`<b class="bon">${u.atk}</b>`:u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${fxBadgesH(u,owner)}${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
 }
 // パーツの効果を受けている字は、上の真ん中にそのパーツを表示する。カーソルを置くと効果が出る。
+// 召喚できなくても、手札から使える花回復・力付与・パーツ付与・切り離し・切り裂きがあるときは、カードを曇らせない。
+function handSubOk(c){
+ if(c.salv||c.spell)return false;
+ const P=S(ME()),E=S(FOE());
+ if(isBoost(c)&&(isPower(c)?RL.power:RL.flower)&&P.mana>=boostCost(c)&&P.field.length&&!(isPower(c)?P.ph:P.fh))return true;
+ if(RL.comp&&P.mana>=CFG.composeCost&&P.field.some(u=>composeTo(c.ch,u.ch)))return true;
+ if(c.ch==='刀'&&RL.cut&&P.mana>=CFG.cutCost&&!P.ct&&E.field.some(u=>Object.keys(cutsOf(u)).length))return true;
+ if(c.ch==='裂'&&RL.rip&&P.mana>=CFG.ripCost&&!P.rp&&E.field.some(u=>ripsOf(u).length))return true;
+ return false;
+}
 function fxBadgesH(u,owner){
  if(!owner||u.spell)return '';const tn=S(owner).tn,b=[];
+ const pf=(G.fx&&G.fx.pf&&G.fx.pf[u.id])||[];
  if(u.sh)b.push([u.sh,`${u.sh}の守り: 次に受けるダメージ-2(分解攻撃はパーツごとに-1)`]);
  if(u.bn)b.push([u.bn.src,`燃えている: 自分のターンの始めに体力-1(あと${u.bn.left}回)`]);
  if(u.kn)b.push(['金','金の守り: 次の相手のターンまで、受ける単体攻撃のダメージ-1']);
  if(u.fd)b.push(['辶',tn>u.fd?'破棄にマナがかからない':'次のターンから、破棄にマナがかからない']);
  if(u.ns&&u.ns>=tn)b.push(['糸','縛られている: 次の自分のターンは分解攻撃できない']);
- return b.length?`<span class="fxs">${b.map(x=>`<span class="fxb" tabindex="0" data-tip="${esc(x[1])}" aria-label="${esc(x[1])}">${esc(x[0])}</span>`).join('')}</span>`:'';
+ // いま発動したパーツ(回復・ドローなど、状態として残らないものも含む)
+ for(const f of pf){if(!b.some(x=>x[0]===f.p))b.push([f.p,`${f.p}の効果が発動した: ${PFX_TXT[f.p]||''}`]);}
+ return b.length?`<span class="fxs">${b.map(x=>{const f=pf.find(q=>q.p===x[0]);return `<span class="fxb${f?' pop':''}"${f?` style="animation-delay:${f.d}s"`:''} tabindex="0" data-tip="${esc(x[1])}" aria-label="${esc(x[1])}">${esc(x[0])}</span>`;}).join('')}</span>`:'';
 }
 // カードの説明に出す、パーツごとの追加効果
 function pfxInfoH(parts){
@@ -3396,8 +3424,8 @@ function panelH(){
   }
   if(c&&c.spell){
    const el=salvElig(ME()),others=P.hand.length-1;
-   const why=others<CFG.salvDiscard?`捨てる手札が足りません(ほかに${CFG.salvDiscard}枚必要)`:!el.length?`墓地にコスト${CFG.salvMax}以下の字がありません`:'';
-   return `<div class="panel"><p class="ttl">「再」 墓地回収カード</p><p class="sm">攻撃も召喚もできません。ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加えます。いまの墓地: ${P.gy.length}枚(うち回収できるのは${el.length}枚)。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="salvmode" ${why?'disabled':''}>回収</button><button type="button" class="btn" data-act="freediscard">破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   const why=others<CFG.salvDiscard?`捨てる手札が足りません(ほかに${CFG.salvDiscard}枚必要)`:!el.length?'墓地に回収できる字がありません':'';
+   return `<div class="panel"><p class="ttl">「再」 墓地回収カード</p><p class="sm">攻撃も召喚もできません。ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にある字(コストは問いません)を${CFG.salvTake}枚まで手札に加えます。いまの墓地: ${P.gy.length}枚(うち回収できるのは${el.length}枚)。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="salvmode" ${why?'disabled':''}>回収</button><button type="button" class="btn" data-act="freediscard">破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&ui.mode==='cut'){
    const eu=ui.cut&&E.field.find(x=>x.id===ui.cut.uid);
@@ -3467,7 +3495,7 @@ function handH(){
   let cls='';
   if(ui.sel&&ui.sel.kind==='hand'&&ui.sel.id===c.id)cls+=' sel';
   if(ui.mode==='salv'&&ui.salv&&ui.salv.dis.includes(c.id))cls+=' sel';
-  if(mineTurn()&&(c.salv?(c.spell||summonWhy(ME(),c)):(!c.spell&&summonWhy(ME(),c))))cls+=' dim';
+  if(mineTurn()&&(c.salv?(c.spell||summonWhy(ME(),c)):(!c.spell&&summonWhy(ME(),c)&&!handSubOk(c))))cls+=' dim';
   return cardH(c,'hand',cls);
  }).join('');
  return `<p class="lbl2">手札 ${P.hand.length}/${CFG.hand}</p><div class="hand">${cards||'<span class="empty">手札がありません</span>'}</div>`;
@@ -3647,7 +3675,7 @@ function rulesH(){
  <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
  <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にして、そのあと止は壊れる。<b class="atkw">単体攻撃</b>は止められない。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
- <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にあるコスト${CFG.salvMax}以下の字を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
+ <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にある字(コストは問わない)を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
  <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・力付与・花回復の分は引き継ぐ。</li>
  <li>罠の枠が自分と相手に${CFG.trap}つずつある。枠の位置は、場の字の枠と同じ列に対応する。</li>
  <li><b>パーツ付与</b>: 手札の字Xを使い、場の字Yに足すと別の字Zになるとき、YをZに変えられる(例: 手札の「木」で場の「林」→「森」、「日」で「月」→「明」)。マナ${CFG.composeCost}とXを消費し、行動回数は使わない。Zは同じ枠に入り、受けたダメージや力付与・花回復の分、動けるかどうかは引き継ぐ。足りないパーツが1つの字だけが対象で、手札・場の両方に実装済みの字どうしに限る。</li>
@@ -4231,13 +4259,15 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.100';
+const APP_VER='v2.101';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
  const e=document.createElement('div');e.className='cutin';e.setAttribute('aria-hidden','true');let ms=1100;
  if(typeof it==='object'&&it.k==='salv'){ms=2100;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">墓地回収</span><span class="cstage salv"><i class="sring"></i><i class="sring r2"></i><span class="sre">再</span></span><span class="sch">${it.chars.map((c,i)=>`<span style="animation-delay:${i*.15}s">${esc(c)}</span>`).join('')}</span></div>`;}
+ else if(typeof it==='object'&&it.k==='pfx'){ms=1000;e.classList.add('cutp');
+  e.innerHTML=`<div class="cband"><span class="clab">パーツ効果</span><span class="pcir">${esc(it.part)}</span><span class="ptx">${esc(it.txt)}</span></div>`;}
  else if(typeof it==='object'){ms=1900;e.classList.add('cutk');
   e.innerHTML=`<div class="cband"><span class="clab">${esc(it.lab||'切り離し')}</span><span class="cstage${it.from.length>1||it.to.length>1?' two':''}"><span class="ca">${esc(it.from)}</span><span class="cb">${esc(it.from)}</span><i class="cs"></i><span class="cr">${esc(it.to)}</span><span class="cp">${esc(it.part)}</span></span></div>`;}
  else e.innerHTML=`<div class="cband"><span class="clab">罠発動</span><span class="cch">${it}</span></div>`;
