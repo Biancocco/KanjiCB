@@ -306,7 +306,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:0,breakMax:2,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:0,secondOpen:1,discardCost:1,crownCost:1,powerCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:5,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -2933,15 +2933,12 @@ function freeDiscard(s,cid){
 // 壊された字の真上の罠が「受」なら発動する。その字と返が消える代わりに、壊した側の場の字を1枚壊す(壊す字が返を持っていても効かない)。
 // 壊した側の場に字がなければ、本体に5ダメージ。受を持つ側が人間なら、壊す字を自分で選ぶ。
 function killUnit(s,u){const me=S(s);G.fx['brk'+s+u.slot]={ch:u.ch};const i=me.field.indexOf(u);if(i>=0)me.field.splice(i,1);toGy(me,u);G.fx[u.id]={t:'hit',n:0};log(`${NAME[s]}の「${u.ch}」が壊された`);}
-// 「壊」を使える条件: 相手の場にコスト8〜10の字が2枚以上いるとき。マナは使わず、1試合に2回まで。
-const bigN=sx=>sx.field.filter(u=>!u.spell&&u.cost>=8&&u.cost<=10).length;
-const breakOk=sx=>bigN(sx)>=2;
 const counterTarget=s=>S(s).field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
 function breakUnit(s,cid,uid){
- const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||G.pending||!RL.brk||(me.bkn||0)>=CFG.breakMax||!breakOk(op))return false;
+ const me=S(s),op=S(OP(s));if(G.over||G.cur!==s||G.pending||!RL.brk||me.bk||me.mana<CFG.breakCost)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].salv||me.hand[i].ch!=='壊')return false;
  const u=op.field.find(x=>x.id===uid);if(!u)return false;
- const c=me.hand.splice(i,1)[0];me.mana-=CFG.breakCost;me.bk=true;me.bkn=(me.bkn||0)+1;toGy(me,c);
+ const c=me.hand.splice(i,1)[0];me.mana-=CFG.breakCost;me.bk=true;toGy(me,c);
  log(`${NAME[s]}は「壊」で${NAME[OP(s)]}の「${u.ch}」を壊した`);
  const tr=(op.traps||[])[u.slot];
  killUnit(OP(s),u);
@@ -3048,10 +3045,10 @@ function aiDiscard(s){
 }
 function aiBreak(s){
  const me=S(s),op=S(OP(s));
- if((me.bkn||0)>=CFG.breakMax||!breakOk(op))return null;
+ if(me.bk||me.mana<CFG.breakCost||!op.field.length)return null;
  const c=me.hand.find(x=>x.ch==='壊');if(!c)return null;
- const tg=op.field.filter(u=>!u.spell&&u.cost>=8&&u.cost<=10).sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
- return tg?{c,tg}:null;
+ const tg=op.field.slice().sort((a,b)=>(b.cost-a.cost)||(b.hp-a.hp))[0];
+ return tg.cost>=3?{c,tg}:null;
 }
 // 強いCPU: 通常の動きに加えて、罠の設置・花回復・力付与・切り離し・切り裂き・有料ドローを使う
 function hardBoost(s){
@@ -3281,11 +3278,11 @@ function panelH(){
    return `<div class="panel"><p class="ttl">罠設置: 「${c.ch}」</p><p>罠を置く枠を選んでください。「ここに置く」と出た枠か、その真上の字を押します。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&ui.mode==='break'){
-   return `<div class="panel"><p class="ttl">壊す: 「壊」</p><p>壊す相手の字を選んでください。マナは使わず、1試合に${CFG.breakMax}回までです。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">壊す: 「壊」</p><p>壊す相手の字を選んでください。「壊」とマナ${CFG.breakCost}を使い、1ターンに1回だけです。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&c.ch==='壊'){
-   const why=(P.bkn||0)>=CFG.breakMax?`この試合では${CFG.breakMax}回使い終わりました`:!breakOk(E)?`相手の場にコスト8〜10の字が2枚以上いません(いま${bigN(E)}枚)`:'';
-   return `<div class="panel"><p class="ttl">「壊」 破壊カード</p><p class="sm">攻撃も召喚もできません。「壊す」で、相手の場にコスト8〜10の字が2枚以上いるときだけ、相手の場の字を1枚壊します。マナも行動回数も使わず、1試合に${CFG.breakMax}回まで(あと${CFG.breakMax-(P.bkn||0)}回)。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="breakmode" ${why?'disabled':''}>壊す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   const why=P.bk?'このターンは使用済み':P.mana<CFG.breakCost?`マナが足りません(必要 ${CFG.breakCost})`:!E.field.length?'相手の場に字がありません':'';
+   return `<div class="panel"><p class="ttl">「壊」 破壊カード</p><p class="sm">攻撃も召喚もできません。「壊す」で、「壊」とマナ${CFG.breakCost}を使い、相手の場の字を1枚壊します。1ターンに1回、行動回数は使いません。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="breakmode" ${why?'disabled':''}>壊す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&c.trap){
    const ok=(P.traps||[]).some(x=>!x);
@@ -3536,7 +3533,7 @@ function rulesH(){
  <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費し、1ターンに1回だけ使える。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
- <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、相手の場にコスト8〜10の字が2枚以上いるときだけ、相手の場の字を1枚壊す。マナも行動回数も使わず、1試合に${CFG.breakMax}回まで。</li>
+ <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、「壊」とマナ${CFG.breakCost}を払って、相手の場の字を1枚壊す。1ターンに1回、行動回数は使わない。</li>
  <li><b>受(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「受」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
  <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が攻撃を受けたとき、受けたダメージと同じダメージを、攻撃してきた字に与える。ダメージを与えたあと「返」は壊れる。発動にはマナ${CFG.trapCost}が必要。</li>
  <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
@@ -4125,7 +4122,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.86';
+const APP_VER='v2.87';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
