@@ -4,7 +4,8 @@
 <title>字崩し</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Shippori+Mincho+B1:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400&display=swap">
 <style>
 /* Layout: one centered column. CPU bar and field on top, own field below, then the action panel and a scrolling hand. */
 :root{
@@ -12,8 +13,8 @@
   --accent:#2c4a8c; --accent-ink:#ffffff;
   --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#fbe9ee; --heal2:#dff3e4; --pow:#f6d3d3; --rip:#e6dcf5;
   --good:#2f7d5b; --warn:#a86a0c; --bad:#b3372c;
-  --kanji:"Hiragino Kaku Gothic ProN","Hiragino Kaku Gothic Pro","ヒラギノ角ゴ ProN W3","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
-  --sans:"Hiragino Kaku Gothic ProN","Hiragino Kaku Gothic Pro","ヒラギノ角ゴ ProN W3","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --kanji:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -296,10 +297,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 .sheet,.sheet .btn,.sheet .chip,.sheet .chip2,.sheet .peek,.sheet .mini,.sheet .mini.boxed,.sheet .bdq,.sheet .bdl,.sheet .setrow,.sheet .ref,.sheet .panel,.sheet select,.sheet input[type=text],.sheet .bon,.sheet .bst{border-radius:0}
 .bar,.hp,.panel,.btn,.ref,.surr,.bar .rays i{border-radius:0}
-.sheet.menu{font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-weight:500}
-.sheet.menu h2{font-family:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;font-weight:700;letter-spacing:.14em}
-.sheet.menu .deck b{font-family:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;font-weight:700;letter-spacing:.12em}
-.sheet.menu .deck span{font-family:inherit}
 </style>
 
 <div id="app">
@@ -3530,7 +3527,7 @@ async function runCpu(){
  if(G.over)showEnd();
 }
 
-function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').classList.remove('wide','menu');$('sheet').innerHTML=html;$('ov').hidden=false;try{$('sheet').scrollTop=0;$('ov').scrollTop=0;window.scrollTo(0,0);}catch(e){}}
+function showOverlay(html){$('sheet').removeAttribute('style');$('sheet').classList.remove('wide');$('sheet').innerHTML=html;$('ov').hidden=false;try{$('sheet').scrollTop=0;$('ov').scrollTop=0;window.scrollTo(0,0);}catch(e){}}
 function rulesH(){
   return `<ol>
  <li>相手のHP(${CFG.hp})を0にすれば勝ち。負けるのは、本体のHPが0になったときと、自分のターンの始めに手札も山札もなくなっていたときです(山札だけがなくなっても、手札があれば負けません)。</li>
@@ -3712,7 +3709,6 @@ function showTutorial(){
 function showStart(){
  if(ONLINE)netLeave();
  showOverlay(`<button type="button" class="devdot${DEV?' on':''}" data-dev="open" aria-label="開発者モード"></button><h2>字崩し <small style="font-size:.6rem;font-weight:400;color:var(--ink2);vertical-align:baseline">${APP_VER}</small></h2><p>漢字をばらして戦う、1対1のカードバトル。</p><div class="decks"><button type="button" class="btn deck" data-tut="open"><b>チュートリアル</b><span>基本ルール・特殊カード・部首ボーナスを知る。</span></button><button type="button" class="btn deck" data-cpu="open"><b>CPU対戦</b><span>デッキと先攻・後攻を選んで、CPUと対戦する。</span></button><button type="button" class="btn deck" data-two="open"><b>二人対戦</b><span>1台の画面を交代で使って、2人で対戦する。先攻と後攻のデッキを順に選ぶ。</span></button><button type="button" class="btn deck" data-net="open"><b>オンライン対戦</b><span>別々の端末で、合言葉をつかって2人で対戦する。</span></button><button type="button" class="btn deck" data-bd="open"><b>デッキ編成</b><span>全${BD_SIZE}枚を自由に選んで、マイデッキを作る。</span></button></div><p style="font-size:.82rem;color:var(--ink2)">${unlockTxt()}</p>${rulesH()}`);
- $('sheet').classList.add('menu');
 }
 // ---- 解放 ----
 // 開発者用: ファイルを直接開いたとき、または localhost で開いたときは、すべての字を使える。
@@ -4135,7 +4131,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.95';
+const APP_VER='v2.96';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
