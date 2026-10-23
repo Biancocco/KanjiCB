@@ -4,8 +4,7 @@
 <title>字崩し</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap">
 <style>
 /* Layout: one centered column. CPU bar and field on top, own field below, then the action panel and a scrolling hand. */
 :root{
@@ -14,7 +13,7 @@
   --card:#fbfbf6; --card-ink:#151a19; --spell:#dbe9f7; --heal:#fbe9ee; --heal2:#dff3e4; --pow:#f6d3d3; --rip:#e6dcf5;
   --good:#2f7d5b; --warn:#a86a0c; --bad:#b3372c;
   --kanji:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;
-  --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
+  --sans:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho","MS PMincho",serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -4131,7 +4130,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.92';
+const APP_VER='v2.93';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
