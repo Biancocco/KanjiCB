@@ -2698,11 +2698,11 @@ function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
 function startTurn(s){
- G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.rp=false;me.hand.forEach(c=>{c.salv=false;});me.bk=false;me.acts=CFG.acts;me.actB=false;me.cw=0;
+ G.cur=s;G.turn++;const me=S(s);me.tn++;me.max=Math.min(CFG.manaCap,me.tn+(s===(G.sec||'c')?CFG.secondBonus+(me.tn===1?CFG.secondOpen:0):0));me.mana=me.max;me.dr=false;me.fh=false;me.ph=false;me.ct=false;me.rp=false;me.hand.forEach(c=>{c.salv=false;});me.bk=false;me.acts=CFG.acts;me.xa=0;me.actB=false;me.cw=0;
  me.field.forEach(u=>{u.sick=false;u.done=false;});
  for(const sd of ['p','c']){const sx=S(sd);(sx.traps||[]).forEach((tr,i)=>{if(tr&&tr.fired&&tr.turn<G.turn){toGy(sx,tr.card);sx.traps[i]=null;}});}
  log(`${NAME[s]}の ${me.tn} ターン目`);
- me.field.forEach(u=>{if(u.kn)u.kn=false;});
+ me.field.forEach(u=>{if(u.kn)u.kn=false;if(u.tk)u.tk=false;if(u.nt)u.nt=false;});
  S(OP(s)).field.forEach(u=>{if(u.ns&&u.ns<=S(OP(s)).tn)delete u.ns;});
  if(me.nm){me.mana=Math.min(CFG.manaCap,me.mana+me.nm);if(me.mana>me.max)me.max=me.mana;me.nm=0;}
  for(const u of me.field.slice()){if(u.bn&&!G.over){log(`「${u.ch}」が燃えて体力が1減った`);dmgUnit(s,u,1);if(u.bn){u.bn.left--;if(u.bn.left<=0)u.bn=null;}}}
@@ -2725,10 +2725,10 @@ const boostCost=c=>isPower(c)?CFG.powerCost:CFG.crownCost;
 // ---- パーツの追加効果 ----
 // 分解攻撃のパーツが命中したとき、パーツごとに追加効果が出る。同じ効果は1回の分解攻撃で1回だけ。
 // 氵(さんずい)は水、扌(てへん)は手、灬(れっか)は火として扱う。
-const PFX_ALIAS={'氵':'水','扌':'手','灬':'火'};
+const PFX_ALIAS={'氵':'水','扌':'手','灬':'火','忄':'心'};
 const PFX_TXT={
  '水':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
- '木':'自分の場の字すべての体力を1回復',
+ '木':'攻撃した字を含む、自分の場の字すべての体力を1回復',
  '口':'山札から1枚引く(1ターンに1回)',
  '言':'攻撃した字の罠を、発動させずに墓地へ送る',
  '手':'自分の墓地から好きな1枚を手札に戻す(1ターンに1回)',
@@ -2736,10 +2736,15 @@ const PFX_TXT={
  '火':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '土':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
  '貝':'今のターンと次のターンのマナ+1',
- '金':'相手の水の守り・罠・守りを無視して当たる。次の相手のターンまで、この字が受ける単体攻撃のダメージ-1',
+ '金':'相手の水の守り・罠・守りを無視して当たる。次の相手のターンまで、相手はこの字しか狙えず(倒れたら他も狙える)、受ける単体攻撃のダメージ-1',
  '辶':'この字は、次のターンから破棄にマナがかからない(倒されるか破棄されるまで続く)',
  '糸':'攻撃した字は、次の自分のターンに分解攻撃できない',
- '頁':'山札からランダムに出た3枚から、好きな1枚を引く(1ターンに1回)'};
+ '頁':'山札からランダムに出た3枚から、好きな1枚を引く(1ターンに1回)',
+ '月':'自分の字を1枚選ぶ。その字は、次の相手のターン、狙われない',
+ '心':'相手を攻撃するかわりに、自分の字か本体を選んで4回復(忄は2回復)',
+ '女':'相手を攻撃するかわりに、自分の字か本体を選んで2回復',
+ '宀':'攻撃した字を、破棄できなくする(場に1枚だけ。別の字に当てると移る)',
+ '阝':'このターンの行動回数が1増える'};
 const pfxOf=p=>{const k=PFX_ALIAS[p]||p;return PFX_TXT[k]?k:null;};
 const discardCostOf=(me,u)=>(u&&u.fd&&me.tn>u.fd)?0:CFG.discardCost;
 function canSplit(s,u){return u.parts.length>1&&!(u.ns&&u.ns===S(s).tn);}
@@ -2779,6 +2784,8 @@ function reflect(s,u,tr,slot,dm){
  // カットイン(1.1秒)が終わる0.4秒前に、ダメージの演出が出る
  if(G.fx[u.id])G.fx[u.id].dl=.7;{const bk=G.fx['brk'+s+u.slot];if(bk)bk.dl=.7;}
 }
+// 狙える字: 月で隠された字は狙えない。金を発動した字がいれば、その字しか狙えない(全部が隠れているときは制限しない)。
+const tgtPool=list=>{let a=list.filter(x=>!x.nt);if(!a.length)a=list;const k=a.filter(x=>x.tk);return k.length?k:a;};
 // 単体攻撃: 1つの標的に atk ダメージ。相手の場が空なら本体('face')のみ。
 const addCut=ch=>{(G.fx.cutin=G.fx.cutin||[]).push(ch);};
 function attackWhole(s,uid,tid){
@@ -2789,7 +2796,7 @@ function attackWhole(s,uid,tid){
  }
  if(healerOnly(u.ch))return false;
  if(op.field.length){
-  const t=op.field.find(x=>x.id===tid);if(!t)return false;
+  const t=op.field.find(x=>x.id===tid);if(!t||!tgtPool(op.field).includes(t))return false;
   const red=ward(op),sd=t.sh?2:0,kd=t.kn?1:0,dm=Math.max(0,u.atk-red-sd-kd);G.fx['atk'+u.id]={t:'atk'};
   log(`${NAME[s]}の「${u.ch}」が「${t.ch}」を攻撃(${u.atk})`);if(red)log(`${NAME[OP(s)]}の水の守りで、ダメージが${red}減った`);if(sd+kd)log(`「${t.ch}」の守りで、ダメージが${sd+kd}減った`);
   const tr=(op.traps||[])[t.slot];
@@ -2810,13 +2817,16 @@ function attackWhole(s,uid,tid){
 function splitNext(op,u,tids){
  const rem={};op.field.forEach(t=>{rem[t.id]=t.hp;});
  const rd=ward(op);tids.forEach((id,i)=>{if(id!=='face'&&rem[id]!==undefined){const kin=pfxOf(u.parts[i])==='金',t=op.field.find(x=>x.id===id);rem[id]-=Math.max(0,u.sp[i]-(kin?0:rd+(t&&t.sh?1:0)));}});
- const alive=op.field.filter(t=>rem[t.id]>0);
- return{rem,alive,face:alive.length===0};
+ const all=op.field.filter(t=>rem[t.id]>0),alive=tgtPool(all);
+ return{rem,alive,face:all.length===0};
 }
 // 心・りっしんべん(忄)は体力を2、幸は5回復できる。分解攻撃のパーツとして動くときと、「心」「幸」の字そのものが行動するときに、攻撃のかわりに「自分の字1枚」か「自分の本体」を選んで回復する。
 // 回復の標的の書き方: 'hf'=自分の本体 / 'h:<字のid>'=自分の字
 const HEAL={'心':2,'忄':2,'幸':5};
 const partHeals=p=>HEAL[p]!==undefined;
+// 分解攻撃のパーツとして回復するときの量(単体の字の回復量はHEAL)
+const PH=Object.assign({},HEAL,{'心':4,'女':2});
+const pHeals=p=>PH[p]!==undefined,pAmt=p=>PH[p]||0;
 const healAmt=p=>HEAL[p]||0;
 // 「心」「幸」の字そのものは攻撃できず、回復だけができる(分解攻撃のパーツとしては、これまでどおり攻撃も回復もできる)。
 const HEALER_ONLY=new Set(['心','幸']);
@@ -2828,13 +2838,15 @@ function healTo(s,u,label,t,amt){
  if(t==='hf'){const h=Math.min(amt,CFG.hp-me.hp);me.hp+=h;G.fx['face'+s]={t:'heal',n:h,heal:1};log(`${NAME[s]}の「${u.ch}」の「${label}」が、${NAME[s]}の本体を${h}回復した`);}
  else{const x=me.field.find(y=>y.id===Number(t.slice(2)));if(x){const h=Math.min(amt,x.max-x.hp);x.hp+=h;G.fx[x.id]={t:'crown',n:h,heal:1};log(`${NAME[s]}の「${u.ch}」の「${label}」が、「${x.ch}」を${h}回復した`);}}
 }
-function healPart(s,u,i,t){healTo(s,u,u.parts[i],t,healAmt(u.parts[i]));}
+function healPart(s,u,i,t){healTo(s,u,u.parts[i],t,pAmt(u.parts[i]));}
 // 手・頁で選ぶ札がある間は、持ち主が選ぶまで G.pending に待たせる(CPUは自動で選ぶ)。
 function pfxPend(s,p){const o=Object.assign({by:s},p);if(G.pending)(G.pq=G.pq||[]).push(o);else G.pending=o;}
 function pfxPick(cid){
  const pd=G.pending;if(!pd||!pd.kind||G.over||!pd.ids.includes(cid))return false;
  const me=S(pd.by),mine=pd.by==='p'&&!G.two;
- if(pd.kind==='gy'){
+ if(pd.kind==='moon'){
+  const x=me.field.find(y=>y.id===cid);if(!x)return false;x.nt=true;log(`${NAME[pd.by]}の「${x.ch}」は次の相手のターン、狙われない`);
+ }else if(pd.kind==='gy'){
   const c=(me.gy||[]).find(x=>x.id===cid);if(!c)return false;
   if(me.hand.length<CFG.hand){me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${NAME[pd.by]}は墓地から${mine?`「${c.ch}」`:'1枚'}を手札に戻した`);}
   else log(`${NAME[pd.by]}の手札が満杯で、墓地から戻せなかった`);
@@ -2846,9 +2858,9 @@ function pfxPick(cid){
  G.pending=(G.pq&&G.pq.shift())||null;return true;
 }
 // パーツ効果が出たとき: カットイン(薄め)と、対象の字の上に出すパーツを記録する。
-const PFX_SHORT={'水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
+const PFX_SHORT={'月':'狙われない','心':'回復','女':'回復','宀':'破棄不可','阝':'行動+1','水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
 // 字が別の字に変わっても(合成・切り離し・切り裂き)、パーツ効果で受けた状態は引き継ぐ。
-function stKeep(n,u){for(const k of ['sh','bn','kn','fd','ns'])if(u[k]!==undefined)n[k]=u[k];}
+function stKeep(n,u){for(const k of ['sh','bn','kn','fd','ns','nd','tk','nt'])if(u[k]!==undefined)n[k]=u[k];}
 function pfxNote(lab,ids){
  const fx=G.fx,n=fx.pfn||0;fx.pfn=n+1;
  (fx.cutin=fx.cutin||[]).push({k:'pfx',part:lab,txt:PFX_SHORT[lab]||''});
@@ -2873,9 +2885,15 @@ function pfxHit(s,u,i,t,fxd){
   case '火':if(alive){fxd.add(id);note=[t.id];t.bn={src:lab,left:3};log(`${by}で、「${t.ch}」が燃え始めた`);}break;
   case '土':fxd.add(id);note=[u.id];u.sh='土';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
   case '貝':{fxd.add(id);note=[u.id];me.mana=Math.min(CFG.manaCap,me.mana+1);if(me.mana>me.max)me.max=me.mana;me.nm=(me.nm||0)+1;log(`${by}で、マナが1増えた(次のターンも+1)`);break;}
-  case '金':fxd.add(id);note=[u.id];u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンまで、受ける単体攻撃-1)`);break;
+  case '金':fxd.add(id);note=[u.id];u.tk=true;u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンは「${u.ch}」しか狙えず、単体攻撃は-1)`);break;
   case '辶':fxd.add(id);if(!u.fd){note=[u.id];u.fd=me.tn;log(`${by}で、「${u.ch}」は次のターンから破棄が無料になる`);}break;
   case '糸':if(alive){fxd.add(id);note=[t.id];t.ns=op.tn+1;log(`${by}で、「${t.ch}」は次のターンに分解攻撃できなくなった`);}break;
+  case '月':{if(!me.field.length)break;fxd.add(id);note=[u.id];
+   if(human&&me.field.length>1){pfxPend(s,{kind:'moon',ids:me.field.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、狙われなくする自分の字を選べる`);}
+   else{const w=me.field.slice().sort((a,b)=>(a.hp-b.hp)||(CARDS[b.ch].c-CARDS[a.ch].c))[0];w.nt=true;log(`${by}で、「${w.ch}」は次の相手のターン、狙われない`);}
+   break;}
+  case '宀':if(alive){fxd.add(id);note=[t.id];op.field.forEach(x=>{if(x!==t)delete x.nd;});t.nd=true;log(`${by}で、「${t.ch}」は破棄できなくなった`);}break;
+  case '阝':fxd.add(id);note=[u.id];me.acts++;me.xa=(me.xa||0)+1;log(`${by}で、このターンの行動回数が1増えた`);break;
   case '頁':{if(me.pxp===G.turn||!me.deck.length||me.hand.length>=CFG.hand)break;
    fxd.add(id);note=[u.id];me.pxp=G.turn;
    const idx=shuffle(me.deck.map((c,k)=>k)).slice(0,3),top=idx.map(k=>me.deck[k]);
@@ -2891,7 +2909,7 @@ function attackSplit(s,uid,tids){
  if(!Array.isArray(tids)||tids.length!==u.parts.length)return false;
  for(let i=0;i<tids.length;i++){
   const st=splitNext(op,u,tids.slice(0,i));
-  if(isHealTid(tids[i])){if(!partHeals(u.parts[i])||!healOk(me,tids[i]))return false;continue;}
+  if(isHealTid(tids[i])){if(!pHeals(u.parts[i])||!healOk(me,tids[i]))return false;continue;}
   if(st.face){if(tids[i]!=='face')return false;}
   else if(!st.alive.some(t=>t.id===tids[i]))return false;
  }
@@ -3081,7 +3099,7 @@ function salvage(s,cid,disIds,takeIds){
 function discard(s,uid){
  const me=S(s);if(G.over||G.cur!==s)return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
- const dc=discardCostOf(me,u);if(me.mana<dc)return false;
+ if(u.nd)return false;const dc=discardCostOf(me,u);if(me.mana<dc)return false;
  me.mana-=dc;me.field.splice(me.field.indexOf(u),1);toGy(me,u);
  log(`${NAME[s]}は「${u.ch}」を破棄した`);return true;
 }
@@ -3100,8 +3118,8 @@ function aiSplit(u,op,me){
   const rem={};op.field.forEach(t=>{rem[t.id]=t.hp;});let sc=0,face=0;
   tids.forEach((id,k)=>{
    const x=u.sp[k];
-   if(id==='hf'){sc+=Math.min(healAmt(u.parts[k]),CFG.hp-me.hp)*1.0;return;}
-   if(typeof id==='string'&&id.startsWith('h:')){const hu=me.field.find(y=>y.id===Number(id.slice(2)));if(hu)sc+=Math.min(healAmt(u.parts[k]),hu.max-hu.hp)*1.0;return;}
+   if(id==='hf'){sc+=Math.min(pAmt(u.parts[k]),CFG.hp-me.hp)*1.0;return;}
+   if(typeof id==='string'&&id.startsWith('h:')){const hu=me.field.find(y=>y.id===Number(id.slice(2)));if(hu)sc+=Math.min(pAmt(u.parts[k]),hu.max-hu.hp)*1.0;return;}
    if(id==='face'){face+=x;sc+=x*1.5;return;}
    const t=op.field.find(y=>y.id===id);const r=rem[id];const eff=Math.min(x,Math.max(r,0));
    sc+=eff*0.8-(x-eff)*0.15;if(r>0&&x>=r)sc+=val(t);rem[id]-=x;
@@ -3114,7 +3132,7 @@ function aiSplit(u,op,me){
   const st=splitNext(op,u,tids);
   if(st.face)rec(i+1,[...tids,'face']);
   else for(const t of st.alive)rec(i+1,[...tids,t.id]);
-  if(partHeals(u.parts[i])){
+  if(pHeals(u.parts[i])){
    if(me.hp<CFG.hp)rec(i+1,[...tids,'hf']);
    for(const y of me.field)if(y.hp<y.max)rec(i+1,[...tids,'h:'+y.id]);
   }
@@ -3130,7 +3148,7 @@ function aiAction(s){
   if(canSplit(s,u)){const pl=aiSplit(u,op,me);opts.push({k:'split',t:pl.tids,sc:pl.sc});}
   else if(healerOnly(u.ch)){}
   else if(!op.field.length){opts.push({k:'whole',t:'face',sc:u.atk*1.5+(u.atk>=op.hp?100:0)});}
-  else for(const t of op.field)opts.push({k:'whole',t:t.id,sc:Math.min(u.atk,t.hp)*0.8+(u.atk>=t.hp?val(t):0)});
+  else for(const t of tgtPool(op.field))opts.push({k:'whole',t:t.id,sc:Math.min(u.atk,t.hp)*0.8+(u.atk>=t.hp?val(t):0)});
   if(!canSplit(s,u)&&partHeals(u.ch)){
    if(me.hp<CFG.hp)opts.push({k:'whole',t:'hf',sc:Math.min(healAmt(u.ch),CFG.hp-me.hp)*1.0});
    for(const y of me.field)if(y.hp<y.max)opts.push({k:'whole',t:'h:'+y.id,sc:Math.min(healAmt(u.ch),y.max-y.hp)*1.0});
@@ -3145,7 +3163,7 @@ function aiDiscard(s){
  let bc=null,bs=-1;
  for(const c of me.hand){if(c.spell||c.cost+CFG.discardCost>me.mana)continue;const sc=uval(c);if(sc>bs){bs=sc;bc=c;}}
  if(!bc)return null;
- let w=null,ws=1e9;for(const u of me.field){const sc=uval(u);if(sc<ws){ws=sc;w=u;}}
+ let w=null,ws=1e9;for(const u of me.field){if(u.nd)continue;const sc=uval(u);if(sc<ws){ws=sc;w=u;}}
  return w&&bs>ws+4?w:null;
 }
 function aiBreak(s){
@@ -3256,12 +3274,12 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 // いま回復を選べるときの回復量(0なら選べない)。分解攻撃で回復パーツの番か、回復できる単体の字(心・幸)が単体攻撃を選んだとき。
 const healNow=()=>{
  const c=splitCtx();
- if(c){return c.done?0:healAmt(c.su.parts[ui.split.tids.length]);}
+ if(c){return c.done?0:pAmt(c.su.parts[ui.split.tids.length]);}
  if(ui.mode==='whole'&&ui.sel&&ui.sel.kind==='field'){const u=S(ME()).field.find(x=>x.id===ui.sel.id);if(u&&u.parts.length<2)return healAmt(u.ch);}
  return 0;
 };
 const nextHeal=()=>!!healNow();
-const isHealCard=c=>c.parts.some(partHeals)||partHeals(c.ch);
+const isHealCard=c=>c.parts.some(pHeals)||partHeals(c.ch);
 const planTxt=u=>u.parts.map((p,i)=>p+u.sp[i]).join(' + ');
 function splitCtx(){
  if(ui.mode!=='split'||!ui.split||!ui.sel||ui.sel.kind!=='field')return null;
@@ -3299,12 +3317,13 @@ function handSubOk(c){
  if(c.ch==='裂'&&RL.rip&&P.mana>=CFG.ripCost&&!P.rp&&E.field.some(u=>ripsOf(u).length))return true;
  return false;
 }
-const PFX_NOBADGE=new Set(['口','頁','手','言','貝','金']);
+const PFX_NOBADGE=new Set(['口','頁','手','言','貝','金','月','心','女','阝']);
 function fxBadgesH(u,owner){
  if(!owner||u.spell)return '';const tn=S(owner).tn,b=[];
  const pf=(G.fx&&G.fx.pf&&G.fx.pf[u.id])||[];
  if(u.sh)b.push([u.sh,`${u.sh}の守り: 次に受けるダメージ-2(分解攻撃はパーツごとに-1)`]);
  if(u.bn)b.push([u.bn.src,`燃えている: 自分のターンの始めに体力-1(あと${u.bn.left}回)`]);
+ if(u.nd)b.push(['宀','破棄できない: 宀の効果で、この字は破棄できない']);
  if(u.fd)b.push(['辶',tn>u.fd?'破棄にマナがかからない':'次のターンから、破棄にマナがかからない']);
  if(u.ns&&u.ns>=tn)b.push(['糸','縛られている: 次の自分のターンは分解攻撃できない']);
  // いま発動したパーツ(回復・ドローなど、状態として残らないものも含む)
@@ -3343,10 +3362,10 @@ function fieldH(s){
    if(ui.mode==='trapset'&&ui.sel&&ui.sel.kind==='hand'&&!(S(ME()).traps||[])[u.slot])cls+=' target';
    if(ui.mode==='compose'&&ui.sel&&ui.sel.kind==='hand'){const hc=S(ME()).hand.find(x=>x.id===ui.sel.id);if(hc&&composeTo(hc.ch,u.ch))cls+=' target';else cls+=' dim';}
   }else{
-   const dead=!!(ctx&&ctx.pr.rem[u.id]<=0);
-   if(aiming&&!dead&&!(ctx&&ctx.done))cls+=' target';
+   const dead=!!(ctx&&ctx.pr.rem[u.id]<=0),unt=aiming&&!(ctx?ctx.pr.alive.some(q=>q.id===u.id):tgtPool(S(FOE()).field).includes(u));
+   if(aiming&&!dead&&!unt&&!(ctx&&ctx.done))cls+=' target';
    if((G.pending&&!G.pending.kind&&G.pending.by===ME())||(ui.mode==='break'&&ui.sel&&ui.sel.kind==='hand'&&mineTurn()))cls+=' target';
-   if(dead)cls+=' dim';
+   if(dead||(unt&&!(ctx&&ctx.pr.face)))cls+=' dim';
    if(ui.sel&&ui.sel.kind==='enemy'&&ui.sel.id===u.id)cls+=' sel';
    if(ui.mode==='cut'&&ui.sel&&ui.sel.kind==='hand'){cls+=Object.keys(cutsOf(u)).length?' target':' dim';if(ui.cut&&ui.cut.uid===u.id)cls+=' sel';}
    if(ui.mode==='rip'&&ui.sel&&ui.sel.kind==='hand'){cls+=ripsOf(u).length?' target':' dim';if(ui.rip&&ui.rip.uid===u.id)cls+=' sel';}
@@ -3375,7 +3394,7 @@ function barH(s){
 function midH(){
  const who=G.two?NAME[G.cur]+'の番':mineTurn()?'あなたの番':'CPUの番';
  const a=G.cur?S(G.cur).acts:0;
- const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
+ const pips=Array.from({length:CFG.acts+((G.cur&&S(G.cur).actB)?1:0)+((G.cur&&S(G.cur).xa)||0)},(_,i)=>`<i class="apip ${i<a?'on':''}${i>=CFG.acts?' bon':''}"></i>`).join('');
  const tno=G.cur?S(G.cur).tn:0;
  return `<div class="mid">${tno?`<div class="turnno">${tno}ターン目</div>`:''}<div class="turnrow"><span class="chip ${G.cur||'p'}">${who}</span><span class="acts">行動 ${pips}</span></div></div>`;
 }
@@ -3390,7 +3409,7 @@ function unitWhy(u){
 const hlAtk=t=>esc(t).replace(/(単体攻撃|分解攻撃)/g,'<b class="atkw">$1</b>');
 const TRAP_TXT={'止':'その真上の字が分解攻撃を受けたとき発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にします。その分解攻撃で相手の本体へ向かうパーツも、すべて止まります。そのあと「止」は壊れます。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','受':'その真上の字が単体攻撃を受けたとき発動し、そのダメージを一度だけ無効にします(使うと墓地へ)。または、その真上の字が「壊」に狙われたとき発動し、その字と一緒に消える代わりに、相手の場の字を1枚壊します(相手の場が空なら本体に5ダメージ)。壊す字が「受」を持っていても効きません。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。','返':'その真上の字が攻撃を受けたとき発動し、受けたダメージと同じダメージを、攻撃してきた字に与えます。ダメージを与えたあと「返」は壊れます(分解攻撃ならパーツ1つぶんが対象)。発動には、持ち主のマナ'+CFG.trapCost+'(前のターンの残り)が必要で、足りないと発動しません。'};
 function panelH(){
- if(G.pending&&G.pending.by===ME()&&G.pending.kind){const pd=G.pending,me=S(pd.by),pool=pd.kind==='gy'?(me.gy||[]):me.deck,btns=pd.ids.map(id=>pool.find(x=>x.id===id)).filter(Boolean).map(x=>`<button type="button" class="btn" data-act="pfxpick" data-id="${x.id}">${esc(x.ch)}(${CARDS[x.ch].c})</button>`).join('');return `<div class="panel alert"><p class="ttl">${pd.kind==='gy'?`「${esc(pd.by_)}」の効果: 墓地から手札に戻す字を選んでください`:`「${esc(pd.by_)}」の効果: 山札からランダムに出た${pd.ids.length}枚から、引く字を選んでください`}</p><div class="row">${btns}</div></div>`;}
+ if(G.pending&&G.pending.by===ME()&&G.pending.kind){const pd=G.pending,me=S(pd.by),pool=pd.kind==='gy'?(me.gy||[]):pd.kind==='moon'?me.field:me.deck,btns=pd.ids.map(id=>pool.find(x=>x.id===id)).filter(Boolean).map(x=>`<button type="button" class="btn" data-act="pfxpick" data-id="${x.id}">${esc(x.ch)}(${CARDS[x.ch].c})</button>`).join('');return `<div class="panel alert"><p class="ttl">${pd.kind==='gy'?`「${esc(pd.by_)}」の効果: 墓地から手札に戻す字を選んでください`:pd.kind==='moon'?`「${esc(pd.by_)}」の効果: 次の相手のターン、狙われなくする自分の字を選んでください`:`「${esc(pd.by_)}」の効果: 山札からランダムに出た${pd.ids.length}枚から、引く字を選んでください`}</p><div class="row">${btns}</div></div>`;}
  if(G.pending&&G.pending.by===ME())return '<div class="panel alert"><p class="ttl">罠「受」が発動しました。</p><p>相手の場の字を1枚選んで壊してください。</p></div>';
  if(!mineTurn())return `<div class="panel muted"><p>${ONLINE?'相手が操作しています…':'CPUが考えています…'}</p></div>`;
  if(ui.confirmEnd)return '<div class="panel alert"><p class="ttl">まだ攻撃していません。</p><p>ターン終了しますか?</p><div class="row"><button type="button" class="btn yes" data-act="endyes">はい</button><button type="button" class="btn" data-act="endno">いいえ</button></div></div>';
@@ -3474,10 +3493,10 @@ function panelH(){
    if(ui.mode==='split'&&ui.split){
     const cx=splitCtx();
     const n=u.parts.length,k=ui.split.tids.length,done=k>=n;
-    const assigned=ui.split.tids.map((t,i)=>u.parts[i]+(isHealTid(t)?'→回復'+healAmt(u.parts[i])+(t==='hf'?'(本体)':''):u.sp[i]+(t==='face'?'→本体':''))).join(' ');
+    const assigned=ui.split.tids.map((t,i)=>u.parts[i]+(isHealTid(t)?'→回復'+pAmt(u.parts[i])+(t==='hf'?'(本体)':''):u.sp[i]+(t==='face'?'→本体':''))).join(' ');
     let msg;
     if(done)msg='';
-    else if(partHeals(u.parts[k]))msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」は、相手を攻撃する(${u.sp[k]}ダメージ)かわりに、自分の字か自分の本体を選んで${healAmt(u.parts[k])}回復できます。${cx&&cx.pr.face?'相手を攻撃するなら、相手本体の枠を押してください。':''}`;
+    else if(pHeals(u.parts[k]))msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」は、相手を攻撃する(${u.sp[k]}ダメージ)かわりに、自分の字か自分の本体を選んで${pAmt(u.parts[k])}回復できます。${cx&&cx.pr.face?'相手を攻撃するなら、相手本体の枠を押してください。':''}`;
     else if(cx&&cx.pr.face)msg=`相手の場が空になる見込みです。「${u.parts[k]}」(${u.sp[k]}ダメージ)は、相手本体の枠を押して狙ってください。`;
     else msg=`分解攻撃 ${k+1}/${n}: 「${u.parts[k]}」(${u.sp[k]}ダメージ)の標的を、相手の字から選んでください。`;
     return `<div class="panel"><div class="hrow">${head}${assigned?`<span class="plan">${esc(assigned)}</span>`:''}</div>${msg?`<p>${msg}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="dosplit" ${done?'':'disabled'}>攻撃する</button><button type="button" class="btn" data-act="undo" ${ui.split.tids.length?'':'disabled'}>1つ戻す</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
@@ -3485,7 +3504,7 @@ function panelH(){
    const why=unitWhy(u);
    const multi=u.parts.length>1;
    const info=multi?'':(healerOnly(u.ch)?`<p class="sm">攻撃はできません。自分の字か自分の本体を選んで${healAmt(u.ch)}回復する行動だけができます。</p>`:(partHeals(u.ch)?`<p class="sm">攻撃のかわりに、自分の字か自分の本体を選んで${healAmt(u.ch)}回復することもできます。</p>`:''));
-   return `<div class="panel">${multi?`<div class="hrow">${head}<span class="plan">${esc(u.parts.map((p,i)=>p+u.sp[i]).join(' '))}</span></div>`:head}${info}${multi?pfxInfoH(u.parts):''}${why?`<p class="why">${why}</p>`:''}<div class="row">${multi?`<button type="button" class="btn pri" data-act="split" ${why?'disabled':''}>分解攻撃</button>`:`<button type="button" class="btn pri" data-act="whole" ${why?'disabled':''}>${healerOnly(u.ch)?'回復':'単体攻撃'}</button>`}<button type="button" class="btn" data-act="discard" ${P.mana<discardCostOf(P,u)?'disabled':''}>破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel">${multi?`<div class="hrow">${head}<span class="plan">${esc(u.parts.map((p,i)=>p+u.sp[i]).join(' '))}</span></div>`:head}${info}${multi?pfxInfoH(u.parts):''}${why?`<p class="why">${why}</p>`:''}<div class="row">${multi?`<button type="button" class="btn pri" data-act="split" ${why?'disabled':''}>分解攻撃</button>`:`<button type="button" class="btn pri" data-act="whole" ${why?'disabled':''}>${healerOnly(u.ch)?'回復':'単体攻撃'}</button>`}<button type="button" class="btn" data-act="discard" ${(u.nd||P.mana<discardCostOf(P,u))?'disabled':''}>破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='enemy'){
@@ -3573,7 +3592,7 @@ function onCard(kind,id){
   if(ui.mode==='whole'&&ui.sel&&ui.sel.kind==='field'){const su=S(ME()).field.find(x=>x.id===ui.sel.id);if(su&&healerOnly(su.ch))return;performWhole(id);return;}
   if(ui.mode==='split'&&ui.sel&&ui.sel.kind==='field'&&ui.split){
    const cx=splitCtx();
-   if(cx&&!cx.done&&!cx.pr.face&&cx.pr.rem[id]>0){ui.split.tids.push(id);if(autoFace())return;}
+   if(cx&&!cx.done&&!cx.pr.face&&cx.pr.alive.some(q=>q.id===id)){ui.split.tids.push(id);if(autoFace())return;}
    render();return;
   }
   ui={sel:{kind:'enemy',id},mode:null,split:null};render();
@@ -3666,7 +3685,7 @@ function rulesH(){
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
- <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
+ <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=攻撃した字を含む自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで、相手がその字しか狙えなくなり(倒れたら他も狙える)、受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない、月=自分の字1枚を選び、次の相手のターン狙われなくする、心=攻撃のかわりに自分の字か本体を4回復(忄は2)、女=同じく2回復、宀=攻撃した字を破棄できなくする(場に1枚だけ。別の字に当てると移る)、阝=このターンの行動回数+1。破棄不可の字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
  <li>行動は毎ターン${CFG.acts}回で、攻撃に使う。召喚と破棄は行動回数を使わない。1枚の字が動けるのは1ターンに1回で、出したばかりの字は動けない。</li>
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
@@ -3712,7 +3731,7 @@ function tutSet(o){
  p.gy=(o.gy||[]).map(x=>mk(x));p.grave=p.gy.length;
  if(o.mana){p.max=o.mana;p.mana=o.mana;}
  if(o.chp)c.hp=o.chp;
- p.fh=p.ph=p.ct=p.rp=p.dr=false;p.acts=CFG.acts;p.actB=false;
+ p.fh=p.ph=p.ct=p.rp=p.dr=false;p.acts=CFG.acts;p.xa=0;p.actB=false;
  if(o.sets)p.sets=Object.fromEntries(SETDEF.map(d=>[d.k,true]));
  syncAll();resetUi();
 }
@@ -4265,7 +4284,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.105';
+const APP_VER='v2.106';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
