@@ -90,6 +90,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .glyph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--kanji);font-size:2.6rem;font-size:54cqw;line-height:1;padding-bottom:14cqw}
 .cost{position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:.8rem;font-weight:700;display:grid;place-items:center;line-height:1}
 .bst{position:absolute;right:6px;top:6px;font-size:.68rem;border:1px solid var(--ink2);color:var(--ink2);border-radius:4px;padding:0 4px;line-height:1.4}
+.ppx{color:#8a3fd1;font-weight:700}
+:root[data-theme="dark"] .ppx{color:#c58cff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ppx{color:#c58cff}}
 .pt{position:absolute;left:0;right:0;bottom:25px;text-align:center;white-space:nowrap;font-family:var(--kanji);font-size:.78rem;line-height:1;color:var(--ink2);letter-spacing:.1em}
 .glyph:has(+.pt){font-size:46cqw;padding-bottom:20cqw}
 .st{position:absolute;bottom:5px;font-weight:700;font-size:.95rem;font-variant-numeric:tabular-nums;line-height:1.2}
@@ -3303,7 +3306,7 @@ function cardH(u,kind,cls,tag,gtag){
  const hpTxt=kind==='hand'?u.hp:(bh?`<b class="bon">${hpv}</b>`:hpv);
  return `<div class="cw"><button type="button"${dly} class="card ${cls||''}${u.spell?' spc':''}${!u.spell&&(u.ch==='裂'||u.ch==='刀')?' hv':!u.spell&&isPower(u)?' hr':!u.spell&&isFlower(u)?' hl hg':!u.spell&&isHealCard(u)?' hl':''}${fxc}${sfx}${apx}" data-kind="${kind}" data-id="${u.id}" aria-label="${u.ch} コスト${u.cost} 攻撃${u.atk} 体力${u.hp}">`+
   `<span class="cost">${u.cost}</span>${(multi||u.pow||u.fmax)?`<span class="tr">${(u.pow||multi)?`<span class="row1">${u.pow?`<span class="crwn pwb" title="力付与で攻撃力+${u.pow}">力+${u.pow}</span>`:''}${multi?'<span class="bst">分</span>':''}</span>`:''}${u.fmax?`<span class="fbd" title="花回復で最大体力+${u.fmax}">花+${u.fmax}</span>`:''}</span>`:''}`+
-  `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.join('')}</span>`:''}`+
+  `<span class="glyph">${u.ch}</span>${multi?`<span class="pt">${u.parts.map(q=>pfxOf(q)?`<b class="ppx">${q}</b>`:q).join('')}</span>`:''}`+
   (u.spell?`<span class="spl">${esc(u.label||'特殊')}</span>`:`<span class="st atk">${healerOnly(u.ch)?`<small>回復</small>${healAmt(u.ch)}`:`<small>攻</small>${ba?`<b class="bon">${u.atk}</b>`:u.atk}`}</span><span class="st hpv${hurt}"><small>体</small>${hpTxt}</span>`)+`</button>${fxBadgesH(u,owner)}${tag?`<span class="tag">${esc(tag)}</span>`:''}${gtag?`<span class="tag guard">${esc(gtag)}</span>`:''}${dmg}${fx&&fx.heal?RAYS:''}</div>`;
 }
 // パーツの効果を受けている字は、上の真ん中にそのパーツを表示する。カーソルを置くと効果が出る。
@@ -4289,7 +4292,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.107';
+const APP_VER='v2.108';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
