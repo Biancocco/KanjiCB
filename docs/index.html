@@ -2729,9 +2729,9 @@ const PFX_ALIAS={'氵':'水','扌':'手','灬':'火'};
 const PFX_TXT={
  '水':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
  '木':'自分の場の字すべての体力を1回復',
- '口':'山札から1枚引く',
+ '口':'山札から1枚引く(1ターンに1回)',
  '言':'攻撃した字の罠を、発動させずに墓地へ送る',
- '手':'自分の墓地から好きな1枚を手札に戻す',
+ '手':'自分の墓地から好きな1枚を手札に戻す(1ターンに1回)',
  '日':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '火':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '土':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
@@ -2739,7 +2739,7 @@ const PFX_TXT={
  '金':'相手の水の守り・罠・守りを無視して当たる。次の相手のターンまで、この字が受ける単体攻撃のダメージ-1',
  '辶':'この字は、次のターンから破棄にマナがかからない(倒されるか破棄されるまで続く)',
  '糸':'攻撃した字は、次の自分のターンに分解攻撃できない',
- '頁':'山札からランダムに出た3枚から、好きな1枚を引く'};
+ '頁':'山札からランダムに出た3枚から、好きな1枚を引く(1ターンに1回)'};
 const pfxOf=p=>{const k=PFX_ALIAS[p]||p;return PFX_TXT[k]?k:null;};
 const discardCostOf=(me,u)=>(u&&u.fd&&me.tn>u.fd)?0:CFG.discardCost;
 function canSplit(s,u){return u.parts.length>1&&!(u.ns&&u.ns===S(s).tn);}
@@ -2862,10 +2862,10 @@ function pfxHit(s,u,i,t,fxd){
  switch(id){
   case '水':fxd.add(id);note=[u.id];u.sh='水';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
   case '木':{fxd.add(id);let n=0;note=[];me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;note.push(x.id);G.fx[x.id]={t:'crown',n:1,heal:1};}});if(!note.length)note=[u.id];log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
-  case '口':if(me.deck.length){fxd.add(id);note=[u.id];log(`${by}で、1枚引く`);drawExtra(s,1);}break;
+  case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);note=[u.id];me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
   case '言':break;
-  case '手':{if(me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
-   fxd.add(id);note=[u.id];
+  case '手':{if(me.pxt===G.turn||me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
+   fxd.add(id);note=[u.id];me.pxt=G.turn;
    if(human){pfxPend(s,{kind:'gy',ids:me.gy.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、墓地から手札に戻す字を選べる`);}
    else{const c=me.gy.slice().sort((a,b)=>(CARDS[b.ch].c-CARDS[a.ch].c)||(b.id-a.id))[0];
     me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地から1枚を手札に戻した`);}
@@ -2876,8 +2876,8 @@ function pfxHit(s,u,i,t,fxd){
   case '金':fxd.add(id);note=[u.id];u.kn=true;log(`${by}で、防御を無視して当たった(次の相手のターンまで、受ける単体攻撃-1)`);break;
   case '辶':fxd.add(id);if(!u.fd){note=[u.id];u.fd=me.tn;log(`${by}で、「${u.ch}」は次のターンから破棄が無料になる`);}break;
   case '糸':if(alive){fxd.add(id);note=[t.id];t.ns=op.tn+1;log(`${by}で、「${t.ch}」は次のターンに分解攻撃できなくなった`);}break;
-  case '頁':{if(!me.deck.length||me.hand.length>=CFG.hand)break;
-   fxd.add(id);note=[u.id];
+  case '頁':{if(me.pxp===G.turn||!me.deck.length||me.hand.length>=CFG.hand)break;
+   fxd.add(id);note=[u.id];me.pxp=G.turn;
    const idx=shuffle(me.deck.map((c,k)=>k)).slice(0,3),top=idx.map(k=>me.deck[k]);
    if(human){pfxPend(s,{kind:'page',ids:top.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、山札からランダムに${top.length}枚が出た。1枚選べる`);}
    else{const sc=c=>c.cost*2+c.atk+c.hp*0.5;const best=top.slice().sort((a,b)=>sc(b)-sc(a))[0];me.deck.splice(me.deck.indexOf(best),1);me.hand.push(best);log(`${by}で、山札の${top.length}枚から1枚を引いた`);}
@@ -3299,16 +3299,16 @@ function handSubOk(c){
  if(c.ch==='裂'&&RL.rip&&P.mana>=CFG.ripCost&&!P.rp&&E.field.some(u=>ripsOf(u).length))return true;
  return false;
 }
+const PFX_NOBADGE=new Set(['口','頁','手','言','貝','金']);
 function fxBadgesH(u,owner){
  if(!owner||u.spell)return '';const tn=S(owner).tn,b=[];
  const pf=(G.fx&&G.fx.pf&&G.fx.pf[u.id])||[];
  if(u.sh)b.push([u.sh,`${u.sh}の守り: 次に受けるダメージ-2(分解攻撃はパーツごとに-1)`]);
  if(u.bn)b.push([u.bn.src,`燃えている: 自分のターンの始めに体力-1(あと${u.bn.left}回)`]);
- if(u.kn)b.push(['金','金の守り: 次の相手のターンまで、受ける単体攻撃のダメージ-1']);
  if(u.fd)b.push(['辶',tn>u.fd?'破棄にマナがかからない':'次のターンから、破棄にマナがかからない']);
  if(u.ns&&u.ns>=tn)b.push(['糸','縛られている: 次の自分のターンは分解攻撃できない']);
  // いま発動したパーツ(回復・ドローなど、状態として残らないものも含む)
- for(const f of pf){if(!b.some(x=>x[0]===f.p))b.push([f.p,`${f.p}の効果が発動した: ${PFX_TXT[f.p]||''}`]);}
+ for(const f of pf){if(!PFX_NOBADGE.has(f.p)&&!b.some(x=>x[0]===f.p))b.push([f.p,`${f.p}の効果が発動した: ${PFX_TXT[f.p]||''}`]);}
  return b.length?`<span class="fxs${b.length>=3?' n3':''}">${b.map(x=>{const f=pf.find(q=>q.p===x[0]);return `<span class="fxb${f?' pop':''}"${f?` style="animation-delay:${f.d}s"`:''} tabindex="0" data-tip="${esc(x[1])}" aria-label="${esc(x[1])}">${esc(x[0])}</span>`;}).join('')}</span>`:'';
 }
 // カードの説明に出す、パーツごとの追加効果
@@ -3666,7 +3666,7 @@ function rulesH(){
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
- <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く、頁=山札からランダムに出た3枚から好きな1枚を引く、手=墓地の好きな1枚を手札へ(この3つは、字ごとに1回の分解攻撃で1回ずつ)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
+ <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
  <li>行動は毎ターン${CFG.acts}回で、攻撃に使う。召喚と破棄は行動回数を使わない。1枚の字が動けるのは1ターンに1回で、出したばかりの字は動けない。</li>
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
@@ -4265,7 +4265,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.104';
+const APP_VER='v2.105';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
