@@ -4075,7 +4075,7 @@ function showBuilder(){
 }
 // AI同士の模擬戦で選んだ最強デッキ(CPUのような動きの相手に強い)
 const BEST_DECK={'分':1,'死':2,'矢':3,'虫':3,'石':1,'車':2,'国':1,'庫':3,'勇':1,'要':1,'税':1,'態':1,'新':1,'鋼':2,'敵':1,'優':1,'議':2,'臓':1,'警':2};
-const BEST_DECK_DEV={'受':1,'分':1,'矢':1,'虫':3,'死':1,'両':1,'車':1,'透':1,'途':1,'宮':1,'烈':1,'独':1,'堤':1,'惜':1,'設':1,'鉢':1,'構':1,'論':1,'鎖':1,'謝':1,'類':1,'臓':1,'藻':1,'鬱':2,'鑑':1,'露':1,'驚':1};
+const BEST_DECK_DEV={'分':1,'欄':1,'摯':2,'都':1,'浜':1,'繁':1,'死':1,'迎':1,'葉':1,'線':1,'止':1,'気':1,'児':1,'充':1,'陣':2,'発':1,'努':1,'企':1,'枠':1,'庫':1,'圧':1,'宇':1,'硬':1,'矢':1,'事':1,'形':1,'連':1,'恥':1};
 DECKS.bestdev={name:'最強デッキ',note:'中学校の字を含む、いちばん強いデッキ(開発者モード専用。CPU対戦だけで選べる)。',dev:true,list:BEST_DECK_DEV};
 function bdBest(d,label){
  if(!Object.keys(d).every(k=>CARDS[k]&&gradeOpen(CARDS[k].g)))return;
@@ -4292,7 +4292,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.108';
+const APP_VER='v2.109';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
