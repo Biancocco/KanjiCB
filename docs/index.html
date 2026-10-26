@@ -90,6 +90,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .glyph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--kanji);font-size:2.6rem;font-size:54cqw;line-height:1;padding-bottom:14cqw}
 .cost{position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:.8rem;font-weight:700;display:grid;place-items:center;line-height:1}
 .bst{position:absolute;right:6px;top:6px;font-size:.68rem;border:1px solid var(--ink2);color:var(--ink2);border-radius:4px;padding:0 4px;line-height:1.4}
+:root,body,button,*{touch-action:manipulation}
 .ppx{color:#8a3fd1;font-weight:700}
 :root[data-theme="dark"] .ppx{color:#c58cff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ppx{color:#c58cff}}
@@ -2682,8 +2683,8 @@ function syncAll(){if(!G||!G.side)return;syncSide('p');syncSide('c');}
 function newSide(key,n){const deck=mkDeck(key);const sets={};for(const d of SETDEF)sets[d.k]=deck.filter(c=>d.ch.has(c.ch)).length>=d.min;const hand=deck.splice(0,n);return{sets,hp:CFG.hp,deck,hand,field:[],grave:0,gy:[],mana:0,max:0,acts:0,tn:0,cw:0,traps:Array(CFG.trap).fill(null)};}
 // 先攻(あなた)の最初の手札には、コスト1の字を最低1枚入れる。なければ、山札のコスト1の字と手札の1枚を入れ替える。
 function ensureCost1(me){
- if(me.hand.some(c=>c.cost===1))return;
- const idx=me.deck.map((c,i)=>c.cost===1?i:-1).filter(i=>i>=0);
+ if(me.hand.some(c=>!c.spell&&c.cost===1))return;
+ const idx=me.deck.map((c,i)=>!c.spell&&c.cost===1?i:-1).filter(i=>i>=0);
  if(!idx.length||!me.hand.length)return;
  const di=idx[Math.floor(rnd()*idx.length)],hi=Math.floor(rnd()*me.hand.length);
  const tmp=me.hand[hi];me.hand[hi]=me.deck[di];me.deck[di]=tmp;
@@ -2696,7 +2697,8 @@ function ensureCheap(me){
  const di=idx[Math.floor(rnd()*idx.length)],hi=Math.floor(rnd()*me.hand.length);
  const tmp=me.hand[hi];me.hand[hi]=me.deck[di];me.deck[di]=tmp;
 }
-function newGame(pk,ck,pFirst){const pf=pFirst!==false;G={gid:++GID,cur:null,over:null,why:'',turn:0,log:[],fx:{},sec:pf?'c':'p',side:{p:newSide(pk,pf?CFG.start.p:CFG.start.c),c:newSide(ck,pf?CFG.start.c:CFG.start.p)}};ensureCost1(G.side.p);ensureCheap(G.side.c);}
+function newGame(pk,ck,pFirst){const pf=pFirst!==false;G={gid:++GID,cur:null,over:null,why:'',turn:0,log:[],fx:{},sec:pf?'c':'p',side:{p:newSide(pk,pf?CFG.start.p:CFG.start.c),c:newSide(ck,pf?CFG.start.c:CFG.start.p)}};// 先攻は最初のマナが1なので、出せるコスト1の字を必ず入れる。後攻は最初のマナが2なので、コスト1か2の字を入れる。
+ const fs=pf?'p':'c',ss=pf?'c':'p';ensureCost1(G.side[fs]);ensureCheap(G.side[ss]);}
 function log(m){G.log.unshift(m);if(G.log.length>40)G.log.pop();}
 function win(w,why){if(!G.over){G.over=w;G.why=why;log(why);}}
 
@@ -3514,7 +3516,7 @@ function panelH(){
  }
  if(ui.sel&&ui.sel.kind==='enemy'){
   const u=E.field.find(x=>x.id===ui.sel.id);
-  if(u)return `<div class="panel"><p class="ttl">相手の「${u.ch}」 ${healerOnly(u.ch)?'回復 '+healAmt(u.ch):'攻 '+u.atk} 体 ${u.hp}/${u.max}</p><p class="sm">${u.parts.length>1?`分解攻撃のみ: ${esc(planTxt(u))}`:healerOnly(u.ch)?'回復のみ':'単体攻撃のみ'}</p></div>`;
+  if(u)return `<div class="panel"><p class="ttl">相手の「${u.ch}」 ${healerOnly(u.ch)?'回復 '+healAmt(u.ch):'攻 '+u.atk} 体 ${u.hp}/${u.max}</p><p class="sm">${u.parts.length>1?`分解攻撃のみ: ${esc(planTxt(u))}`:healerOnly(u.ch)?'回復のみ':'単体攻撃のみ'}</p>${u.parts.length>1?pfxInfoH(u.parts):''}</div>`;
  }
  const lg=G.log.filter(l=>!/ターン目$/.test(l)).slice(0,2).map(l=>`<li>${esc(l)}</li>`).join('');
  return `<div class="panel muted"><ol class="log" aria-live="polite">${lg}</ol></div>`;
@@ -4292,7 +4294,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.109';
+const APP_VER='v2.110';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
