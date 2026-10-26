@@ -327,7 +327,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 <div class="overlay" id="ov" hidden><div class="sheet" id="sheet"></div></div>
 
 <script id="engine">
-const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:1,secondOpen:0,discardCost:1,crownCost:1,powerCost:3,vitalCost:3,vitalMin:6,vitalMax:7,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:0,breakLow:3,fieldCost:17,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
+const CFG={hp:20,field:3,hand:7,acts:2,manaCap:10,start:{p:3,c:5},splitMax:0.8,secondBonus:1,secondOpen:0,discardCost:1,crownCost:1,powerCost:3,vitalCost:3,powerAtk:2,flowerHeal:3,drawCost:2,composeCost:1,cutCost:3,ripCost:6,trap:3,trapCost:1,breakCost:0,breakLow:3,fieldCost:17,counterDmg:5,salvDiscard:2,salvTake:2,salvMax:5,healPart:2};
 // 小学1〜6年の漢字1026字(小1=80字、小2=160字、小3=200字、小4=202字、小5=193字、小6=191字)。コスト・体力・攻撃力は、画数と意味から計算で決める。
 //  画数 → コスト: 1〜4画=1 / 5〜6画=2 / 7〜8画=3 / 9〜10画=4 / 11〜12画=5 / 13〜14画=6 / 15〜16画=7 / 17〜18画=8 / 19〜20画=9
 //  画数 → 能力の合計(攻撃+体力): 1〜2画=3 / 3〜4画=4 / 5〜6画=7 / 7〜8画=10 / 9〜10画=13 / 11〜12画=16 / 13〜14画=19 / 15〜16画=23 / 17〜18画=27 / 19〜20画=31(コスト4以上は攻撃4割・体力6割)
@@ -2544,7 +2544,7 @@ if(CARDS['鑑'])CARDS['鑑'].h=15;
 // 「再」: 墓地回収カード。攻撃も召喚もできず、手札から使うだけ。
 ['心','幸'].forEach(k=>{CARDS[k].a=0;CARDS[k].tag='';});
 CARDS['再']={s:6,c:0,h:1,p:[],sp:[],a:0,g:5,tag:'',spell:true,label:'墓地回収'};
-// 「活」: 即行動カード。攻撃も召喚もできず、召喚したばかりのコスト6〜7の字に、マナ3で使うと、その字がすぐ攻撃できる。
+// 「活」: 即行動カード。攻撃も召喚もできず、召喚したばかりの字(コストは問わない)に、マナ3で使うと、その字がすぐ攻撃できる。
 if(CARDS['活'])Object.assign(CARDS['活'],{c:0,h:1,a:0,p:[],sp:[],tag:'',spell:true,label:'即行動'});
 // 「止」: 罠用カード。攻撃も召喚もできず、手札から罠の枠に置く。
 Object.assign(CARDS['止'],{c:0,h:1,a:0,p:[],sp:[],tag:'',spell:true,trap:true,label:'罠'});
@@ -2981,8 +2981,8 @@ function crown(s,cid,uid,part){
  log(`${NAME[s]}は「${c.ch}」の花で「${u.ch}」を${h}回復${r>0?`し、最大体力を${r}増やした`:''}(体力${u.hp}/${u.max})`);G.fx[u.id]={t:'crown',n:CFG.flowerHeal,heal:1};
  return true;
 }
-// 活: 召喚したばかりのコスト6〜7の字を、すぐ攻撃できるようにする。マナ3。行動回数は使わない。
-const vitOk=u=>!!u&&!u.spell&&u.sick&&!u.done&&u.cost>=CFG.vitalMin&&u.cost<=CFG.vitalMax;
+// 活: 召喚したばかりの字(コストは問わない)を、すぐ攻撃できるようにする。マナ3。行動回数は使わない。
+const vitOk=u=>!!u&&!u.spell&&u.sick&&!u.done;
 function vital(s,cid,uid){
  const me=S(s);if(G.over||G.cur!==s||G.pending)return false;
  const i=me.hand.findIndex(c=>c.id===cid);if(i<0||me.hand[i].ch!=='活'||me.hand[i].salv||me.mana<CFG.vitalCost)return false;
@@ -3129,9 +3129,9 @@ const val=t=>3+t.cost*1.5+t.atk*0.6;
 function aiSummon(s){
  const me=S(s);if(me.field.length>=CFG.field)return null;
  let best=null,bs=-1;
- // 手札に「活」があり、場に召喚したばかりのコスト6〜7の字がいないときは、マナ3を残してコスト6〜7の字を出せるなら先に出す
+ // 手札に「活」があり、場に召喚したばかりの字がいないときは、マナ3を残して出せる字のうち、いちばん強い字を先に出す
  if(me.hand.some(x=>x.ch==='活'&&!x.salv)&&!me.field.some(vitOk)){
-  for(const c of me.hand){if(c.spell||c.cost<CFG.vitalMin||c.cost>CFG.vitalMax||c.cost+CFG.vitalCost>me.mana||summonWhy(s,c))continue;const sc=c.cost*2+c.atk+c.hp*0.5;if(sc>bs){bs=sc;best=c;}}
+  for(const c of me.hand){if(c.spell||c.cost+CFG.vitalCost>me.mana||summonWhy(s,c))continue;const sc=c.cost*2+c.atk+c.hp*0.5;if(sc>bs){bs=sc;best=c;}}
   if(best)return best;
  }
  for(const c of me.hand){if(c.spell||c.cost>me.mana||summonWhy(s,c))continue;const sc=c.cost*2+c.atk+c.hp*0.5+(c.parts.length>1?1:0);if(sc>bs){bs=sc;best=c;}}
@@ -3469,11 +3469,11 @@ function panelH(){
    return `<div class="panel"><p class="ttl">壊す: 「壊」</p><p>壊す相手の字を選んでください。コスト8〜10の字はマナ${CFG.breakCost}、コスト1〜7の字はマナ${CFG.breakLow}を使います。1ターンに1回だけです。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&ui.mode==='vital'){
-   return `<div class="panel"><p class="ttl">即行動: 「活」</p><p>すぐ動かす自分の字を選んでください(光っている、召喚したばかりのコスト${CFG.vitalMin}〜${CFG.vitalMax}の字が対象です)。マナ${CFG.vitalCost}を使います。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel"><p class="ttl">即行動: 「活」</p><p>すぐ動かす自分の字を選んでください(光っている、召喚したばかりの字が対象です)。マナ${CFG.vitalCost}を使います。</p><div class="row"><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&c.ch==='活'){
-   const why=P.mana<CFG.vitalCost?`マナが足りません(必要 ${CFG.vitalCost})`:!P.field.some(vitOk)?`場に、召喚したばかりのコスト${CFG.vitalMin}〜${CFG.vitalMax}の字がいません`:'';
-   return `<div class="panel"><p class="ttl">「活」 即行動カード</p><p class="sm">攻撃も召喚もできません。召喚したばかりのコスト${CFG.vitalMin}〜${CFG.vitalMax}の字に、マナ${CFG.vitalCost}を使って「活」を使うと、その字は召喚したターンのうちに攻撃できます。行動回数は使いません。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="vitalmode" ${why?'disabled':''}>活を使う${why?'':`(マナ${CFG.vitalCost})`}</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   const why=P.mana<CFG.vitalCost?`マナが足りません(必要 ${CFG.vitalCost})`:!P.field.some(vitOk)?`場に、召喚したばかりの字がいません`:'';
+   return `<div class="panel"><p class="ttl">「活」 即行動カード</p><p class="sm">攻撃も召喚もできません。召喚したばかりの字(コストは問いません)に、マナ${CFG.vitalCost}を使って「活」を使うと、その字は召喚したターンのうちに攻撃できます。行動回数は使いません。</p>${why?`<p class="why">${why}</p>`:''}<div class="row"><button type="button" class="btn pri" data-act="vitalmode" ${why?'disabled':''}>活を使う${why?'':`(マナ${CFG.vitalCost})`}</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
   if(c&&c.ch==='壊'){
    const why=P.bk?'このターンは使用済み':P.field.length>0?'自分の場に字がいるあいだは使えません':!E.field.length?'相手の場に字がありません':!E.field.some(u=>breakable(u)&&P.mana>=breakPay(u))?`マナが足りません(コスト1〜7の字は${CFG.breakLow}必要)`:'';
@@ -3733,7 +3733,7 @@ function rulesH(){
  <li><b>花回復</b>: くさかんむり(艹)を含み、草にまつわる漢字は手札から使って自分の場の字1枚の体力を3回復できる。満タンを超える分は、その分だけ最大体力が増える。マナ${CFG.crownCost}とその字を消費し、1ターンに1回だけ使える。</li>
  <li><b>ドロー</b>: マナ${CFG.drawCost}を払って1枚引ける。1ターンに1回だけで、行動回数は使わない(手札が満杯のときと山札がないときは使えない)。</li>
  <li><b>墓地</b>: 倒された字、破棄した字、手札から使った字、手札があふれて捨てた札は、持ち主の墓地に置かれる。墓地は持ち主ごとに別で、相手の墓地は使えない。</li>
- <li><b>活</b>: 攻撃も召喚もできない特殊カード。召喚したばかりのコスト6〜7の字に、マナ3を使って使うと、その字は召喚したターンのうちに攻撃できる。行動回数は使わない。</li>
+ <li><b>活</b>: 攻撃も召喚もできない特殊カード。召喚したばかりの字(コストは問わない)に、マナ3を使って使うと、その字は召喚したターンのうちに攻撃できる。行動回数は使わない。</li>
  <li><b>壊</b>: 攻撃も召喚もできない特殊カード。手札から使い、自分の場に字がないときだけ、相手の場の字を1枚壊す。コスト8〜10の字はマナ${CFG.breakCost}、コスト1〜7の字はマナ${CFG.breakLow}を使う。行動回数は使わず、試合中の回数制限はないが、1ターンに1回まで。</li>
  <li><b>受(罠)</b>: 罠の枠に伏せる罠カード。真上の字が<b class="atkw">単体攻撃</b>を受けたときは、そのダメージを一度だけ無効にして墓地へ行く。真上の字が「壊」に狙われたときは、その字と一緒に消える代わりに、壊した側の場の字を1枚壊す(壊す字が「受」を持っていても効かない)。壊した側の場に字がなければ、本体に${CFG.counterDmg}ダメージ。</li>
  <li><b>返(罠)</b>: 罠の枠に伏せる罠カード。真上の字が攻撃を受けたとき、受けたダメージと同じダメージを、攻撃してきた字に与える。ダメージを与えたあと「返」は壊れる。発動にはマナ${CFG.trapCost}が必要。</li>
@@ -4327,7 +4327,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.112';
+const APP_VER='v2.113';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
