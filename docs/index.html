@@ -2739,7 +2739,7 @@ const PFX_TXT={
  '木':'攻撃した字を含む、自分の場の字すべての体力を1回復',
  '口':'山札から1枚引く(1ターンに1回)',
  '言':'攻撃した字の罠を、発動させずに墓地へ送る',
- '手':'自分の墓地から好きな1枚を手札に戻す(1ターンに1回)',
+ '手':'自分の墓地からランダムな1枚を手札に戻す(1ターンに1回)',
  '日':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '火':'攻撃した字を燃やす(相手のターンの始めに体力-1、3回)',
  '土':'この字が次に受けるダメージ-2(分解攻撃はパーツごとに-1)',
@@ -2884,11 +2884,9 @@ function pfxHit(s,u,i,t,fxd){
   case '木':{fxd.add(id);let n=0;note=[];me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;note.push(x.id);G.fx[x.id]={t:'crown',n:1,heal:1};}});if(!note.length)note=[u.id];log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
   case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);note=[u.id];me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
   case '言':break;
-  case '手':{if(me.pxt===G.turn||me.hand.length>=CFG.hand||!(me.gy||[]).length)break;
+  case '手':{const pool=(me.gy||[]).filter(c=>c.ch!=='再');if(me.pxt===G.turn||me.hand.length>=CFG.hand||!pool.length)break;
    fxd.add(id);note=[u.id];me.pxt=G.turn;
-   if(human){pfxPend(s,{kind:'gy',ids:me.gy.map(c=>c.id),by_:lab,uch:u.ch});log(`${by}で、墓地から手札に戻す字を選べる`);}
-   else{const c=me.gy.slice().sort((a,b)=>(CARDS[b.ch].c-CARDS[a.ch].c)||(b.id-a.id))[0];
-    me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地から1枚を手札に戻した`);}
+   const c=pool[Math.floor(rnd()*pool.length)];me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地からランダムに「${c.ch}」を手札に戻した`);
    break;}
   case '火':if(alive){fxd.add(id);note=[t.id];t.bn={src:lab,left:3};log(`${by}で、「${t.ch}」が燃え始めた`);}break;
   case '土':fxd.add(id);note=[u.id];u.sh='土';log(`${by}で、「${u.ch}」が次に受けるダメージを軽くする`);break;
@@ -3725,7 +3723,7 @@ function rulesH(){
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
- <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=攻撃した字を含む自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地の好きな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで、相手がその字しか狙えなくなり(倒れたら他も狙える)、受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない(同じ字には続けて使えない)、月=自分の字1枚を選び、次の相手のターン狙われなくする(2ターン続けては発動しない。毎ターン分解攻撃すると1ターンおきに発動)、心=攻撃のかわりに自分の字か本体を4回復(忄は2)、女=同じく2回復、宀=攻撃した字を破棄できなくする(場に1枚だけ。別の字に当てると移る)、阝=このターンの行動回数+1。破棄不可の字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
+ <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=攻撃した字を含む自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地からランダムな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで、相手がその字しか狙えなくなり(倒れたら他も狙える)、受ける単体攻撃-1、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない(同じ字には続けて使えない)、月=自分の字1枚を選び、次の相手のターン狙われなくする(2ターン続けては発動しない。毎ターン分解攻撃すると1ターンおきに発動)、心=攻撃のかわりに自分の字か本体を4回復(忄は2)、女=同じく2回復、宀=攻撃した字を破棄できなくする(場に1枚だけ。別の字に当てると移る)、阝=このターンの行動回数+1。破棄不可の字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
  <li>行動は毎ターン${CFG.acts}回で、攻撃に使う。召喚と破棄は行動回数を使わない。1枚の字が動けるのは1ターンに1回で、出したばかりの字は動けない。</li>
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
@@ -4328,7 +4326,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.115';
+const APP_VER='v2.116';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
