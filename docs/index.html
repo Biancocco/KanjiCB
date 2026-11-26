@@ -2754,7 +2754,7 @@ const PFX_TXT={
  '月':'自分の字を1枚選ぶ。その字は、次の相手のターン、狙われない(2ターン続けては発動しない。毎ターン分解攻撃すると1ターンおきに発動)',
  '心':'相手を攻撃するかわりに、自分の字か本体を選んで4回復(忄は2回復)',
  '女':'攻撃したうえで、自分の字か本体を選んで2回復(体力が減っているものがあるとき)',
- '宀':'攻撃した字を、破棄できなくする(場に1枚だけ。別の字に当てると移る)',
+ '宀':'召喚したとき、相手の場の字すべてに2ダメージ(水の守りなどを反映。狙われない字には当たらない)',
  '阝':'このターンの行動回数が1増える'};
 const pfxOf=p=>{const k=PFX_ALIAS[p]||p;return PFX_TXT[k]?k:null;};
 const discardCostOf=(me,u)=>(u&&u.fd&&me.tn>u.fd)?0:CFG.discardCost;
@@ -2775,12 +2775,21 @@ function dmgUnit(s,u,n){
 }
 function dmgFace(s,n){const me=S(s);if(n<=0)return;const hp0=me.hp;me.hp=Math.max(0,me.hp-n);const pf=G.fx['face'+s];G.fx['face'+s]={t:'hit',n:n+(pf?pf.n:0),pv:pf&&pf.pv!==undefined?pf.pv:hp0};if(me.hp<=0){G.faceKO=true;win(OP(s),`${NAME[s]}のHPが0になった`);}}
 
+// 宀: 召喚したとき、相手の場の字すべてに2ダメージ。水の守り(部首ボーナス・パッシブ)は反映し、月で狙われない字には当たらない。
+function roofBurst(s,c){
+ if(!c.parts||!c.parts.includes('宀'))return;
+ const op=S(OP(s)),hit=op.field.filter(t=>!t.nt);if(!hit.length)return;
+ const red=ward(op),ids=[];
+ for(const t of hit){const sd=t.sh?2:0,dm=Math.max(0,2-red-sd);t.sh=null;ids.push(t.id);log(`「${c.ch}」の「宀」が「${t.ch}」に${dm}ダメージ${red+sd?`(守りで${Math.min(2,red+sd)}減った)`:''}`);dmgUnit(OP(s),t,dm);}
+ pfxNote('宀',ids);
+}
 function summon(s,id,slot){
  const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||G.over||G.cur!==s)return false;
  const c=me.hand[i];if(summonWhy(s,c))return false;
  me.mana-=c.cost;me.hand.splice(i,1);c.sick=true;c.done=false;
  const used=me.field.map(x=>x.slot);let sl=0;while(used.includes(sl))sl++;if(Number.isInteger(slot)&&slot>=0&&slot<CFG.field&&!used.includes(slot))sl=slot;c.slot=sl;me.field.push(c);c.sumT=G.turn;me.lastSum=c.id;G.fx[c.id]={t:'spawn'};
- log(`${NAME[s]}は「${c.ch}」を召喚`);return true;
+ log(`${NAME[s]}は「${c.ch}」を召喚`);
+ roofBurst(s,c);return true;
 }
 // 罠が発動するには、罠の持ち主のマナを1使う(持ち主の前のターンの残り。足りなければ発動しない)。
 function trapPay(owner,ch){if(owner.mana<CFG.trapCost){log(`罠「${ch}」は、マナが足りず発動しなかった`);return false;}owner.mana-=CFG.trapCost;return true;}
@@ -2871,7 +2880,7 @@ function pfxPick(cid){
  G.pending=(G.pq&&G.pq.shift())||null;return true;
 }
 // パーツ効果が出たとき: カットイン(薄め)と、対象の字の上に出すパーツを記録する。
-const PFX_SHORT={'月':'狙われない','心':'回復','女':'回復','宀':'破棄不可','阝':'行動+1','水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
+const PFX_SHORT={'月':'狙われない','心':'回復','女':'回復','宀':'召喚2ダメージ','阝':'行動+1','水':'守り','木':'全体回復','口':'ドロー','言':'罠を墓地へ','手':'墓地から戻す','日':'燃焼','火':'燃焼','土':'守り','貝':'マナ+1','金':'防御無視','辶':'破棄が無料','糸':'分解封じ','頁':'3枚から引く'};
 // 字が別の字に変わっても(合成・切り離し・切り裂き)、パーツ効果で受けた状態は引き継ぐ。
 function stKeep(n,u){for(const k of ['sh','bn','kn','fd','ns','nd','tk','nt','mn','nsl'])if(u[k]!==undefined)n[k]=u[k];}
 function pfxNote(lab,ids){
@@ -2908,7 +2917,6 @@ function pfxHit(s,u,i,t,fxd){
    if(human&&need.length>1){pfxPend(s,{kind:'heal2',ids:need,by_:lab,uch:u.ch});log(`${by}で、2回復する対象を選べる`);}
    else{const w=need.slice().sort((a,b)=>miss(b)-miss(a))[0];healTo(s,u,lab,w<0?'hf':'h:'+w,2);}
    break;}
-  case '宀':if(alive){fxd.add(id);note=[t.id];op.field.forEach(x=>{if(x!==t)delete x.nd;});t.nd=true;log(`${by}で、「${t.ch}」は破棄できなくなった`);}break;
   case '阝':fxd.add(id);note=[u.id];me.acts++;me.xa=(me.xa||0)+1;log(`${by}で、このターンの行動回数が1増えた`);break;
   case '頁':{if(me.pxp===G.turn||!me.deck.length||me.hand.length>=CFG.hand)break;
    fxd.add(id);note=[u.id];me.pxp=G.turn;
@@ -3128,7 +3136,7 @@ function salvage(s,cid,disIds,takeIds){
 function discard(s,uid){
  const me=S(s);if(G.over||G.cur!==s)return false;
  const u=me.field.find(x=>x.id===uid);if(!u)return false;
- if(u.nd)return false;const dc=discardCostOf(me,u);if(me.mana<dc)return false;
+ const dc=discardCostOf(me,u);if(me.mana<dc)return false;
  me.mana-=dc;me.field.splice(me.field.indexOf(u),1);toGy(me,u);
  log(`${NAME[s]}は「${u.ch}」を破棄した`);return true;
 }
@@ -3197,7 +3205,7 @@ function aiDiscard(s){
  let bc=null,bs=-1;
  for(const c of me.hand){if(c.spell||c.cost+CFG.discardCost>me.mana)continue;const sc=uval(c);if(sc>bs){bs=sc;bc=c;}}
  if(!bc)return null;
- let w=null,ws=1e9;for(const u of me.field){if(u.nd)continue;const sc=uval(u);if(sc<ws){ws=sc;w=u;}}
+ let w=null,ws=1e9;for(const u of me.field){const sc=uval(u);if(sc<ws){ws=sc;w=u;}}
  return w&&bs>ws+4?w:null;
 }
 function aiBreak(s){
@@ -3361,7 +3369,6 @@ function fxBadgesH(u,owner){
  if(u.bn)b.push([u.bn.src,`燃えている: 自分のターンの始めに体力-1(あと${u.bn.left}回)`]);
  if(u.tk)b.push(['金','金の守り: 次の相手のターンまで、相手はこの字しか狙えない(倒れたら他も狙える)']);
  if(u.nt)b.push(['月','狙われない: 次の相手のターン、この字は狙われない']);
- if(u.nd)b.push(['宀','破棄できない: 宀の効果で、この字は破棄できない']);
  if(u.fd)b.push(['辶',tn>u.fd?'破棄にマナがかからない':'次のターンから、破棄にマナがかからない']);
  if(u.ns&&u.ns>=tn)b.push(['糸','縛られている: 次の自分のターンは分解攻撃できない']);
  // いま発動したパーツ(回復・ドローなど、状態として残らないものも含む)
@@ -3550,7 +3557,7 @@ function panelH(){
    const why=unitWhy(u);
    const multi=u.parts.length>1;
    const info=multi?'':(healerOnly(u.ch)?`<p class="sm">攻撃はできません。自分の字か自分の本体を選んで${healAmt(u.ch)}回復する行動だけができます。</p>`:(partHeals(u.ch)?`<p class="sm">攻撃のかわりに、自分の字か自分の本体を選んで${healAmt(u.ch)}回復することもできます。</p>`:''));
-   return `<div class="panel">${multi?`<div class="hrow">${head}<span class="plan">${esc(u.parts.map((p,i)=>p+u.sp[i]).join(' '))}</span></div>`:head}${info}${multi?pfxInfoH(u.parts):''}${why?`<p class="why">${why}</p>`:''}<div class="row">${multi?`<button type="button" class="btn pri" data-act="split" ${why?'disabled':''}>分解攻撃</button>`:`<button type="button" class="btn pri" data-act="whole" ${why?'disabled':''}>${healerOnly(u.ch)?'回復':'単体攻撃'}</button>`}<button type="button" class="btn" data-act="discard" ${(u.nd||P.mana<discardCostOf(P,u))?'disabled':''}>破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
+   return `<div class="panel">${multi?`<div class="hrow">${head}<span class="plan">${esc(u.parts.map((p,i)=>p+u.sp[i]).join(' '))}</span></div>`:head}${info}${multi?pfxInfoH(u.parts):''}${why?`<p class="why">${why}</p>`:''}<div class="row">${multi?`<button type="button" class="btn pri" data-act="split" ${why?'disabled':''}>分解攻撃</button>`:`<button type="button" class="btn pri" data-act="whole" ${why?'disabled':''}>${healerOnly(u.ch)?'回復':'単体攻撃'}</button>`}<button type="button" class="btn" data-act="discard" ${P.mana<discardCostOf(P,u)?'disabled':''}>破棄</button><button type="button" class="btn" data-act="cancel">やめる</button></div></div>`;
   }
  }
  if(ui.sel&&ui.sel.kind==='enemy'){
@@ -3733,7 +3740,7 @@ function rulesH(){
  <li>毎ターン1枚引く。ターンの始めに、手札にも自分の場にも攻撃できる字(止・再などの特殊カードと、回復だけの「心」「幸」以外)が1枚もなければ、2枚引く。先攻のあなたの最初の手札には、コスト1の字が最低1枚、後攻のCPUの最初の手札には、コスト1か2の字が最低1枚入る。場に出せる字は最大${CFG.field}枚、手札は${CFG.hand}枚まで。先攻のあなたは3枚、後攻のCPUは${CFG.start.c}枚で始まり、後攻(CPU)は毎ターン、マナが先攻より1多い(最初のターンは2、次は3と増えていく)。</li>
  <li>マナは毎ターン1ずつ増える(最大${CFG.manaCap})。字を召喚するとき(コスト分)と、破棄するとき(${CFG.discardCost})に使う。</li>
  <li>場に出している字のコストの合計は、${CFG.fieldCost}までです。超える字は召喚できません。</li>
- <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=攻撃した字を含む自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地からランダムな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで、相手がその字しか狙えなくなる(倒れたら他も狙える)、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない(同じ字には続けて使えない)、月=自分の字1枚を選び、次の相手のターン狙われなくする(2ターン続けては発動しない。毎ターン分解攻撃すると1ターンおきに発動)、心=攻撃のかわりに自分の字か本体を4回復(忄は2)、女=攻撃したうえで、自分の字か本体を選んで2回復、宀=攻撃した字を破棄できなくする(場に1枚だけ。別の字に当てると移る)、阝=このターンの行動回数+1。破棄不可の字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
+ <li><b>パーツの効果</b>: 分解攻撃のパーツが命中すると、パーツごとの効果が出る(同じ効果は1回の分解攻撃で1回だけ)。水=自分が次に受けるダメージ-2(分解は各パーツ-1)、土=水と同じ守り、木=攻撃した字を含む自分の場の字すべての体力を1回復、口=1枚引く(1ターン1回)、頁=山札からランダムに出た3枚から好きな1枚を引く(1ターン1回)、手=墓地からランダムな1枚を手札へ(1ターン1回)、言=攻撃した字の罠を発動させず墓地へ、日・火=攻撃した字を燃やす(自分のターンの始めに体力-1、3回)、貝=今のターンと次のターンのマナ+1、金=水の守り・罠・守りを無視し、次の相手のターンまで、相手がその字しか狙えなくなる(倒れたら他も狙える)、辶=その字は次のターンから破棄が無料、糸=攻撃した字は次の自分のターンに分解攻撃できない(同じ字には続けて使えない)、月=自分の字1枚を選び、次の相手のターン狙われなくする(2ターン続けては発動しない。毎ターン分解攻撃すると1ターンおきに発動)、心=攻撃のかわりに自分の字か本体を4回復(忄は2)、女=攻撃したうえで、自分の字か本体を選んで2回復、宀=召喚したとき、相手の場の字すべてに2ダメージ(水の守りなどは反映され、月で狙われない字には当たらない)、阝=このターンの行動回数+1。効果を受けている字は、上の真ん中にパーツが表示され、カーソルを置くと説明が出る。</li>
  <li>行動は毎ターン${CFG.acts}回で、攻撃に使う。召喚と破棄は行動回数を使わない。1枚の字が動けるのは1ターンに1回で、出したばかりの字は動けない。</li>
  <li>破棄: 自分の場の字を1枚、墓地へ送れる。場が埋まったとき、弱い字を手放して強い字と入れ替えるために使う。</li>
  <li>攻撃を受けても反撃はない。相手の字が場にいる間は、本体を狙えない。</li>
@@ -4336,7 +4343,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.117';
+const APP_VER='v2.118';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
