@@ -4066,7 +4066,7 @@ function bdPeekH(){
  const k=bd.peek,d=CARDS[k];if(!d||!bd.deck[k])return '';
  const parts=d.p.length>1?d.p.map((p,i)=>p+d.sp[i]).join('+'):'';
  const body=d.spell?`${esc(d.trap?(k==='止'?`罠(分)(${d.s}画)`:k==='受'?`罠(単・壊カウンター)(${d.s}画)`:k==='返'?`罠(カウンター)(${d.s}画)`:`罠(${d.s}画)`):(d.label||'特殊'))}`:`コスト${d.c} ${healerOnly(k)?'回復'+healAmt(k):'攻'+d.a} 体${d.h}<br>${d.s}画 ${parts?'分解 '+esc(parts):healerOnly(k)?'回復のみ':'単体攻撃'}`;
- return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button>`;
+ return `<span class="peek"><span><b>${k}</b> ×${bd.deck[k]}</span><span>${body}</span></span> <button type="button" class="mini" data-bd="sub" data-ch="${k}" aria-label="${k}を1枚減らす">1枚減らす</button> <button type="button" class="mini" data-bd="add" data-ch="${k}" aria-label="${k}を1枚増やす"${(bd.deck[k]>=BD_MAX||bdTotal()>=BD_SIZE)?' disabled':''}>1枚増やす</button>`;
 }
 const bdFl=ch=>CARDS[ch].p.includes('艹')||FLOWER_EXTRA.has(ch);
 const bdPw=ch=>POWER_CHARS.has(ch);
@@ -4349,7 +4349,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.119';
+const APP_VER='v2.120';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
