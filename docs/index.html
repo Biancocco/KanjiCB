@@ -2781,7 +2781,7 @@ function roofBurst(s,c){
  const op=S(OP(s)),hit=op.field.filter(t=>!t.nt);if(!hit.length)return;
  const red=ward(op),ids=[];
  for(const t of hit){const sd=t.sh?2:0,dm=Math.max(0,2-red-sd);t.sh=null;ids.push(t.id);log(`「${c.ch}」の「宀」が「${t.ch}」に${dm}ダメージ${red+sd?`(守りで${Math.min(2,red+sd)}減った)`:''}`);dmgUnit(OP(s),t,dm);}
- pfxNote('宀',ids);
+ c.pfxUsed=true;pfxNote('宀',ids);
 }
 function summon(s,id,slot){
  const me=S(s);const i=me.hand.findIndex(c=>c.id===id);if(i<0||G.over||G.cur!==s)return false;
@@ -2854,7 +2854,7 @@ const healerOnly=ch=>HEALER_ONLY.has(ch);
 const isHealTid=t=>t==='hf'||(typeof t==='string'&&t.startsWith('h:'));
 function healOk(me,t){return t==='hf'||me.field.some(x=>x.id===Number(t.slice(2)));}
 function healTo(s,u,label,t,amt){
- const me=S(s);
+ const me=S(s);u.pfxUsed=true;
  if(t==='hf'){const h=Math.min(amt,CFG.hp-me.hp);me.hp+=h;G.fx['face'+s]={t:'heal',n:h,heal:1};log(`${NAME[s]}の「${u.ch}」の「${label}」が、${NAME[s]}の本体を${h}回復した`);}
  else{const x=me.field.find(y=>y.id===Number(t.slice(2)));if(x){const h=Math.min(amt,x.max-x.hp);x.hp+=h;G.fx[x.id]={t:'crown',n:h,heal:1};log(`${NAME[s]}の「${u.ch}」の「${label}」が、「${x.ch}」を${h}回復した`);}}
 }
@@ -2898,7 +2898,7 @@ function pfxHit(s,u,i,t,fxd){
   case '木':{fxd.add(id);let n=0;note=[];me.field.forEach(x=>{if(x.hp<x.max){x.hp++;n++;note.push(x.id);G.fx[x.id]={t:'crown',n:1,heal:1};}});if(!note.length)note=[u.id];log(`${by}で、自分の場の字${n}枚の体力が1回復した`);break;}
   case '口':if(me.pxd!==G.turn&&me.deck.length){fxd.add(id);note=[u.id];me.pxd=G.turn;log(`${by}で、1枚引く`);drawExtra(s,1);}break;
   case '言':break;
-  case '手':{const pool=(me.gy||[]).filter(c=>c.ch!=='再');if(me.pxt===G.turn||me.hand.length>=CFG.hand||!pool.length)break;
+  case '手':{const pool=(me.gy||[]).filter(c=>c.ch!=='再'&&!c.pfxUsed);if(me.pxt===G.turn||me.hand.length>=CFG.hand||!pool.length)break;
    fxd.add(id);note=[u.id];me.pxt=G.turn;
    const c=pool[Math.floor(rnd()*pool.length)];me.gy.splice(me.gy.indexOf(c),1);me.grave=me.gy.length;const n=mk(c.ch);n.salv=true;me.hand.push(n);log(`${by}で、墓地からランダムに「${c.ch}」を手札に戻した`);
    break;}
@@ -2925,7 +2925,7 @@ function pfxHit(s,u,i,t,fxd){
    else{const sc=c=>c.cost*2+c.atk+c.hp*0.5;const best=top.slice().sort((a,b)=>sc(b)-sc(a))[0];me.deck.splice(me.deck.indexOf(best),1);me.hand.push(best);log(`${by}で、山札の${top.length}枚から1枚を引いた`);}
    break;}
  }
- if(note)pfxNote(lab,note);
+ if(note){u.pfxUsed=true;pfxNote(lab,note);}
 }
 function attackSplit(s,uid,tids){
  const me=S(s),op=S(OP(s)),u=me.field.find(x=>x.id===uid);
@@ -2950,7 +2950,7 @@ function attackSplit(s,uid,tids){
    const t=op.field.find(x=>x.id===tids[i]);
    if(t){
     let tr=(op.traps||[])[t.slot];
-    if(pfxOf(u.parts[i])==='言'&&tr&&!tr.fired){op.traps[t.slot]=null;toGy(op,tr.card);log(`${NAME[s]}の「${u.ch}」の「${u.parts[i]}」で、「${t.ch}」の罠「${tr.card.ch}」が発動せずに墓地へ送られた`);tr=null;if(!fxd.has('言')){fxd.add('言');pfxNote('言',[t.id]);}}
+    if(pfxOf(u.parts[i])==='言'&&tr&&!tr.fired){u.pfxUsed=true;op.traps[t.slot]=null;toGy(op,tr.card);log(`${NAME[s]}の「${u.ch}」の「${u.parts[i]}」で、「${t.ch}」の罠「${tr.card.ch}」が発動せずに墓地へ送られた`);tr=null;if(!fxd.has('言')){fxd.add('言');pfxNote('言',[t.id]);}}
     if(tr&&tr.card.ch==='止'&&!kin){
      if(!tr.fired&&tr.np!==G.turn){if(trapPay(op,'止')){tr.fired=true;tr.turn=G.turn;tr.blocked=[];firedNow.push(tr);log(`${NAME[OP(s)]}の罠「止」が発動した`);addCut('止');}else tr.np=G.turn;}
      if(tr.fired&&tr.turn===G.turn){
@@ -3118,7 +3118,7 @@ function resolveCounter(uid){
 // 墓地回収(再): 手札の「再」と、ほかの手札2枚を捨て、自分の墓地にある字(コストは問わない)2枚を手札に加える。
 // 墓地は持ち主ごとに別々で、回収できるのは自分の墓地だけ。「再」自身は回収できない。この使用で捨てた札は回収対象に含めない。
 // 回収した字は新しい札として戻る(受けたダメージなどは引き継がない)。マナと行動回数は使わない。
-const salvElig=s=>(S(s).gy||[]).filter(c=>c.ch!=='再');
+const salvElig=s=>(S(s).gy||[]).filter(c=>c.ch!=='再'&&!c.pfxUsed);
 function salvage(s,cid,disIds,takeIds){
  const me=S(s);if(G.over||G.cur!==s||!RL.salv)return false;
  const rc=me.hand.find(c=>c.id===cid);if(!rc||rc.salv||rc.ch!=='再')return false;
@@ -3756,7 +3756,7 @@ function rulesH(){
  <li><b>罠の発動</b>: 罠が発動するたびに、罠の持ち主のマナを${CFG.trapCost}使う。使うのは、持ち主の前のターンの残りのマナで、足りないと罠は発動せず、攻撃はそのまま通る。</li>
  <li><b>止(罠)</b>: 攻撃も召喚もできない罠カード。手札から「罠設置」で、罠の空き枠へ無償で伏せる(真上に字がなくてもよい。相手には裏向きで見える)。置いた枠の真上の字が<b class="atkw">分解攻撃</b>を受けると発動し、その分解攻撃(1文字ぶん)のパーツの攻撃をすべて無効にして、そのあと止は壊れる。<b class="atkw">単体攻撃</b>は止められない。</li>
  <li>「再」は、手札から無償で破棄できる。</li>
- <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にある字(コストは問わない)を${CFG.salvTake}枚まで手札に加える(「再」自身は回収できない)。マナと行動回数は使わない。</li>
+ <li><b>再(墓地回収)</b>: 攻撃も召喚もできないカード。手札から使い、ほかの手札${CFG.salvDiscard}枚を捨てて、自分の墓地にある字(コストは問わない)を${CFG.salvTake}枚まで手札に加える(「再」自身と、一度パッシブが発動した字は回収できない)。マナと行動回数は使わない。</li>
  <li><b>切り離し</b>: 手札の「刀」を使い、相手の場の字から切り離せるパーツを1つ選んで、別の字に変える(例: 「森」から「木」を切って「林」に、「明」から「日」を切って「月」に)。切り離したあとの形が、単体の字か、ほかの字のパーツ構成と一致する字が対象(花→化、字→子、森→林など)。偏(亻・扌など)が残るときは、その字(人・手など)に変わる。マナ${CFG.cutCost}を使い、1ターンに1回だけで、行動回数は使わない。受けたダメージ・力付与・花回復の分は引き継ぐ。</li>
  <li>罠の枠が自分と相手に${CFG.trap}つずつある。枠の位置は、場の字の枠と同じ列に対応する。</li>
  <li><b>パーツ付与</b>: 手札の字Xを使い、場の字Yに足すと別の字Zになるとき、YをZに変えられる(例: 手札の「木」で場の「林」→「森」、「日」で「月」→「明」)。マナ${CFG.composeCost}とXを消費し、行動回数は使わない。Zは同じ枠に入り、受けたダメージや力付与・花回復の分、動けるかどうかは引き継ぐ。足りないパーツが1つの字だけが対象で、手札・場の両方に実装済みの字どうしに限る。</li>
@@ -4349,7 +4349,7 @@ function showNetMenu(err){
 function showNetWait(msg,code){
  showOverlay(`<h2>オンライン対戦</h2>${code?`<p>この合言葉を相手に伝えてください。</p><p style="font-size:2rem;letter-spacing:.2em;font-weight:700;text-align:center">${esc(code)}</p>`:''}<p>${esc(msg)}</p><div class="row"><button type="button" class="btn" data-net="cancel">やめる</button></div>`);
 }
-const APP_VER='v2.120';
+const APP_VER='v2.121';
 let cutQ=[],cutBusy=false;
 function showCutin(list){cutQ.push(...list);if(!cutBusy)nextCut();}
 function nextCut(){const it=cutQ.shift();if(!it){cutBusy=false;return;}cutBusy=true;
